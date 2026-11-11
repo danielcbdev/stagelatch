@@ -74,6 +74,10 @@ Distribuído como CLI no pub.dev (`dart pub global activate stagelatch`). Projet
     - Comentário `// stagelatch:ignore <rule-id>` em Dart e `# stagelatch:ignore <rule-id>` em YAML, na linha do finding ou na anterior. O ID é obrigatório; não existe ignore genérico.
     - `exclude` por glob na config, para caminhos inteiros.
     - O `analyze` respeita os `// ignore:` e o `analysis_options.yaml` do próprio analyzer.
+11. **Nunca interativo sem TTY.**
+    - Nenhum comando abre prompt quando stdin ou stdout não é um TTY; o `init` segue com os padrões detectados.
+    - Saída sem cor fora de TTY e quando `NO_COLOR` está definido.
+    - Motivo: hooks, CI e agentes de IA travam em qualquer pergunta interativa.
 
 ## Arquitetura
 
@@ -91,7 +95,7 @@ lib/src/
 - Locations com linha e coluna. YAML lido com `package:yaml` preservando os source spans.
 - Descoberta de pacote: cada arquivo pertence ao `pubspec.yaml` mais próximo acima dele, com um contexto de análise por pacote. Pub workspaces só na `0.3.0`.
 - `HookInstaller`:
-  - respeita `core.hooksPath`, porque husky e lefthook o alteram;
+  - resolve o diretório de hooks com `git rev-parse --git-path hooks`, que já considera o `core.hooksPath` (husky e lefthook o alteram) e os worktrees ligados, onde os hooks ficam no repositório principal;
   - não sobrescreve hooks de terceiros sem `--force`, e faz backup quando sobrescreve;
   - no `uninstall`, remove só hooks marcados com `stagelatch:managed` e restaura o backup, se houver.
 
@@ -103,12 +107,14 @@ lib/src/
 | `stagelatch install` | só instala hooks (por clone) | `0.1.0-dev.1` |
 | `stagelatch uninstall` | remove os hooks gerenciados e restaura backups | `0.1.0-dev.1` |
 | `stagelatch run <hook>` | executa os checks do hook sobre o snapshot dele (decisão 7) | `pre-commit` na `0.1.0-dev.1`, `pre-push` na `0.1.0` |
-| `stagelatch ci --base <ref> --reporter <console\|github\|junit\|sarif>` | mesmo motor sobre o diff do PR | `0.1.0` |
+| `stagelatch ci --base <ref> --reporter <console\|json\|github\|junit\|sarif>` | mesmo motor sobre o diff do PR | `0.1.0` |
 | `stagelatch doctor` | diagnostica hooks, `core.hooksPath`, SDK resolvido, PATH e `min_version` | `0.1.0` |
 | `stagelatch baseline create\|prune` | adoção em projeto legado | `0.2.0` |
 | `stagelatch why <test-file>` | explica a seleção de teste afetado | `0.3.0` |
 
 `run` e `ci` aceitam `--all` (desde a `0.2.0`), que ignora o changeset e varre o snapshot inteiro. É o que o `baseline create` usa.
+
+`run` e `ci` aceitam `--reporter json` (desde a `0.1.0`): a lista de findings com regra, severidade, caminho, linha, coluna, mensagem e fix aplicado, mais o tempo de cada check. É a saída para scripts e agentes de IA, que não devem interpretar texto de terminal.
 
 Exit codes:
 
@@ -194,6 +200,7 @@ Severidade padrão: `error`, exceto `l10n/unused-key` e `tests/new-skip`, que s�
    - Checks `pubspec/path-dependency` e `pubspec/dependency-overrides`.
    - Reporter de console.
    - Hook com fallback para Windows, validado por um `git commit` real no runner Windows.
+   - Comandos não interativos fora de TTY e instalação de hooks correta em worktree ligado.
    - Testes de aceitação.
 2. **`0.1.0`**
    - `format` com autofix seguro.
@@ -204,6 +211,7 @@ Severidade padrão: `error`, exceto `l10n/unused-key` e `tests/new-skip`, que s�
    - Resolução de SDK (`sdk_path`, FVM) e descoberta de pacote pelo `pubspec.yaml` mais próximo.
    - Mapa `rules:`, `exclude` e comentários `stagelatch:ignore`.
    - `doctor`.
+   - Reporter `json`.
    - Benchmark reproduzível no README e GIF de terminal gravado com VHS.
 3. **`0.2.0`:** `codegen`, `l10n` (sem `unused-key`), `assets`, `pubspec` completo com `lockfile-out-of-sync`, `tests/solo`, `tests/new-skip`, baseline, `--all`, JSON Schema da config.
 4. **`0.3.0`:** `tests/affected` (grafo de imports por parse de diretivas), `why`, `l10n/unused-key` (única regra que varre o projeto inteiro; aproveita o grafo e o cache), cache por hash de conteúdo, reporters SARIF e JUnit, pub workspaces.
@@ -231,6 +239,8 @@ Severidade padrão: `error`, exceto `l10n/unused-key` e `tests/new-skip`, que s�
     - pre-push de branch novo e de remoção de branch;
     - `ci` em clone raso;
     - `core.hooksPath` já configurado por outra ferramenta;
+    - worktree ligado (`git worktree add`);
+    - execução sem TTY (nenhum prompt, saída sem cor);
     - hook disparado por um `git commit` real no Windows;
     - CRLF;
     - paths com espaço e unicode.
