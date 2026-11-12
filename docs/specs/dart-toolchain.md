@@ -46,7 +46,7 @@ Built in `0.1.0` for `analyze.scope: affected`, reused by `tests/affected` and `
 
 - The toolchain analyzes the working tree **with overlays**: every path in `GitRepository.divergingFromWorktree(snapshot)` is shown with its snapshot content; a path that is absent from the snapshot is shown as deleted.
 - The result contains the diagnostics of exactly the requested files, as the resolved SDK's `dart analyze` would report them on a working tree identical to the snapshot: same codes, messages, severities and ranges, with `analysis_options.yaml` and `// ignore:` applied.
-- `DartDiagnostic { path, start, end, code, severity (error | warning | info), message, correction? }`, sorted by path, then position, then code.
+- `DartDiagnostic { location, code, severity (error | warning | info), message, correction? }`, sorted by path, then position, then code.
 - Overlays are installed once, before the first request, and never change during a run.
 
 ## 5. Formatting
