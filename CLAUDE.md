@@ -9,12 +9,18 @@ Avalia o snapshot exato que está sendo publicado (o **index** no pre-commit, o 
 
 Distribuído como CLI no pub.dev (`dart pub global activate stagelatch`). Projeto de portfólio: qualidade de engenharia, decisões documentadas e casos de borda resolvidos importam mais que quantidade de features.
 
+## Documentação
+
+Antes de implementar qualquer coisa, leia [`docs/README.md`](docs/README.md) e siga a ordem de leitura de lá: arquitetura, padrões de engenharia, specs e o plano corrente em `docs/plans/`. O fluxo de branches e pull requests está em `docs/engineering/workflow.md`.
+
+Precedência: este arquivo > ADRs > specs > planos. A documentação e os refinamentos listados em `docs/specs/README.md` foram aprovados em 2026-11-12 e já estão refletidos aqui.
+
 ## Idioma
 
 - Conversa comigo: português, direto, sem introduções.
 - Em inglês: código, identificadores, comentários, mensagens de commit, README, CHANGELOG, docs públicas e mensagens do CLI.
 
-## Decisões fixas (ADRs a registrar em `docs/adr/`)
+## Decisões fixas (registradas em `docs/adr/`)
 
 1. **Validar o index, não o working tree.**
    - Blobs lidos por um processo `git cat-file --batch` persistente: um spawn, não um por arquivo.
@@ -57,13 +63,15 @@ Distribuído como CLI no pub.dev (`dart pub global activate stagelatch`). Projet
    | `ci` | HEAD do PR | `merge-base(--base, HEAD)..HEAD` |
 
    - O overlay segue a mesma regra da decisão 1: versão do snapshot para todo arquivo que diverge do working tree.
-   - **Pre-push de branch novo** (`<remote sha>` zerado): a base é o merge-base com o branch padrão do remoto. Remoção de branch (`<local sha>` zerado) não tem o que validar.
+   - **Pre-push de branch novo** (`<remote sha>` zerado): a base é o merge-base com todos os branches daquele remoto (`refs/remotes/<remote>/*`); sem nenhum, a árvore vazia. Remoção de branch (`<local sha>` zerado) e push de tag não têm o que validar.
    - **Merge em andamento** (`MERGE_HEAD` existe): o changeset é só o que difere de **ambos** os pais, isto é, resoluções de conflito e edições manuais. O que veio intacto do outro branch já passou pelo CI dele.
    - **Rebase em andamento:** quando o hook dispara, usa o changeset normal (index vs HEAD).
    - **Clone raso no CI** sem merge-base alcançável: falha com mensagem clara pedindo `fetch-depth: 0`. Nunca analisa um diff errado.
 8. **Paridade com o SDK do projeto.**
    - `format` e `analyze` devem dar o mesmo resultado que o `dart format` e o `dart analyze` do SDK que o time usa. Divergência é bug.
    - Resolução do SDK, nesta ordem: `sdk_path` da config, FVM (`.fvmrc`, `.fvm/flutter_sdk`), `dart` no PATH.
+   - O SDK resolvido tem de estar fora do working tree do repositório: `sdk_path` e `.fvm/` são conteúdo do repositório e não podem apontar para um binário versionado.
+   - Sem `.dart_tool/package_config.json` quando a análise Dart é necessária: erro de uso (exit 64) pedindo `dart pub get`.
    - O mecanismo (bibliotecas embutidas ou delegar ao SDK resolvido) é decidido no spike, com teste de paridade.
    - Plugins do analyzer e `custom_lint` não rodam in-process. É limitação documentada, não bug.
 9. **Um vocabulário só: o ID de regra.**
@@ -78,12 +86,18 @@ Distribuído como CLI no pub.dev (`dart pub global activate stagelatch`). Projet
     - Nenhum comando abre prompt quando stdin ou stdout não é um TTY; o `init` segue com os padrões detectados.
     - Saída sem cor fora de TTY e quando `NO_COLOR` está definido.
     - Motivo: hooks, CI e agentes de IA travam em qualquer pergunta interativa.
+12. **Ports and adapters em cinco módulos.** `domain`, `checks`, `application`, `infrastructure`, `cli`. As dependências apontam para dentro, `dart:io` só existe em `infrastructure` e `cli`, e um teste de arquitetura quebra o build em import proibido.
+13. **Checks consomem fatos, não ASTs.** `DartFileFacts` (diretivas, declarações anotadas, chamadas de teste) é puramente sintático e cacheável por blob id.
+14. **Pipeline em duas fases: fix, depois verify.** Os fixes entram no index antes dos demais checks, então toda location se refere ao conteúdo que será commitado.
+15. **Config e baseline vêm do snapshot,** não do working tree. Config presente só no working tree é usada com aviso.
+16. **Fluxo de branches.** Um branch por tarefa do plano a partir do `develop`, pull request, CI verde, squash-merge. Release por pull request `develop` → `main` com merge commit.
 
 ## Arquitetura
 
 ```
 lib/src/
 ├── domain/          # Check, Finding, Severity, Location, ChangeSet, Fix — sem dependência de git/analyzer/IO
+├── checks/          # uma pasta por check; só importa o domain
 ├── application/     # Pipeline, seleção de checks por hook, scheduler, orçamento de tempo, Baseline, ConfigLoader
 ├── infrastructure/  # GitClient, AnalyzerWorkspace, DartStyleFormatter, PubspecReader, SdkLocator, reporters, HookInstaller
 └── cli/             # comandos (package:args CommandRunner)
@@ -134,6 +148,7 @@ min_version: 0.1.0
 hooks:
   pre-commit: [format, analyze, codegen, pubspec, l10n, assets, sensitive-files, tests/solo, tests/new-skip]
   pre-push: [analyze, tests/affected]
+  # ci: optional; defaults to the union of the two lists above.
 
 # Severity per rule: error | warning | off. Omitted rules keep their default.
 rules:
@@ -172,6 +187,8 @@ baseline: .stagelatch/baseline.json
 
 O schema é publicado como JSON Schema (`0.2.0`) para autocomplete no editor.
 
+Todas as chaves, defaults e validações estão em `docs/specs/config.md`, incluindo `analyze.scope` (`changed`, `affected`, `all`), `codegen.generated_suffixes`, `pubspec.require_sha`, `assets.roots` e `tests.functions`. Tamanhos usam unidades binárias: `1KB` são 1024 bytes.
+
 ## Catálogo de regras
 
 | Check | Regras |
@@ -179,13 +196,14 @@ O schema é publicado como JSON Schema (`0.2.0`) para autocomplete no editor.
 | `format` | `unformatted` |
 | `analyze` | código do diagnóstico do analyzer |
 | `codegen` | `stale`: diff de AST HEAD vs index das declarações anotadas sem o `.g.dart`/`.freezed.dart` correspondente staged |
-| `pubspec` | `path-dependency`, `dependency-overrides`, `unpinned-git`, `build-number-regression`, `lockfile-out-of-sync` (dependências alteradas sem o `pubspec.lock` correspondente no snapshot) |
-| `l10n` | `missing-key`, `placeholder-mismatch`, `unused-key` (lê `l10n.yaml`) |
+| `pubspec` | `path-dependency` (só quando o destino não é um pacote deste repositório), `dependency-overrides`, `unpinned-git`, `build-number-regression`, `lockfile-out-of-sync` (o lock não satisfaz as constraints declaradas), `unparseable` |
+| `l10n` | `missing-key`, `placeholder-mismatch`, `unused-key`, `unparseable` (lê `l10n.yaml`) |
 | `assets` | `missing`, `undeclared`, `max-file-size` |
 | `sensitive-files` | `signing` (`key.properties`, keystores, `.p8`/`.p12`), `credentials` (service account JSON, `.env*`) |
-| `tests` | `solo`, `new-skip` (só skip introduzido no changeset, nunca os antigos), `affected` (pre-push) |
+| `tests` | `solo`, `new-skip` (só skip introduzido no changeset, nunca os antigos), `affected` (pre-push e CI; não roda se os arquivos afetados têm mudanças não commitadas) |
+| `stagelatch` | `invalid-ignore`: ID desconhecido num comentário `stagelatch:ignore` |
 
-Severidade padrão: `error`, exceto `l10n/unused-key` e `tests/new-skip`, que são `warning`.
+Severidade padrão: `error`, exceto `l10n/unused-key`, `tests/new-skip` e `stagelatch/invalid-ignore`, que são `warning`. Gatilho, mensagem exata e location de cada regra estão em `docs/specs/rules.md`.
 
 ## Roadmap
 
@@ -197,14 +215,14 @@ Severidade padrão: `error`, exceto `l10n/unused-key` e `tests/new-skip`, que s�
 1. **`0.1.0-dev.1`**, para reservar o nome no pub.dev; deliberadamente sem analyzer.
    - `init`, `install`, `uninstall`, `run pre-commit`.
    - `GitClient` com `cat-file --batch`.
-   - Checks `pubspec/path-dependency` e `pubspec/dependency-overrides`.
+   - Checks `pubspec/path-dependency`, `pubspec/dependency-overrides` e `pubspec/unparseable`.
    - Reporter de console.
    - Hook com fallback para Windows, validado por um `git commit` real no runner Windows.
    - Comandos não interativos fora de TTY e instalação de hooks correta em worktree ligado.
    - Testes de aceitação.
 2. **`0.1.0`**
    - `format` com autofix seguro.
-   - `analyze` afetado com overlay.
+   - `analyze` afetado com overlay, sobre o grafo de imports (construído aqui e reaproveitado na `0.3.0`).
    - `sensitive-files`.
    - `run pre-push` sobre o commit enviado.
    - `ci --base` com reporter `github`, e composite action (`action.yml`) que instala e roda o `ci`.
@@ -214,8 +232,8 @@ Severidade padrão: `error`, exceto `l10n/unused-key` e `tests/new-skip`, que s�
    - Reporter `json`.
    - Benchmark reproduzível no README e GIF de terminal gravado com VHS.
 3. **`0.2.0`:** `codegen`, `l10n` (sem `unused-key`), `assets`, `pubspec` completo com `lockfile-out-of-sync`, `tests/solo`, `tests/new-skip`, baseline, `--all`, JSON Schema da config.
-4. **`0.3.0`:** `tests/affected` (grafo de imports por parse de diretivas), `why`, `l10n/unused-key` (única regra que varre o projeto inteiro; aproveita o grafo e o cache), cache por hash de conteúdo, reporters SARIF e JUnit, pub workspaces.
-5. **`1.0.0`:** API pública para checks customizados. Só então avaliar separar um `stagelatch_core`.
+4. **`0.3.0`:** `tests/affected` (sobre o grafo de imports da `0.1.0`), `why`, `l10n/unused-key` (única regra que varre o projeto inteiro; aproveita o grafo e o cache), cache por hash de conteúdo, reporters SARIF e JUnit, pub workspaces.
+5. **`1.0.0`:** API pública para checks customizados. Só então avaliar separar um `stagelatch_core`. O desenho atual é rascunho (processo externo com protocolo JSON, em `docs/specs/custom-checks.md`) e precisa ser reaprovado antes do plano 05.
 
 ## Fora de escopo
 
@@ -227,7 +245,9 @@ Severidade padrão: `error`, exceto `l10n/unused-key` e `tests/new-skip`, que s�
 
 ## Padrões de engenharia
 
+- **SDK:** a ferramenta exige Dart `^3.13.0`.
 - **Lints:** `very_good_analysis` com `strict-casts`, `strict-inference` e `strict-raw-types`. Zero warnings.
+- **Saída de console:** só ASCII.
 - **Testes:**
   - Unitários no domínio e na aplicação.
   - **Aceitação com repositórios git reais** criados em diretório temporário.
