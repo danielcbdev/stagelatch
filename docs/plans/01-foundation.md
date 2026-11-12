@@ -301,7 +301,7 @@ test('divergingFromWorktree lists unstaged edits and deletions, sorted', () asyn
 - Consumes: `Documents`, `DocumentResult`, `LocatedNode` and subtypes, `SnapshotFiles`.
 - Produces: `StructuredDocuments implements Documents`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('yaml returns 1-based locations for keys and values', () async {
@@ -326,10 +326,10 @@ test('json rejects YAML that is not JSON', () async {
 test('json returns located nodes for valid JSON', () async { /* {"type": "service_account"} */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, `StructuredDocuments` undefined.
-- [ ] **Step 3: Implement.** YAML: `loadYamlNode` and a recursive conversion from `YamlNode` spans to `LocatedNode`. JSON: validate with `jsonDecode` first, then obtain locations by parsing the same text as YAML, since JSON is a subset. Anchors and aliases are resolved by the YAML library; a document that still exceeds 100,000 nodes after conversion is `DocumentInvalid` ("document is too large").
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(documents): parse YAML and JSON into located nodes`
+- [x] **Step 2: Run.** Expected: FAIL, `StructuredDocuments` undefined.
+- [x] **Step 3: Implement.** YAML: `loadYamlNode` and a recursive conversion from `YamlNode` spans to `LocatedNode`. JSON: validate with `jsonDecode` first, then obtain locations by parsing the same text as YAML, since JSON is a subset. Anchors and aliases are resolved by the YAML library; a document that still exceeds 100,000 nodes after conversion is `DocumentInvalid` ("document is too large").
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(documents): parse YAML and JSON into located nodes`
 
 ### Task 8: Config model and loader
 

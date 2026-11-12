@@ -5,14 +5,15 @@ import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/package_map.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
 import 'package:stagelatch/src/domain/snapshot.dart';
+import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
 
-import 'fake_documents.dart';
 import 'fake_snapshot_files.dart';
 
 /// A [CheckContext] assembled from plain values, for unit-testing checks.
 final class FakeCheckContext implements CheckContext {
   /// Creates a context. Everything is optional: the default is a pre-commit
-  /// run over an empty snapshot with every rule enabled.
+  /// run over an empty snapshot with every rule enabled and the real
+  /// document parser, so a check test only has to supply file content.
   new({
     this.entry = EntryKind.preCommit,
     ChangeSet? changes,
@@ -27,7 +28,7 @@ final class FakeCheckContext implements CheckContext {
   }) : changes = changes ?? ChangeSet(const []),
        snapshot = snapshot ?? FakeSnapshotFiles(const {}),
        packages = packages ?? PackageMap(const []),
-       documents = documents ?? const FakeDocuments({});
+       documents = documents ?? const StructuredDocuments();
 
   final DartToolchain? _dart;
   final Set<RuleId>? _enabled;
