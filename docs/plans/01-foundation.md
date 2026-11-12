@@ -132,7 +132,7 @@ test('value types implement == and hashCode', () { /* each type: equal pair, une
 - Produces: every type of `architecture.md` sections 4, 4.1 and 4.2, and the fact types of `specs/dart-toolchain.md` section 6. `PackageMap` and `DartPackage` are declared here with `DartPackage? packageOf(RepoPath path)` and `List<DartPackage> get packages`; the builder comes in plan 02.
 - Produces (test support): `FakeSnapshotFiles(Map<String, Object> files)` where a `String` value is text and a `List<int>` value is bytes; `FakeDocuments()` that parses with the real adapter once Task 7 lands, and until then from `Map<String, LocatedNode>`; `FakeCheckContext({changes, snapshot, base, enabled, settings})`; `located.dart` helpers `map({...})`, `list([...])`, `scalar(value)` that build `LocatedNode`s with given positions.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('ChangeSet sorts by path and exposes present and lookup', () {
@@ -154,10 +154,10 @@ test('FakeSnapshotFiles.readText returns null for bytes containing NUL', () asyn
 });
 ```
 
-- [ ] **Step 2: Run** `dart test test/domain test/support`. Expected: FAIL, types undefined.
-- [ ] **Step 3: Implement** the interfaces and values. Interfaces carry full doc comments stating each contract (null meanings, ordering). `renamed` requires `previousPath`; every other kind forbids it (assert in the constructor).
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(domain): add change set, snapshot, document and check contracts`
+- [x] **Step 2: Run** `dart test test/domain test/support`. Expected: FAIL, types undefined.
+- [x] **Step 3: Implement** the interfaces and values. Interfaces carry full doc comments stating each contract (null meanings, ordering). `renamed` requires `previousPath`; every other kind forbids it (assert in the constructor).
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(domain): add change set, snapshot, document and check contracts`
 
 ### Task 4: Errors, exit codes and environment
 
