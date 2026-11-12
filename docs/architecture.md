@@ -102,7 +102,7 @@ Files stay small and single-purpose: one public type (plus its private helpers) 
 
 ## 4. Domain model
 
-The signatures below are canonical. Doc comments are omitted here for space; in code every public member has one.
+The signatures below are canonical. Doc comments are omitted here for space; in code every public member has one. Constructors are shown with the class name for readability; code declares them with `new` and `factory` as [`coding-standards.md`](engineering/coding-standards.md#3-types-and-immutability) requires.
 
 ```dart
 /// A repository-relative path: forward slashes, no leading slash, no `.`/`..`
@@ -128,13 +128,17 @@ final class RuleDescriptor {
 }
 
 enum Severity { warning, error }
-enum RuleLevel { off, warning, error }
+enum RuleLevel { off, warning, error; Severity? get severity; }   // null for off
 
-final class Position { const Position(this.line, this.column); }   // both 1-based
-final class Location { const Location(this.path, this.start, this.end); }
+final class Position implements Comparable<Position> { const Position(this.line, this.column); }   // both 1-based
+final class Location {
+  const Location(this.path, this.start, this.end);   // end is exclusive
+  const Location.wholeFile(RepoPath path);           // 1:1, for path-based findings
+}
 
 final class Finding {
   const Finding({required this.rule, required this.severity, required this.message, required this.location});
+  static int compare(Finding a, Finding b);   // path, start, rule, message
 }
 
 /// Full replacement text for one file of the snapshot.

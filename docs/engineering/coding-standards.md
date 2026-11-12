@@ -52,7 +52,8 @@ Adding any other runtime dependency requires an ADR that states what it replaces
 ## 3. Types and immutability
 
 - Classes are `final` unless designed for extension. Sum types are `sealed` and consumed with exhaustive `switch`; never add a `default` branch to a switch over a sealed type or enum.
-- Constructors are declared with `new` instead of repeating the class name (`const new({required this.path})`), as the `unnecessary_type_name_in_constructor` lint of Dart 3.13 requires. `dart fix --apply` rewrites the old form.
+- Constructors are declared without repeating the class name, as the `unnecessary_type_name_in_constructor` lint of Dart 3.13 requires: `const new(this.path)`, `const new wholeFile(RepoPath path)`, `factory(String value)`, `factory parse(String value)`. `dart fix --apply` rewrites the old form.
+- A class that overrides `==` and `hashCode` is annotated `@immutable` (`package:meta`); the `avoid_equals_and_hash_code_on_mutable_classes` lint requires it.
 - Fields are `final`. Constructors are `const` where possible. Collections received by a constructor are stored as unmodifiable copies.
 - Value types implement `==` and `hashCode` by hand and have a test for both. No equality package.
 - No `dynamic`. Data from YAML, JSON or a process is narrowed with pattern matching, never with `as`.

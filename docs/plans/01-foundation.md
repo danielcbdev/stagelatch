@@ -86,7 +86,7 @@ test('packageVersion equals the version in pubspec.yaml', () { /* reads pubspec.
 **Interfaces:**
 - Produces: `RepoPath`, `RuleId`, `RuleDescriptor`, `Severity`, `RuleLevel`, `Position`, `Location`, `Finding`, `Fix` exactly as in `architecture.md` section 4; plus `static int Finding.compare(Finding a, Finding b)` ordering by path, line, column, rule, message.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('RepoPath rejects paths that are not clean repository paths', () {
@@ -114,10 +114,10 @@ test('Finding.compare orders by path, line, column, rule, message', () { /* five
 test('value types implement == and hashCode', () { /* each type: equal pair, unequal pair */ });
 ```
 
-- [ ] **Step 2: Run** `dart test test/domain`. Expected: FAIL, types undefined.
-- [ ] **Step 3: Implement** the types. `RepoPath` compares by code unit so ordering is identical on every platform. `RuleId` parts match `[a-z0-9][a-z0-9_-]*`. `Position` asserts both values are at least 1.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(domain): add path, rule, location, finding and fix values`
+- [x] **Step 2: Run** `dart test test/domain`. Expected: FAIL, types undefined.
+- [x] **Step 3: Implement** the types. `RepoPath` compares by code unit so ordering is identical on every platform. `RuleId` parts match `[a-z0-9][a-z0-9_-]*`. `Position` asserts both values are at least 1.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(domain): add path, rule, location, finding and fix values`
 
 ### Task 3: Domain contracts and their fakes
 
