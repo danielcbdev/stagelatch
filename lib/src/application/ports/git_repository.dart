@@ -172,6 +172,10 @@ abstract interface class GitRepository {
 
   /// Writes [fixes] to the index and returns what was applied. Only valid
   /// when the snapshot being judged is the index.
+  ///
+  /// After it returns, [files] for the index is a view of the updated
+  /// index, so that whoever reopens the snapshot sees the fixed content
+  /// (ADR-0014).
   Future<List<AppliedFix>> applyFixes(List<Fix> fixes);
 
   /// Ends every git process this repository started.

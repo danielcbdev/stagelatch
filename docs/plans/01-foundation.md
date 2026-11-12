@@ -457,7 +457,7 @@ test('a disabled rule produces nothing', () async { /* enabled: {pubspec/depende
 - Consumes: `GitRepository`, `ConfigLoader`, `Check`, `Config`, `Documents`, `WorkingTree`.
 - Produces: `CheckRegistry(List<Check> checks) implements CheckCatalog` with `List<Check> get checks`; `Set<RuleId> enabledRules(List<HookSelector> selectors, CheckRegistry registry)`; `RunRequest({required EntryPoint entry, bool all = false, bool allowFixes = true})`; `RunReport`, `CheckTiming { id, duration, errors, warnings, fixed }`, `Verdict`; `Clock`; `Reporter`; `Pipeline({required GitRepository git, required ConfigLoader configLoader, required CheckRegistry registry, required Documents documents, required Clock clock, required Version toolVersion})` with `Future<List<RunReport>> run(RunRequest request)`; filter functions `applyLevels`, `applyExclude`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('a check selector enables all its rules; a rule selector enables one', () {
@@ -489,10 +489,10 @@ test('a check with no enabled rule does not run', () async { /* FakeCheck.runCou
 test('config notices are carried into the report', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run** `dart test test/application/pipeline`. Expected: FAIL, `Pipeline` undefined.
-- [ ] **Step 3: Implement** the eight steps of `architecture.md` section 5.3. The filter chain is a list of pure functions applied in the order of `specs/baseline-and-suppression.md` section 1; inline ignore and baseline are added in later plans at their positions. `PipelineCheckContext` creates `context.dart` lazily and throws `UnsupportedError('Dart toolchain arrives in 0.1.0')` until plan 02 wires it.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(pipeline): add two-phase pipeline, selection and finding filters`
+- [x] **Step 2: Run** `dart test test/application/pipeline`. Expected: FAIL, `Pipeline` undefined.
+- [x] **Step 3: Implement** the eight steps of `architecture.md` section 5.3. The filter chain is a list of pure functions applied in the order of `specs/baseline-and-suppression.md` section 1; inline ignore and baseline are added in later plans at their positions. `PipelineCheckContext` creates `context.dart` lazily and throws `UnsupportedError('Dart toolchain arrives in 0.1.0')` until plan 02 wires it.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(pipeline): add two-phase pipeline, selection and finding filters`
 
 ### Task 11: Console reporter and output sanitizer
 

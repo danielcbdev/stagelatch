@@ -79,7 +79,7 @@ Adding any other runtime dependency requires an ADR that states what it replaces
 ## 6. Errors
 
 - User content problems are findings. Invocation problems are `UsageException`. Config problems are `ConfigException`. Everything else is a bug and surfaces as exit 70.
-- `catch` always names a type. The only `catch (Object)` is in `cli/runner.dart`.
+- `catch` always names a type. Everything is caught in exactly two places: `Pipeline`, around each check, to name the check that failed; and `cli/runner.dart`, around the whole command. `StackOverflowError` is caught in one more place, the document parser, as a guard against hostile input (security rule S6).
 - Never swallow an error. Never return `null` to mean "something failed".
 - An error message says what happened, on which path or command, and what the user can do next.
 

@@ -308,7 +308,8 @@ abstract interface class GitRepository {
   SnapshotFiles files(SnapshotRef ref);
   Future<Set<RepoPath>> divergingFromWorktree(SnapshotRef ref);
   /// Index snapshots only. Returns what was applied and whether the working
-  /// tree copy was refreshed.
+  /// tree copy was refreshed. Afterwards, files(IndexSnapshot()) is a view
+  /// of the updated index.
   Future<List<AppliedFix>> applyFixes(List<Fix> fixes);
   Future<void> close();
 }
@@ -316,7 +317,7 @@ abstract interface class GitRepository {
 /// Receives every run of one invocation: one for pre-commit and ci, one per
 /// pushed branch for pre-push.
 abstract interface class Reporter { void report(List<RunReport> runs); }
-abstract interface class Clock { Stopwatch stopwatch(); }
+abstract interface class Clock { Duration get elapsed; }   // monotonic; only differences matter
 ```
 
 `HookStore`, `WorkingTree`, `BaselineStore`, `DartToolchainFactory` and `SdkLocator` follow the same shape and are specified in the plan that introduces them.
@@ -326,8 +327,8 @@ abstract interface class Clock { Stopwatch stopwatch(); }
 `Pipeline.run(RunRequest) -> Future<List<RunReport>>` is the one use case behind `run` and `ci` (ADR-0005). It returns one report per `ResolvedRun`. For each one:
 
 1. **Load config** from the snapshot (ADR-0015). Invalid config throws `ConfigException`.
-2. **Select** checks: the hook's selectors become a set of enabled `RuleId`s; a check runs when at least one of its rules is enabled.
-3. **Fix phase** (ADR-0014): run checks with `CheckPhase.fix`. When the snapshot is the index and the check's `fix` setting is on, apply the fixes through `GitRepository.applyFixes` and reopen the snapshot. Otherwise keep their findings.
+2. **Select** checks: the hook's selectors become a `Selection`. A whole-check selector enables every rule of that check, including the open-ended rule names of `analyze`; a check runs when it is selected whole or by at least one rule.
+3. **Fix phase** (ADR-0014): run checks with `CheckPhase.fix`, one at a time. When the snapshot is the index and fixes are allowed, apply each returned fix whose finding survives the filters of step 5 (so a rule that is off, or an excluded path, is never fixed) through `GitRepository.applyFixes`, and reopen the snapshot. A fixed finding becomes an `AppliedFix`; without fixing, the findings are kept.
 4. **Verify phase:** run the remaining checks concurrently with `Future.wait`, in registry order.
 5. **Filter** findings through a fixed chain: rule selection, `rules:` levels, `exclude` globs, inline `stagelatch:ignore`, baseline.
 6. **Sort** findings by `(path, line, column, rule, message)`. Completion order of futures never reaches the output.
@@ -365,7 +366,7 @@ final class InternalException extends StagelatchException {}   // exit 70
 
 - Problems in **user content** are findings, never exceptions. A broken `pubspec.yaml` yields `pubspec/unparseable`.
 - Problems in **how the tool was invoked** are `UsageException`.
-- Anything unexpected is caught once, in `cli/runner.dart`, and mapped to exit 70 with the check name and a bypass hint. No other `catch (Object)` exists in the codebase.
+- Anything unexpected is mapped to exit 70 with a bypass hint. Two places catch everything, and no other does: `Pipeline`, around each check, because only there is it still known which check was running; and `cli/runner.dart`, around the whole command.
 
 ## 6. Infrastructure decisions that shape everything else
 
