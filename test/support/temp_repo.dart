@@ -103,11 +103,13 @@ final class TempRepo {
 
   /// Runs git in the repository and returns its standard output.
   ///
-  /// Throws [StateError] with git's error output when it exits non-zero.
+  /// Throws [StateError] with git's error output when the exit code is not
+  /// in [okExitCodes]; a test that provokes a conflict expects 1.
   Future<String> git(
     List<String> args, {
     String? stdin,
     Map<String, String> env = const {},
+    Set<int> okExitCodes = const {0},
   }) async {
     final process = await Process.start(
       'git',
@@ -121,7 +123,7 @@ final class TempRepo {
     if (stdin != null) process.stdin.write(stdin);
     await process.stdin.close();
     final exitCode = await process.exitCode;
-    if (exitCode != 0) {
+    if (!okExitCodes.contains(exitCode)) {
       throw StateError(
         'git ${args.join(' ')} exited with $exitCode: ${await stderr}',
       );

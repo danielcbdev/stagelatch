@@ -57,16 +57,7 @@ final class FakeSnapshotFiles implements SnapshotFiles {
     final bytes = _content[path];
     if (bytes == null) return null;
     if (!(_modes[path] ?? FileMode.regular).isFile) return null;
-    if (bytes.length > maxTextBytes) return null;
-    // Same heuristic as git: a NUL in the first 8000 bytes means binary.
-    final probe = bytes.length < 8000 ? bytes.length : 8000;
-    if (bytes.sublist(0, probe).contains(0)) return null;
-    try {
-      final text = utf8.decode(bytes);
-      return text.startsWith('﻿') ? text.substring(1) : text;
-    } on FormatException {
-      return null;
-    }
+    return decodeSnapshotText(bytes);
   }
 
   @override
