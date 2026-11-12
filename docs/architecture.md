@@ -153,17 +153,31 @@ final class FileChange {
 }
 
 final class ChangeSet {
-  const ChangeSet(this.changes);
-  final List<FileChange> changes;          // sorted by path
+  factory ChangeSet(Iterable<FileChange> changes);   // sorts; rejects a duplicate path
+  final List<FileChange> changes;          // sorted by path, unmodifiable
   Iterable<FileChange> get present;        // everything except deleted
+  bool get isEmpty;
+  int get length;
   FileChange? operator [](RepoPath path);
+}
+
+final class DartPackage {
+  const DartPackage({required this.root, required this.name, this.usesFlutter = false});   // null root: repository root
+}
+
+final class PackageMap {
+  factory PackageMap(Iterable<DartPackage> packages);   // rejects a duplicate root
+  final List<DartPackage> packages;        // sorted by root, repository root first
+  DartPackage? packageOf(RepoPath path);   // deepest enclosing package
 }
 ```
 
 ### 4.1 Ports consumed by checks
 
 ```dart
-enum FileMode { regular, executable, symlink, gitlink }
+const int maxTextBytes = 5 * 1024 * 1024;   // largest file readText returns
+
+enum FileMode { regular, executable, symlink, gitlink; bool get isFile; }
 
 final class SnapshotEntry {
   const SnapshotEntry({required this.path, required this.mode, required this.blobId});
@@ -195,6 +209,16 @@ abstract interface class Documents {
   Future<DocumentResult> yaml(SnapshotFiles files, RepoPath path);
   Future<DocumentResult> json(SnapshotFiles files, RepoPath path);
 }
+
+enum DiagnosticSeverity { error, warning, info }
+
+final class DartDiagnostic {
+  const DartDiagnostic({required this.location, required this.code, required this.severity, required this.message, this.correction});
+}
+
+sealed class FormatOutcome {}
+final class Formatted extends FormatOutcome { String get text; }
+final class Unparseable extends FormatOutcome {}
 
 abstract interface class DartToolchain {
   Future<List<DartDiagnostic>> diagnose(Set<RepoPath> files);
@@ -234,7 +258,7 @@ abstract interface class CheckContext {
   PackageMap get packages;
   Documents get documents;
   DartToolchain get dart;                // started lazily on first use
-  Future<ImportGraph> get importGraph;   // since 0.1.0; built lazily, once per run
+  Future<ImportGraph> get importGraph;   // added in plan 02; built lazily, once per run
   TestRunner get tests;                  // since 0.3.0
   Future<Set<RepoPath>> get diverging;   // since 0.3.0; paths that differ from the working tree
   String? get targetBranch;

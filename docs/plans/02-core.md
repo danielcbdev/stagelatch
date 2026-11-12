@@ -182,7 +182,7 @@ test('each unresolved source has its own message', () async {
 
 **Files:**
 - Create: `lib/src/application/packages/package_map_builder.dart`
-- Modify: `lib/src/domain/package_map.dart` (implementation of the lookup)
+- Uses: `lib/src/domain/package_map.dart` (the lookup already exists and is tested since plan 01, task 3)
 - Test: `test/application/packages/package_map_builder_test.dart`
 
 **Interfaces:**
