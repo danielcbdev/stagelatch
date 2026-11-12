@@ -170,7 +170,7 @@ test('FakeSnapshotFiles.readText returns null for bytes containing NUL', () asyn
 **Interfaces:**
 - Produces: `UsageException(String message)`, `ConfigException(String message, {Location? location})`, `InternalException(String message, {String? where, Object? cause, StackTrace? stackTrace})`; `enum ExitCode { pass(0), findings(1), usage(64), internal(70), config(78) }` with `int get code` and `static ExitCode forException(StagelatchException e)`; `Environment({required String workingDirectory, required Map<String, String> variables, required bool stdoutIsTerminal, required bool stdinIsTerminal, bool? colorOverride})` with `bool get useColor`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('useColor follows override, then terminal and NO_COLOR', () {
@@ -190,10 +190,10 @@ test('exit codes map one to one', () {
 });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, types undefined.
-- [ ] **Step 3: Implement.** `ConfigException.toString()` renders `stagelatch.yaml:<line>:<column>: <message>` when a location is present.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(cli): add error hierarchy, exit codes and environment value`
+- [x] **Step 2: Run.** Expected: FAIL, types undefined.
+- [x] **Step 3: Implement.** `ConfigException.toString()` renders `stagelatch.yaml:<line>:<column>: <message>` when a location is present.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(cli): add error hierarchy, exit codes and environment value`
 
 ### Task 5: Git process, persistent blob reader and the test repository
 
