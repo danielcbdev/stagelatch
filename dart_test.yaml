@@ -1,0 +1,6 @@
+# Tags used by the test suite (docs/engineering/testing.md).
+tags:
+  # Needs a real git executable and creates repositories in a temp directory.
+  git:
+  # Spawns the real executable through a real git hook.
+  e2e:

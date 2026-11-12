@@ -208,7 +208,7 @@ test('exit codes map one to one', () {
 - Consumes: `InternalException`, `Environment`.
 - Produces: `GitProcess({required String workingDirectory, required Map<String, String> environment})` with `Future<GitResult> run(List<String> args, {List<int>? stdin, Set<int> okExitCodes = const {0}})` and `Future<Process> start(List<String> args)`; `GitResult { int exitCode; Uint8List stdout; String stderr; String get text; List<String> get nulSeparated }`; `CatFileBatch(GitProcess git)` with `Future<Uint8List> read(String blobId)`, `Future<int> size(String blobId)`, `Future<void> close()`, `int get spawnCount`; `TempRepo` as in `testing.md` section 3 (its `stagelatch` method is added in Task 13).
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('reads a blob byte for byte, including NUL and CRLF', () async {
@@ -231,10 +231,10 @@ test('run returns stdout split on NUL', () async { /* git ls-files -z */ });
 test('an unexpected exit code raises InternalException naming the command and stderr', () async { /* git rev-parse --verify nope */ });
 ```
 
-- [ ] **Step 2: Run** `dart test test/infrastructure/git`. Expected: FAIL, types undefined.
-- [ ] **Step 3: Implement** per `specs/git.md` sections 1 and 3.1. Requests are chained on a single future so only one is on the pipe at a time. `--batch` and `--batch-check` are two lazily started processes. Every flag passed to git has a comment. `TempRepo.create` applies the local git config listed in `testing.md` section 3; `stageContent` uses `hash-object -w --stdin` and `update-index --add --cacheinfo`.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(git): add git process wrapper and persistent cat-file reader`
+- [x] **Step 2: Run** `dart test test/infrastructure/git`. Expected: FAIL, types undefined.
+- [x] **Step 3: Implement** per `specs/git.md` sections 1 and 3.1. Requests are chained on a single future so only one is on the pipe at a time. `--batch` and `--batch-check` are two lazily started processes. Every flag passed to git has a comment. `TempRepo.create` applies the local git config listed in `testing.md` section 3; `stageContent` uses `hash-object -w --stdin` and `update-index --add --cacheinfo`.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(git): add git process wrapper and persistent cat-file reader`
 
 ### Task 6: Snapshots, layout and the pre-commit changeset
 
