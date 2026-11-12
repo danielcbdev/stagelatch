@@ -250,7 +250,7 @@ test('an unexpected exit code raises InternalException naming the command and st
 - Consumes: `GitProcess`, `CatFileBatch`, domain contracts.
 - Produces: `EntryPoint` and subtypes, `PushedRef`; `GitRepository`, `SnapshotRef`, `IndexSnapshot`, `CommitSnapshot`, `ResolvedRun`, `RepoLayout { root, gitDir, commonDir, hooksDir, branch, mergeInProgress, rebaseInProgress, shallow }`, `AppliedFix { rule, path, worktreeUpdated }`; `GitCliRepository implements GitRepository` supporting `layout`, `files`, `divergingFromWorktree`, `close`, and `resolve` for `PreCommitEntry` only (`PrePushEntry` and `CiEntry` throw `UnsupportedError` until plan 02; `applyFixes` likewise); `List<FileChange> parseNameStatus(List<String> nulFields)`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('parseNameStatus maps status letters and reads both paths of a rename', () {
@@ -283,10 +283,10 @@ test('layout reports the hooks directory under core.hooksPath and in a linked wo
 test('divergingFromWorktree lists unstaged edits and deletions, sorted', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run** `dart test test/infrastructure/git`. Expected: FAIL, types undefined.
-- [ ] **Step 3: Implement** per `specs/git.md` sections 2, 3, 4.1 and 5. The snapshot listing is parsed once and cached. `FakeGitRepository` in `test/support` holds snapshots as `FakeSnapshotFiles` and records `applyFixes` calls. On Windows the newline-in-path case is skipped with the reason "NTFS forbids the character".
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(git): add index snapshots, layout and pre-commit changeset`
+- [x] **Step 2: Run** `dart test test/infrastructure/git`. Expected: FAIL, types undefined.
+- [x] **Step 3: Implement** per `specs/git.md` sections 2, 3, 4.1 and 5. The snapshot listing is parsed once and cached. `FakeGitRepository` in `test/support` holds snapshots as `FakeSnapshotFiles` and records `applyFixes` calls. On Windows the newline-in-path case is skipped with the reason "NTFS forbids the character".
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(git): add index snapshots, layout and pre-commit changeset`
 
 ### Task 7: YAML and JSON documents with locations
 

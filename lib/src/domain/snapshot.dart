@@ -1,6 +1,7 @@
 /// The read-only view of the content being judged.
 library;
 
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
@@ -12,6 +13,33 @@ import 'package:stagelatch/src/domain/repo_path.dart';
 /// manifest or translation file a rule inspects comes near this size, and
 /// the limit keeps one huge file from exhausting memory in a commit hook.
 const int maxTextBytes = 5 * 1024 * 1024;
+
+/// How many leading bytes are inspected for a NUL to decide that content is
+/// binary. This is the heuristic git itself uses.
+const int _binaryProbeBytes = 8000;
+
+/// Decodes the content of a snapshot file as text, or returns null when it
+/// is not text a rule should read.
+///
+/// This is the single definition of the [SnapshotFiles.readText] contract:
+/// null above [maxTextBytes], for content with a NUL among its first 8000
+/// bytes, and for bytes that are not valid UTF-8. A leading byte order mark
+/// is removed and line endings are returned as stored.
+String? decodeSnapshotText(Uint8List bytes) {
+  if (bytes.length > maxTextBytes) return null;
+  final probe = bytes.length < _binaryProbeBytes
+      ? bytes.length
+      : _binaryProbeBytes;
+  for (var index = 0; index < probe; index++) {
+    if (bytes[index] == 0) return null;
+  }
+  try {
+    final text = utf8.decode(bytes);
+    return text.startsWith('﻿') ? text.substring(1) : text;
+  } on FormatException {
+    return null;
+  }
+}
 
 /// The kind of an entry, from its git mode.
 enum FileMode {
