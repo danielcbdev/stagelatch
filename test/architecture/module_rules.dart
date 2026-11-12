@@ -51,7 +51,7 @@ const moduleRules = <String, ModuleRule>{
   'application': ModuleRule(
     modules: {'domain', 'checks', 'application'},
     dartLibraries: _pureDartLibraries,
-    packages: {..._domainPackages, 'glob', 'pub_semver', 'crypto'},
+    packages: {..._domainPackages, 'glob', 'path', 'pub_semver', 'crypto'},
   ),
   'infrastructure': ModuleRule(
     modules: {'domain', 'application', 'infrastructure'},

@@ -97,4 +97,11 @@ abstract interface class Documents {
 
   /// Parses the file at [path] of [files] as strict JSON.
   Future<DocumentResult> json(SnapshotFiles files, RepoPath path);
+
+  /// Parses [text] as YAML, as if it were the content of [path].
+  ///
+  /// For text that does not come from a snapshot, such as a configuration
+  /// file that exists only in the working tree. Never returns
+  /// [DocumentMissing].
+  DocumentResult parseYaml(String text, RepoPath path);
 }

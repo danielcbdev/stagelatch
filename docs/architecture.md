@@ -33,7 +33,7 @@ flowchart TD
 |---|---|---|---|
 | `domain` | Value types, the `Check` contract, ports that checks consume | `dart:core`, `dart:async`, `dart:convert`, `dart:typed_data`, `package:meta`, `package:collection` | everything else, including `dart:io` |
 | `checks` | Rule logic, one directory per check | `domain` and everything `domain` may import, plus `package:pub_semver` | `application`, `infrastructure`, `cli`, `dart:io`, `package:analyzer`, `package:yaml` |
-| `application` | Use cases, pipeline, config model, baseline, finding filters, ports for the outside world | `domain`, `checks`, `package:glob`, `package:pub_semver`, `package:crypto` | `infrastructure`, `cli`, `dart:io` |
+| `application` | Use cases, pipeline, config model, baseline, finding filters, ports for the outside world | `domain`, `checks`, `package:glob`, `package:path` (its POSIX context only, for globs over repository paths), `package:pub_semver`, `package:crypto` | `infrastructure`, `cli`, `dart:io` |
 | `infrastructure` | Adapters: git, Dart toolchain, YAML/JSON readers, reporters, file system | `domain`, `application`, any dependency, `dart:io` | `cli`, `checks` |
 | `cli` | Argument parsing, exit codes, the composition root | everything | n/a |
 
@@ -208,6 +208,7 @@ final class LocatedEntry { Location get keyLocation; LocatedNode get value; }
 abstract interface class Documents {
   Future<DocumentResult> yaml(SnapshotFiles files, RepoPath path);
   Future<DocumentResult> json(SnapshotFiles files, RepoPath path);
+  DocumentResult parseYaml(String text, RepoPath path);   // text that is not in a snapshot
 }
 
 enum DiagnosticSeverity { error, warning, info }
