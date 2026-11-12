@@ -41,7 +41,7 @@ Allowed runtime dependencies, all from the Dart team's verified publishers:
 | `source_span` | `^1.10.2` | infrastructure |
 | `yaml` | `^3.1.4` | infrastructure |
 
-Dev dependencies: `test ^1.33.0`, `very_good_analysis ^11.0.0`, `coverage` (latest stable at scaffold time).
+Dev dependencies: `test ^1.33.0` and `very_good_analysis ^11.0.0`. No coverage package is needed: `dart test --coverage-path` writes the lcov report itself.
 
 `analyzer` and `dart_style` are added only if the spike selects them (ADR-0008), and only `infrastructure/dart/` may import them.
 
@@ -52,6 +52,7 @@ Adding any other runtime dependency requires an ADR that states what it replaces
 ## 3. Types and immutability
 
 - Classes are `final` unless designed for extension. Sum types are `sealed` and consumed with exhaustive `switch`; never add a `default` branch to a switch over a sealed type or enum.
+- Constructors are declared with `new` instead of repeating the class name (`const new({required this.path})`), as the `unnecessary_type_name_in_constructor` lint of Dart 3.13 requires. `dart fix --apply` rewrites the old form.
 - Fields are `final`. Constructors are `const` where possible. Collections received by a constructor are stored as unmodifiable copies.
 - Value types implement `==` and `hashCode` by hand and have a test for both. No equality package.
 - No `dynamic`. Data from YAML, JSON or a process is narrowed with pattern matching, never with `as`.

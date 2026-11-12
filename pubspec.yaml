@@ -1,0 +1,27 @@
+name: stagelatch
+description: >-
+  Change-aware quality gate for Flutter and Dart repositories. Checks exactly
+  what is being committed, pushed or merged, from git hooks and from CI.
+version: 0.1.0-dev.1
+repository: https://github.com/danielcbdev/stagelatch
+issue_tracker: https://github.com/danielcbdev/stagelatch/issues
+
+environment:
+  sdk: ^3.13.0
+
+executables:
+  stagelatch: stagelatch
+
+dependencies:
+  args: ^2.7.0
+  collection: ^1.19.1
+  glob: ^2.2.0
+  meta: ^1.19.0
+  path: ^1.9.1
+  pub_semver: ^2.2.1
+  source_span: ^1.10.2
+  yaml: ^3.1.4
+
+dev_dependencies:
+  test: ^1.33.0
+  very_good_analysis: ^11.0.0

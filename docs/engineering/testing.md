@@ -110,10 +110,10 @@ dart test
 ```
 
 ```bash
-dart test --coverage=coverage && dart run tool/check_coverage.dart
+dart test --coverage-path=coverage/lcov.info && dart run tool/check_coverage.dart
 ```
 
-All four run on every pull request, on Dart stable and beta, on Ubuntu, macOS and Windows.
+All four run on every pull request, on Dart stable and beta, on Ubuntu, macOS and Windows, with two exceptions: the format check runs on stable only, because formatter output is specific to an SDK release (ADR-0008), and the coverage floor is checked once, on Ubuntu with stable.
 
 ## 8. Platform notes
 

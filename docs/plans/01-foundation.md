@@ -45,7 +45,7 @@
 **Interfaces:**
 - Produces: `const String packageVersion` in `lib/src/version.dart`; `List<String> forbiddenImports({required String module, required Iterable<String> imports})` in the layering test's helper; `dart run tool/check_coverage.dart` exiting non-zero below the floor.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('domain may not import dart:io or another module', () {
@@ -61,8 +61,8 @@ test('every file under lib/src obeys the module table', () { /* walks lib/src, a
 test('packageVersion equals the version in pubspec.yaml', () { /* reads pubspec.yaml */ });
 ```
 
-- [ ] **Step 2: Run** `dart test test/architecture test/version_test.dart`. Expected: FAIL, `forbiddenImports` and `packageVersion` undefined.
-- [ ] **Step 3: Implement.**
+- [x] **Step 2: Run** `dart test test/architecture test/version_test.dart`. Expected: FAIL, `forbiddenImports` and `packageVersion` undefined.
+- [x] **Step 3: Implement.**
   - `pubspec.yaml`: `name: stagelatch`, `version: 0.1.0-dev.1`, `environment: sdk: ^3.13.0`, `executables: {stagelatch: stagelatch}`, `repository: https://github.com/danielcbdev/stagelatch`, dependencies with the constraints of `coding-standards.md` section 2.
   - `analysis_options.yaml`: exactly as in `coding-standards.md` section 1.
   - `.gitattributes`: `* text=auto eol=lf`, so Windows checkouts keep LF and golden files match.
@@ -70,10 +70,10 @@ test('packageVersion equals the version in pubspec.yaml', () { /* reads pubspec.
   - `bin/stagelatch.dart`: `main` prints `stagelatch <version>` for now; replaced in Task 13.
   - The module table is encoded once, as data, in the layering test. Relative imports are resolved to module names before checking.
   - `tool/check_coverage.dart`: reads `coverage/lcov.info`, computes line coverage for the three directories together, exits 1 below 90%, and exits 0 with `No covered files yet.` when none of the three has a file.
-  - `ci.yaml`: `on: [push to develop and main, pull_request]`; `permissions: contents: read`; matrix `os: [ubuntu-latest, macos-latest, windows-latest]` by `sdk: [stable, beta]`; steps: checkout with `fetch-depth: 0`, `dart-lang/setup-dart` pinned by SHA, `dart pub get`, format check, `dart analyze --fatal-infos`, `dart test --coverage=coverage`, and on `ubuntu-latest`/`stable` only, `dart run tool/check_coverage.dart`.
+  - `ci.yaml`: `on: [push to develop and main, pull_request]`; `permissions: contents: read`; matrix `os: [ubuntu-latest, macos-latest, windows-latest]` by `sdk: [stable, beta]`; steps: checkout with `fetch-depth: 0`, `dart-lang/setup-dart` pinned by SHA, `dart pub get`, format check, `dart analyze --fatal-infos`, `dart test --coverage-path=coverage/lcov.info`, and on `ubuntu-latest`/`stable` only, `dart run tool/check_coverage.dart`. The format check runs on `stable` only.
   - `SECURITY.md`: report through GitHub private vulnerability reporting.
-- [ ] **Step 4: Run** the four commands of `testing.md` section 7. Expected: PASS.
-- [ ] **Step 5: Commit.** `build: scaffold package, lints, layering test and CI`
+- [x] **Step 4: Run** the four commands of `testing.md` section 7. Expected: PASS.
+- [x] **Step 5: Commit.** `build: scaffold package, lints, layering test and CI`
 
 ### Task 2: Domain values
 
