@@ -666,9 +666,9 @@ test('-C runs in another directory', () async { /* ... */ });
 **Interfaces:**
 - Produces: a tag `v<version>` on `main` triggers publishing through OIDC.
 
-- [ ] **Step 1: Configure release-please** for a Dart package at the repository root, with `lib/src/version.dart` as an extra file, on branch `main`.
-- [ ] **Step 2: Add `publish.yaml`** triggered by tags matching `v[0-9]+.[0-9]+.[0-9]+*`, with `permissions: id-token: write`, calling the Dart team's reusable publish workflow pinned by SHA.
-- [ ] **Step 3: Write the README** for this version: what it is, install, `init`, what the two rules catch, the exit codes, and a "Status: pre-release" note. No benchmark yet.
-- [ ] **Step 4: Verify** `dart pub publish --dry-run` reports no errors and no warnings.
-- [ ] **Step 5: Commit.** `ci(release): add release-please and OIDC publishing`
+- [x] **Step 1: Configure release-please** for a Dart package at the repository root, with `lib/src/version.dart` as an extra file, on branch `main`.
+- [x] **Step 2: Add `publish.yaml`** triggered by tags matching `v[0-9]+.[0-9]+.[0-9]+*`, with `permissions: id-token: write`, calling the Dart team's reusable publish workflow pinned by SHA.
+- [x] **Step 3: Write the README** for this version: what it is, install, `init`, what the two rules catch, the exit codes, and a "Status: pre-release" note. No benchmark yet.
+- [x] **Step 4: Verify** `dart pub publish --dry-run` reports no errors and no warnings.
+- [x] **Step 5: Commit.** `ci(release): add release-please and OIDC publishing`
 - [ ] **Step 6: Release.** Open `develop` -> `main` as `release: 0.1.0-dev.1` (workflow section 8). **Stop here for the owner:** the first publish of the package name is manual (`dart pub publish` by the owner), followed by enabling automated publishing on pub.dev.
