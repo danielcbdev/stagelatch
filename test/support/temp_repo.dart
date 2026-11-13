@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:stagelatch/src/application/environment.dart';
+import 'package:stagelatch/src/cli/io.dart';
+import 'package:stagelatch/src/cli/runner.dart';
 
 /// A real git repository in a temporary directory, for adapter and
 /// acceptance tests.
@@ -144,4 +147,48 @@ final class TempRepo {
       }
     }
   }
+
+  /// Runs the CLI in this process, in this repository.
+  ///
+  /// [env] is added to the isolated environment. [stdin] is the hook input.
+  Future<CliResult> stagelatch(
+    List<String> args, {
+    String stdin = '',
+    Map<String, String> env = const {},
+  }) async {
+    final out = StringBuffer();
+    final err = StringBuffer();
+    final code = await runStagelatch(
+      args,
+      Io(
+        stdout: out,
+        stderr: err,
+        stdin: stdin.isEmpty
+            ? const Stream.empty()
+            : Stream.value(utf8.encode(stdin)),
+        environment: Environment(
+          workingDirectory: root,
+          variables: {...environment, ...env},
+          stdoutIsTerminal: false,
+          stdinIsTerminal: false,
+        ),
+      ),
+    );
+    return CliResult(code, out.toString(), err.toString());
+  }
+}
+
+/// The exit code and captured output of one in-process CLI run.
+final class CliResult {
+  /// Creates the result.
+  const new(this.exitCode, this.stdout, this.stderr);
+
+  /// The process exit code.
+  final int exitCode;
+
+  /// What the command wrote to standard output.
+  final String stdout;
+
+  /// What the command wrote to standard error.
+  final String stderr;
 }
