@@ -175,6 +175,7 @@ final class Pipeline {
           ),
       ]),
       total: total,
+      timeBudget: config.timeBudget,
       // The budget is only ever reported. Skipping or shortening a check
       // would make the verdict depend on the machine (ADR-0003).
       budgetExceeded: total > config.timeBudget,

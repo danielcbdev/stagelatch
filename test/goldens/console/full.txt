@@ -1,0 +1,20 @@
+stagelatch pre-commit: 12 files
+
+  format   fixed 1 file         40ms
+  analyze  1 error, 2 warnings  1.2s
+  pubspec  ok                    3ms
+
+lib/z.dart  fixed  format/unformatted
+  Fixed in the index only: the working tree copy has unstaged changes.
+lib/a.dart:3:7  error  analyze/undefined_identifier
+  Undefined name 'x'.
+lib/a.dart:9:1  warning  analyze/unused_import
+  Unused import: 'dart:io'.
+lib/b.dart:1:1  warning  analyze/unused_import
+  Unused import: 'dart:async'.
+
+note: stagelatch.yaml is not staged; using the working tree copy.
+note: Time budget of 2s exceeded (2.4s).
+
+1 error, 2 warnings. Commit blocked. (2.4s)
+(2 suppressed, 5 baselined)

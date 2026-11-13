@@ -73,6 +73,7 @@ final class RunReport {
     required this.fixes,
     required this.timings,
     required this.total,
+    required this.timeBudget,
     required this.budgetExceeded,
     required this.suppressed,
     required this.baselined,
@@ -103,7 +104,13 @@ final class RunReport {
   /// How long the whole run took.
   final Duration total;
 
-  /// Whether [total] is over the configured time budget. Informational:
+  /// The configured time budget this run was measured against.
+  ///
+  /// The reporter uses it for the budget note. It never changes which
+  /// checks run (ADR-0003).
+  final Duration timeBudget;
+
+  /// Whether [total] is over [timeBudget]. Informational:
   /// the budget never changes what runs.
   final bool budgetExceeded;
 

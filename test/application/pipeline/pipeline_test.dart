@@ -441,6 +441,15 @@ void main() {
         expect(over.verdict, within.verdict);
       },
     );
+
+    test('carries the configured time budget for the reporter', () async {
+      final report = await _run(
+        _git(['alpha'], more: 'time_budget: 1500ms\n'),
+        [FakeCheck('alpha')],
+      );
+
+      expect(report.timeBudget, const Duration(milliseconds: 1500));
+    });
   });
 
   group('fix phase (ADR-0014)', () {
