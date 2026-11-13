@@ -63,6 +63,15 @@ final class StructuredDocuments implements Documents {
   }
 
   @override
+  DocumentResult parseYaml(String text, RepoPath path) =>
+      _flowNestingExceeds(text, maxFlowNesting)
+      ? DocumentInvalid(
+          location: Location.wholeFile(path),
+          reason: _nestedTooDeeply,
+        )
+      : _parse(text, path);
+
+  @override
   Future<DocumentResult> json(SnapshotFiles files, RepoPath path) async {
     final text = await _read(files, path);
     if (text.result case final failure?) return failure;

@@ -88,7 +88,7 @@ baseline: .stagelatch/baseline.json
 
 ## 5. Validation
 
-The file is validated completely before any check runs. The first problem found, in document order, is reported and the run exits 78:
+The file is validated completely before any check runs. The first problem found, in document order, is reported and the run exits 78. One exception: `min_version` is checked before everything else, wherever it is written, so that a tool that is too old says so instead of complaining about checks it does not know yet.
 
 ```
 stagelatch.yaml:12:3: Unknown key "forbid" under "pubspec".
@@ -98,14 +98,18 @@ stagelatch.yaml:12:3: Unknown key "forbid" under "pubspec".
 |---|---|
 | Not valid YAML | `stagelatch.yaml:<l>:<c>: <parser message>` |
 | Root is not a map | `stagelatch.yaml:1:1: Expected a map at the top level.` |
-| Unknown key | `Unknown key "<key>" under "<parent>".` (parent is `the top level` at the root) |
-| Wrong type | `"<key>" must be <type>, found <actual>.` |
+| Unknown key in a section | `Unknown key "<key>" under "<section>".` |
+| Unknown key at the root | `Unknown key "<key>" at the top level.` |
+| Wrong type | `"<key>" must be <type>, found <actual>.` Types: `a map`, `a list`, `a list of strings`, `a string`, `a boolean`. Actual: `a map`, `a list`, `a string`, `a number`, `a boolean`, `null`. Keys inside a section are written with a dot: `format.fix`. |
 | Unknown check in a selector | `Unknown check "<name>" in hooks.<hook>.` |
-| Unknown rule | `Unknown rule "<id>".` |
+| Unknown rule, in a selector or in `rules` | `Unknown rule "<id>".` |
 | Invalid level | `Level of "<id>" must be error, warning or off.` |
-| Invalid glob, size, duration or version | `Invalid <kind> "<value>" in "<key>".` |
+| Invalid value | `Invalid <kind> "<value>" in "<key>".` Kinds: `selector`, `glob`, `size`, `duration`, `version`, `scope`, `severity`, `directory`, `identifier`, `path`. A bare number is read as its text, so `max_file_size: 500` is an invalid size, not a type error. |
 | Unknown hook name under `hooks` | `Unknown hook "<name>". Expected pre-commit, pre-push or ci.` |
-| Duplicate key | `Duplicate key "<key>".` |
+| Duplicate key | `Duplicate mapping key.` (reported by the YAML parser, at the second occurrence) |
+| Reserved key | `custom_checks requires stagelatch >= 1.0.0.` |
+
+A section, list or map written without a value (`format:` alone on a line) keeps its defaults.
 | Tool too old | `This repository requires stagelatch >= <min>; you have <current>. Run: dart pub global activate stagelatch` |
 
 Unknown keys are errors on purpose: a typo must not silently disable a rule.

@@ -19,4 +19,8 @@ final class FakeDocuments implements Documents {
   @override
   Future<DocumentResult> json(SnapshotFiles files, RepoPath path) async =>
       _results[path.value] ?? const DocumentMissing();
+
+  @override
+  DocumentResult parseYaml(String text, RepoPath path) =>
+      _results[path.value] ?? const DocumentMissing();
 }

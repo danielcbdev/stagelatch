@@ -350,7 +350,7 @@ test('json returns located nodes for valid JSON', () async { /* {"type": "servic
   - `WorkingTree { Future<String?> readText(RepoPath path); Future<void> writeText(RepoPath path, String content); Future<bool> exists(RepoPath path) }`.
   - `ConfigLoader(Documents documents, WorkingTree worktree)` with `Future<LoadedConfig> load(SnapshotFiles snapshot, {required Version toolVersion, required CheckCatalog catalog})`; `LoadedConfig { Config config; List<String> notices }`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('parseSize uses binary units', () {
@@ -389,10 +389,10 @@ test('custom_checks is reserved', () async {
 });
 ```
 
-- [ ] **Step 2: Run** `dart test test/application/config`. Expected: FAIL, types undefined.
-- [ ] **Step 3: Implement.** The loader walks the `LocatedNode` tree with one small function per key; each function either returns a typed value or throws `ConfigException` with the node's location. The set of allowed keys per section is a constant map, used both for validation and for the "unknown key" message. Validation stops at the first problem in document order.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(config): add typed config model and strict loader`
+- [x] **Step 2: Run** `dart test test/application/config`. Expected: FAIL, types undefined.
+- [x] **Step 3: Implement.** The loader walks the `LocatedNode` tree with one small function per key; each function either returns a typed value or throws `ConfigException` with the node's location. The set of allowed keys per section is a constant map, used both for validation and for the "unknown key" message. Validation stops at the first problem in document order.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(config): add typed config model and strict loader`
 
 ### Task 9: The `pubspec` check, first three rules
 
