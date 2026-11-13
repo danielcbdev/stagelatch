@@ -44,14 +44,14 @@ jobs:
       - name: Analyze
         run: dart analyze --fatal-infos
 
-      # Windows beta drops the compiler connection when many suites load at
-      # once ("Connection closed before full header was received"), before any
-      # assertion runs. A smaller concurrency keeps that job on the suite.
+      # Windows drops the compiler connection while loading a suite
+      # ("Connection closed before full header was received"), before any
+      # assertion runs. One worker keeps that job on the tests.
       - name: Test
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            dart test --coverage-path=coverage/lcov.info --concurrency=2
+            dart test --coverage-path=coverage/lcov.info --concurrency=1
           else
             dart test --coverage-path=coverage/lcov.info
           fi
