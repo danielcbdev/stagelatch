@@ -44,8 +44,17 @@ jobs:
       - name: Analyze
         run: dart analyze --fatal-infos
 
+      # Windows drops the compiler connection while loading a suite
+      # ("Connection closed before full header was received"), before any
+      # assertion runs. One worker keeps that job on the tests.
       - name: Test
-        run: dart test --coverage-path=coverage/lcov.info
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            dart test --coverage-path=coverage/lcov.info --concurrency=1
+          else
+            dart test --coverage-path=coverage/lcov.info
+          fi
 
       - name: Check coverage floor
         if: matrix.os == 'ubuntu-latest' && matrix.sdk == 'stable'
