@@ -44,8 +44,17 @@ jobs:
       - name: Analyze
         run: dart analyze --fatal-infos
 
+      # Windows beta drops the compiler connection when many suites load at
+      # once ("Connection closed before full header was received"), before any
+      # assertion runs. A smaller concurrency keeps that job on the suite.
       - name: Test
-        run: dart test --coverage-path=coverage/lcov.info
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            dart test --coverage-path=coverage/lcov.info --concurrency=2
+          else
+            dart test --coverage-path=coverage/lcov.info
+          fi
 
       - name: Check coverage floor
         if: matrix.os == 'ubuntu-latest' && matrix.sdk == 'stable'
