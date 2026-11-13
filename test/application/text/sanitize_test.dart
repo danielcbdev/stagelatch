@@ -18,16 +18,13 @@ void main() {
     });
 
     test('removes bidirectional overrides that can reorder what is shown', () {
-      expect(
-        sanitizeForTerminal('a‮b⁦c⁩d‏e'),
-        'abcde',
-      );
+      expect(sanitizeForTerminal('a\u202Eb\u2066c\u2069d\u200Fe'), 'abcde');
     });
 
     test('keeps printable text, including non-ASCII letters and emoji', () {
       expect(sanitizeForTerminal('ação.dart'), 'ação.dart');
       expect(sanitizeForTerminal('日本語 😀 ok'), '日本語 😀 ok');
-      expect(sanitizeForTerminal('a b"c\\d'), 'a b"c\\d');
+      expect(sanitizeForTerminal(r'a b"c\d'), r'a b"c\d');
     });
 
     test('returns an empty string unchanged', () {

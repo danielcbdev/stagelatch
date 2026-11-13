@@ -78,6 +78,7 @@ lib/
       environment.dart               # Environment (value object built by the cli)
       config/                        # Config, ConfigLoader, HookSelector, size/duration parsing
       pipeline/                      # Pipeline, CheckRegistry, finding filters, RunReport
+      text/                          # sanitizeForTerminal (S5)
       baseline/                      # Baseline, Fingerprint, BaselineStore port
       hooks/                         # HookInstaller, hook script template
       ports/                         # GitRepository, Reporter, HookStore, WorkingTree, Clock, ...
@@ -85,7 +86,7 @@ lib/
       git/                           # GitProcess, CatFileBatch, GitCliRepository, GitSnapshotFiles
       dart/                          # SdkLocator, DartToolchain adapter, fact extractor
       documents/                     # YamlDocuments, JsonDocuments
-      reporters/                     # ConsoleReporter, JsonReporter, GithubReporter, ...
+      reporters/                     # ConsoleReporter, ansi, console format, JsonReporter, ...
       io/                            # LocalWorkingTree, FileHookStore, SystemClock
     cli/
       runner.dart                    # StagelatchCommandRunner
@@ -348,6 +349,7 @@ final class RunReport {
   List<AppliedFix> get fixes;
   List<CheckTiming> get timings;
   Duration get total;
+  Duration get timeBudget;               // config.timeBudget, for the budget note
   bool get budgetExceeded;
   int get suppressed;
   int get baselined;

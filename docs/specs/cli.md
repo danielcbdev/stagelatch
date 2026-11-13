@@ -135,29 +135,30 @@ One shortest import chain per changed file that reaches the test. When none does
 
 ## 4. Console reporter
 
-Fixed layout. Golden files under `test/goldens/console/` are the byte-exact reference.
+Fixed layout. Golden files under `test/goldens/console/` are the byte-exact reference. A run has up to five sections, in this order: header, check table, details, notes, summary. Sections are separated by exactly one blank line, and a section with nothing to say is omitted, so two blank lines never appear in a row. Several runs of one invocation are separated the same way. With no run at all the whole report is `stagelatch: nothing to check.`
 
 ```
 stagelatch pre-commit: 4 files
 
-  format   fixed 1 file      41ms
-  analyze  ok               870ms
-  pubspec  1 error            6ms
+  format   fixed 1 file   41ms
+  analyze  ok            870ms
+  pubspec  1 error         6ms
 
+lib/checkout/cart.dart  fixed  format/unformatted
 pubspec.yaml:14:5  error  pubspec/path-dependency
   Dependency "design_system" uses a path that is not a package in this repository: ../design_system.
 
 1 error, 0 warnings. Commit blocked. (0.9s)
 ```
 
-- **Header:** `stagelatch <entry>: <n> file(s)`; `<entry>` is `pre-commit`, `pre-push <branch>` or `ci`. With `--all`: `all files`.
-- **Check table:** one row per check that ran, in registry order. Columns: id, status, duration; padded to the widest cell. Status is `ok`, `fixed <n> file(s)`, or `<e> error(s)`, `<w> warning(s)`, or both joined by `, `. Duration is `<n>ms` below one second, else `<n.n>s`.
-- **Findings:** sorted as the pipeline sorts them. Two lines each: `<path>:<line>:<column>  <severity>  <rule>` and the message indented two spaces.
-- **Notices:** `note: <text>`, one per line, after the findings.
+- **Header:** `stagelatch <entry>: <n> file(s)`. `<entry>` is `pre-commit`, `pre-push <branch>` or `ci`.
+- **Check table:** one row per check that ran, in registry order, indented two spaces. Three columns, separated by two spaces: id and status aligned left, duration aligned right. Each column is as wide as its widest cell. Status is `<e> error(s)`, `<w> warning(s)`, or both joined by `, ` when the check still has findings; otherwise `fixed <n> file(s)` when it fixed something; otherwise `ok`. Duration is `<n>ms` below one second, else `<n.n>s` (nearest tenth, integer arithmetic).
+- **Details:** fixes first, then findings, with no blank line between them. One line per applied fix: `<path>  fixed  <rule>`. When the working tree was not updated, the next line is `  Fixed in the index only: the working tree copy has unstaged changes.` Findings are printed in the order the pipeline sorted them. Two lines each: `<path>:<line>:<column>  <severity>  <rule>` and the message indented two spaces.
+- **Notes:** `note: <text>`, one per line. The budget note, when the budget was exceeded, comes after the other notices: `note: Time budget of <budget> exceeded (<total>).` `<budget>` is whole seconds as `<n>s` and anything else as `<n>ms`. `<total>` is seconds with one decimal.
 - **Summary:** `<e> error(s), <w> warning(s). <Outcome>. (<total>)`. Outcome is `Commit blocked`/`Commit allowed`, `Push blocked`/`Push allowed`, or `Failed`/`Passed`. When anything was suppressed or baselined, a second line: `(<n> suppressed, <m> baselined)`.
 - Singular and plural: `1 file`, `2 files`; `1 error`, `0 errors`.
-- With color: `error` red, `warning` yellow, rule IDs dim. Color never changes the text.
-- Time budget exceeded: `note: Time budget of 2s exceeded (2.4s).`
+- With color: `error` red (31), `warning` yellow (33), rule ids dim (2), then reset (0). Color never changes the text.
+- Every string that came from the repository (path, message, branch name, notice) is passed through `sanitizeForTerminal` first. C0, DEL, C1 and the bidirectional controls U+200E, U+200F, U+202A–U+202E and U+2066–U+2069 are removed; newline and tab become a space.
 
 ## 5. JSON reporter
 

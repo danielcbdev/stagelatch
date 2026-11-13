@@ -84,7 +84,7 @@ String _render(List<RunReport> runs, {bool color = false}) {
 String _golden(String name) =>
     File('test/goldens/console/$name.txt').readAsStringSync();
 
-final _blocked = _report(
+final RunReport _blocked = _report(
   files: 4,
   totalMs: 917,
   timings: [
@@ -130,7 +130,9 @@ void main() {
         budgetExceeded: true,
         suppressed: 2,
         baselined: 5,
-        notices: ['stagelatch.yaml is not staged; using the working tree copy.'],
+        notices: [
+          'stagelatch.yaml is not staged; using the working tree copy.',
+        ],
         timings: [
           _timing('format', 40, fixed: 1),
           _timing('analyze', 1234, errors: 1, warnings: 2),
@@ -187,7 +189,10 @@ void main() {
         ),
       ]);
 
-      expect(passed, startsWith('stagelatch pre-push feature/login: 2 files\n'));
+      expect(
+        passed,
+        startsWith('stagelatch pre-push feature/login: 2 files\n'),
+      );
       expect(passed, contains('0 errors, 0 warnings. Push allowed. (0.1s)\n'));
       expect(failed, contains('1 error, 0 warnings. Push blocked. (0.1s)\n'));
     });
@@ -207,8 +212,14 @@ void main() {
     });
 
     test('counts files in the singular and in the plural', () {
-      expect(_render([_report(files: 0)]), startsWith('stagelatch pre-commit: 0 files\n'));
-      expect(_render([_report()]), startsWith('stagelatch pre-commit: 1 file\n'));
+      expect(
+        _render([_report(files: 0)]),
+        startsWith('stagelatch pre-commit: 0 files\n'),
+      );
+      expect(
+        _render([_report()]),
+        startsWith('stagelatch pre-commit: 1 file\n'),
+      );
     });
 
     test('counts errors and warnings in the singular and in the plural', () {
@@ -217,7 +228,14 @@ void main() {
           findings: [
             _finding('a.dart', 1, 1, 'analyze/x', 'm'),
             _finding('b.dart', 1, 1, 'analyze/x', 'm'),
-            _finding('c.dart', 1, 1, 'analyze/y', 'm', severity: Severity.warning),
+            _finding(
+              'c.dart',
+              1,
+              1,
+              'analyze/y',
+              'm',
+              severity: Severity.warning,
+            ),
           ],
         ),
       ]);
@@ -278,7 +296,14 @@ void main() {
       final colored = _render([
         _report(
           findings: [
-            _finding('a.dart', 1, 1, 'analyze/x', 'm', severity: Severity.warning),
+            _finding(
+              'a.dart',
+              1,
+              1,
+              'analyze/x',
+              'm',
+              severity: Severity.warning,
+            ),
           ],
         ),
       ], color: true);

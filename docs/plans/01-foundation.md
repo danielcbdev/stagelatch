@@ -507,7 +507,7 @@ test('config notices are carried into the report', () async { /* ... */ });
 - Consumes: `RunReport`, `Reporter`.
 - Produces: `String sanitizeForTerminal(String text)`; `ConsoleReporter(StringSink out, {required bool color}) implements Reporter`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('control characters are removed, printable text is kept', () {
@@ -524,10 +524,10 @@ test('color adds escape sequences and removing them yields the plain golden', ()
 test('a path with escape sequences is printed sanitized', () { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, `ConsoleReporter` undefined.
-- [ ] **Step 3: Implement** the layout of `specs/cli.md` section 4. Column widths are computed from the rows. Every repository-derived string goes through `sanitizeForTerminal`. Golden files end with one newline and use LF.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(reporters): add console reporter and terminal sanitizer`
+- [x] **Step 2: Run.** Expected: FAIL, `ConsoleReporter` undefined.
+- [x] **Step 3: Implement** the layout of `specs/cli.md` section 4. Column widths are computed from the rows. Every repository-derived string goes through `sanitizeForTerminal`. Golden files end with one newline and use LF.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(reporters): add console reporter and terminal sanitizer`
 
 ### Task 12: Hook script and installer
 
