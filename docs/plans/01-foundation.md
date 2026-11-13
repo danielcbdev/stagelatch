@@ -406,7 +406,7 @@ test('custom_checks is reserved', () async {
 - Consumes: `Check`, `CheckContext`, `Documents`, `LocatedNode`, `PubspecSettings`.
 - Produces: `PubspecCheck implements Check` with `id == 'pubspec'`, `phase == CheckPhase.verify`, and descriptors for `pubspec/path-dependency`, `pubspec/dependency-overrides`, `pubspec/unparseable`; `PubspecDocument` wrapping a `LocatedMap` with `Iterable<DependencyEntry> dependencies({required bool includeDev})` and `LocatedEntry? get overrides`; rule functions `List<Finding> pathDependencyFindings(PubspecDocument doc, RepoPath pubspecPath, Set<RepoPath> pubspecsInSnapshot)` and `List<Finding> dependencyOverridesFindings(PubspecDocument doc, RepoPath pubspecPath)`.
 
-- [ ] **Step 1: Write the failing tests.** Each asserts the complete `Finding`.
+- [x] **Step 1: Write the failing tests.** Each asserts the complete `Finding`.
 
 ```dart
 test('path leaving the repository is reported at the path value', () async {
@@ -439,10 +439,10 @@ test('a deleted pubspec and an unchanged pubspec are not inspected', () async { 
 test('a disabled rule produces nothing', () async { /* enabled: {pubspec/dependency-overrides} only */ });
 ```
 
-- [ ] **Step 2: Run** `dart test test/checks/pubspec`. Expected: FAIL, `PubspecCheck` undefined.
-- [ ] **Step 3: Implement.** Path resolution is pure string work on `RepoPath` segments: join the pubspec's directory with the dependency path, normalize `.` and `..`, and treat an escape above the root, an absolute path, or a Windows drive path as "leaves the repository". The check asks the snapshot for the list of `pubspec.yaml` paths once per run.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add pubspec path-dependency, dependency-overrides and unparseable rules`
+- [x] **Step 2: Run** `dart test test/checks/pubspec`. Expected: FAIL, `PubspecCheck` undefined.
+- [x] **Step 3: Implement.** Path resolution is pure string work on `RepoPath` segments: join the pubspec's directory with the dependency path, normalize `.` and `..`, and treat an escape above the root, an absolute path, or a Windows drive path as "leaves the repository". The check asks the snapshot for the list of `pubspec.yaml` paths once per run.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add pubspec path-dependency, dependency-overrides and unparseable rules`
 
 ### Task 10: Pipeline, registry and finding filters
 
