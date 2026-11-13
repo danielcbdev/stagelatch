@@ -542,7 +542,7 @@ test('a path with escape sequences is printed sanitized', () { /* ... */ });
 - Consumes: `RepoLayout`.
 - Produces: `enum HookName { preCommit('pre-commit'), prePush('pre-push') }`; `String renderHookScript(HookName hook)`; `bool isManagedHook(String content)`; `HookStore { String pathOf(HookName); Future<String?> read(HookName); Future<void> write(HookName, String content); Future<void> delete(HookName); Future<String> backup(HookName); Future<String?> restoreLatestBackup(HookName); Future<bool> get directoryIsTracked }`; `sealed class HookAction` with `HookInstalled`, `HookUpdated`, `HookUpToDate`, `HookReplaced(backup)`, `HookRefused`, `HookRemoved`, `HookRestored(backup)`, `HookNotFound`, each carrying `hook` and `path`; `HookInstaller(HookStore store)` with `Future<List<HookAction>> install(Set<HookName> hooks, {required bool force})` and `Future<List<HookAction>> uninstall()`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('the script is exactly the text of specs/git.md section 7', () {
@@ -570,10 +570,10 @@ test('FileHookStore writes bytes verbatim and sets the executable bit', () async
 test('FileHookStore refuses a hooks directory that resolves outside the repository and git directory', () async { /* S3 */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, types undefined.
-- [ ] **Step 3: Implement.** The template is one constant with a single `<hook>` placeholder. `FileHookStore` writes with `File.writeAsBytes` (never a text mode that could translate line endings), creates the directory if needed, and verifies containment after resolving symlinks.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(hooks): add managed hook script and safe installer`
+- [x] **Step 2: Run.** Expected: FAIL, types undefined.
+- [x] **Step 3: Implement.** The template is one constant with a single `<hook>` placeholder. `FileHookStore` writes with `File.writeAsBytes` (never a text mode that could translate line endings), creates the directory if needed, and verifies containment after resolving symlinks.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(hooks): add managed hook script and safe installer`
 
 ### Task 13: Command-line interface and composition root
 
