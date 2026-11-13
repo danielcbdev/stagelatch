@@ -111,9 +111,11 @@ final class FileHookStore implements HookStore {
     if (git == null) return false;
     final relative = p.relative(hooksDirectory, from: git.workingDirectory);
     if (p.isAbsolute(relative) || relative.startsWith('..')) return false;
+    // git arguments use forward slashes even on Windows.
+    final gitPath = relative.replaceAll('\\', '/');
     // -z: NUL-separated names. An empty result means no tracked file lives
     // under the hooks directory.
-    final result = await git.run(['ls-files', '-z', '--', relative]);
+    final result = await git.run(['ls-files', '-z', '--', gitPath]);
     return result.stdout.isNotEmpty;
   }
 
