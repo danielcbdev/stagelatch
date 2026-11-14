@@ -73,7 +73,11 @@ final class CatFileBatch {
     _closed = true;
     await _queue;
     for (final channel in [_content, _sizes].nonNulls) {
-      await channel.process.stdin.close();
+      // A paused stdout listener would keep the process alive after main
+      // returns (a commit hook would never finish). Cancel it, then stop
+      // git. stdin.close() can itself fail to complete once git is idle.
+      await channel.reader.close();
+      channel.process.kill();
       await channel.process.exitCode;
     }
     _content = null;

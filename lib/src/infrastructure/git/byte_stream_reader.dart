@@ -68,6 +68,12 @@ final class ByteStreamReader {
     return result;
   }
 
+  /// Releases the subscription so a command-line process can exit.
+  ///
+  /// The listener is paused between reads. A paused subscription keeps the
+  /// isolate alive after `main` returns, so a git hook would never finish.
+  Future<void> close() => _chunks.cancel();
+
   /// Moves to the next chunk. Returns false at the end of the stream.
   Future<bool> _advance() async {
     if (!await _chunks.moveNext()) return false;
