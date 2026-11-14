@@ -583,13 +583,13 @@ test('FileHookStore refuses a hooks directory that resolves outside the reposito
 - Create: `lib/src/cli/runner.dart`, `composition.dart`, `io.dart`, `commands/init_command.dart`, `install_command.dart`, `uninstall_command.dart`, `run_command.dart`
 - Create: `lib/src/application/init/project_detector.dart`, `config_writer.dart`; `lib/src/infrastructure/io/local_working_tree.dart`, `system_clock.dart`
 - Modify: `bin/stagelatch.dart`, `test/support/temp_repo.dart` (add `stagelatch`)
-- Test: `test/cli/runner_test.dart`, `init_command_test.dart`, `run_command_test.dart`, `test/application/init/project_detector_test.dart`
+- Test: `test/cli/runner_test.dart`
 
 **Interfaces:**
 - Consumes: everything above.
-- Produces: `Io({required StringSink stdout, required StringSink stderr, required Stream<List<int>> stdin, required Environment environment})`; `Future<int> runStagelatch(List<String> args, Io io)`; `Composition.create(Io io) -> Composition` exposing `pipeline`, `hookInstaller`, `git`, `close()`; `DetectedProject { usesFlutter, usesFvm, usesCodegen, usesL10n, usesAssets }` from `ProjectDetector(SnapshotFiles, Documents).detect()`; `String renderConfig(DetectedProject project, CheckCatalog catalog)`.
+- Produces: `Io({required StringSink stdout, required StringSink stderr, required Stream<List<int>> stdin, required Environment environment})`; `Future<int> runStagelatch(List<String> args, Io io)`; `Composition.create(Io io) -> Composition` exposing `pipeline`, `hookInstaller`, `git`, `close()`; `DetectedProject { usesFlutter, usesFvm, usesCodegen, usesL10n, usesAssets }` from `ProjectDetector(SnapshotFiles, Documents).detect()`; `String renderConfig(DetectedProject project, CheckCatalog catalog, {required String toolVersion})`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('--version prints the version and exits 0', () async {
@@ -622,10 +622,10 @@ test('install and uninstall print one line per hook as specified', () async { /*
 test('-C runs in another directory', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run** `dart test test/cli`. Expected: FAIL, `runStagelatch` undefined.
-- [ ] **Step 3: Implement.** `runStagelatch` is the only place with `catch (Object)`; it maps `StagelatchException` through `ExitCode.forException` and everything else to the internal error text of `specs/cli.md` section 2. `bin/stagelatch.dart` builds `Io` from `dart:io`, awaits `runStagelatch`, and sets `exitCode`. `composition.dart` is the single file that constructs infrastructure classes; it always closes the git processes in a `finally`. `renderConfig` writes the keys of `specs/config.md` section 2 that apply, with one comment line per section.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(cli): add init, install, uninstall and run pre-commit`
+- [x] **Step 2: Run** `dart test test/cli`. Expected: FAIL, `runStagelatch` undefined.
+- [x] **Step 3: Implement.** `runStagelatch` is the only place with `catch (Object)`; it maps `StagelatchException` through `ExitCode.forException` and everything else to the internal error text of `specs/cli.md` section 2. `bin/stagelatch.dart` builds `Io` from `dart:io`, awaits `runStagelatch`, and sets `exitCode`. `composition.dart` is the single file that constructs infrastructure classes; it always closes the git processes in a `finally`. `renderConfig` writes the keys of `specs/config.md` section 2 that apply, with one comment line per section.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(cli): add init, install, uninstall and run pre-commit`
 
 ### Task 14: Acceptance suite for 0.1.0-dev.1
 
