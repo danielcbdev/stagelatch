@@ -5,7 +5,7 @@ Status: **Approved (2026-11-12).** Plans are executed in order, one task at a ti
 | Plan | Delivers | Depends on | Status |
 |---|---|---|---|
 | [`00-spike.md`](00-spike.md) | Measurements; mechanism of ADR-0008 | nothing | not started |
-| [`01-foundation.md`](01-foundation.md) | `0.1.0-dev.1` | nothing | not started |
+| [`01-foundation.md`](01-foundation.md) | `0.1.0-dev.1` | nothing | release pending |
 | [`02-core.md`](02-core.md) | `0.1.0` | 01, and the approved spike report | not started |
 | [`03-checks.md`](03-checks.md) | `0.2.0` | 02 | not started |
 | [`04-affected.md`](04-affected.md) | `0.3.0` | 03 | not started |

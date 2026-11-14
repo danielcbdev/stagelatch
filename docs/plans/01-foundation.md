@@ -652,7 +652,7 @@ test('-C runs in another directory', () async { /* ... */ });
   - Determinism: as in `testing.md` section 5.
 - [x] **Step 2: Run** `dart test test/acceptance`. Any failure is a defect in an earlier task: fix it in this branch with a unit test that reproduces it, and list it under "Deviations".
 - [x] **Step 3: If AC-13 fails on Windows,** correct the hook template in `specs/git.md` section 7 first, then the constant and its golden, until the Windows job is green. Record what Git for Windows actually resolved in the pull request. AC-13 passed on Windows stable and beta; the template was left as it is.
-- [ ] **Step 4: Run** all four commands on all matrix cells through CI. Expected: PASS.
+- [x] **Step 4: Run** all four commands on all matrix cells through CI. Expected: PASS. Pull request 14 was green on ubuntu, macos and windows, each on Dart stable and beta.
 - [x] **Step 5: Commit.** `test: add acceptance scenarios for the pre-commit foundation`
 
 ### Task 15: Release plumbing and 0.1.0-dev.1
@@ -666,9 +666,9 @@ test('-C runs in another directory', () async { /* ... */ });
 **Interfaces:**
 - Produces: a tag `v<version>` on `main` triggers publishing through OIDC.
 
-- [ ] **Step 1: Configure release-please** for a Dart package at the repository root, with `lib/src/version.dart` as an extra file, on branch `main`.
-- [ ] **Step 2: Add `publish.yaml`** triggered by tags matching `v[0-9]+.[0-9]+.[0-9]+*`, with `permissions: id-token: write`, calling the Dart team's reusable publish workflow pinned by SHA.
-- [ ] **Step 3: Write the README** for this version: what it is, install, `init`, what the two rules catch, the exit codes, and a "Status: pre-release" note. No benchmark yet.
-- [ ] **Step 4: Verify** `dart pub publish --dry-run` reports no errors and no warnings.
-- [ ] **Step 5: Commit.** `ci(release): add release-please and OIDC publishing`
+- [x] **Step 1: Configure release-please** for a Dart package at the repository root, with `lib/src/version.dart` as an extra file, on branch `main`.
+- [x] **Step 2: Add `publish.yaml`** triggered by tags matching `v[0-9]+.[0-9]+.[0-9]+*`, with `permissions: id-token: write`, calling the Dart team's reusable publish workflow pinned by SHA.
+- [x] **Step 3: Write the README** for this version: what it is, install, `init`, what the two rules catch, the exit codes, and a "Status: pre-release" note. No benchmark yet.
+- [x] **Step 4: Verify** `dart pub publish --dry-run` reports no errors and no warnings.
+- [x] **Step 5: Commit.** `ci(release): add release-please and OIDC publishing`
 - [ ] **Step 6: Release.** Open `develop` -> `main` as `release: 0.1.0-dev.1` (workflow section 8). **Stop here for the owner:** the first publish of the package name is manual (`dart pub publish` by the owner), followed by enabling automated publishing on pub.dev.

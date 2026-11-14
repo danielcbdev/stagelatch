@@ -1,0 +1,3 @@
+# Pub's package layout expects a singular `doc/` directory. The repository
+# keeps its notes in `docs/`, so they stay out of the published archive.
+/docs/
