@@ -651,7 +651,7 @@ test('-C runs in another directory', () async { /* ... */ });
   - AC-15: `git commit -a` and `git commit pubspec.yaml` with a violating working tree pubspec both fail.
   - Determinism: as in `testing.md` section 5.
 - [x] **Step 2: Run** `dart test test/acceptance`. Any failure is a defect in an earlier task: fix it in this branch with a unit test that reproduces it, and list it under "Deviations".
-- [ ] **Step 3: If AC-13 fails on Windows,** correct the hook template in `specs/git.md` section 7 first, then the constant and its golden, until the Windows job is green. Record what Git for Windows actually resolved in the pull request.
+- [x] **Step 3: If AC-13 fails on Windows,** correct the hook template in `specs/git.md` section 7 first, then the constant and its golden, until the Windows job is green. Record what Git for Windows actually resolved in the pull request. AC-13 passed on Windows stable and beta; the template was left as it is.
 - [ ] **Step 4: Run** all four commands on all matrix cells through CI. Expected: PASS.
 - [x] **Step 5: Commit.** `test: add acceptance scenarios for the pre-commit foundation`
 
