@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:stagelatch/src/infrastructure/git/byte_stream_reader.dart';
 import 'package:test/test.dart';
 
@@ -70,6 +72,39 @@ void main() {
       ]);
 
       expect(() => reader.readBytes(3), throwsStateError);
+    });
+  });
+
+  group('ByteStreamReader.close', () {
+    // A paused subscription keeps the isolate alive after main returns; a
+    // real `git commit` never finished until close() cancelled it.
+    test('cancels the subscription that is paused between reads', () async {
+      var cancelled = 0;
+      final controller = StreamController<List<int>>(
+        onCancel: () => cancelled++,
+      )..add('first\nsecond\n'.codeUnits);
+      final reader = ByteStreamReader(controller.stream);
+
+      expect(await reader.readLine(), 'first');
+
+      await reader.close();
+
+      expect(cancelled, 1);
+      expect(controller.hasListener, isFalse);
+    });
+
+    test('can be called twice', () async {
+      var cancelled = 0;
+      final controller = StreamController<List<int>>(
+        onCancel: () => cancelled++,
+      )..add('first\n'.codeUnits);
+      final reader = ByteStreamReader(controller.stream);
+      await reader.readLine();
+
+      await reader.close();
+      await reader.close();
+
+      expect(cancelled, 1);
     });
   });
 

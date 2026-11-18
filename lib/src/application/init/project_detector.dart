@@ -61,7 +61,9 @@ final class ProjectDetector {
         (path) => path == '.fvmrc' || path.startsWith('.fvm/'),
       ),
       usesCodegen: codegen,
-      usesL10n: paths.any((path) => path.endsWith('l10n.yaml')),
+      // Any package may hold its own l10n.yaml, so the name is matched in
+      // every directory, but whole: `old_l10n.yaml` is not an l10n config.
+      usesL10n: entries.any((entry) => entry.path.basename == 'l10n.yaml'),
       usesAssets: assets,
     );
   }
