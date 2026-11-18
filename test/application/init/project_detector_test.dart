@@ -11,9 +11,15 @@ Future<DetectedProject> _detect(Map<String, Object> files) => ProjectDetector(
 ).detect();
 
 /// The facts as a record, so one assertion compares all of them.
-({bool flutter, bool fvm, bool codegen, bool l10n, bool assets}) _facts(
-  DetectedProject project,
-) => (
+typedef _Facts = ({
+  bool flutter,
+  bool fvm,
+  bool codegen,
+  bool l10n,
+  bool assets,
+});
+
+_Facts _facts(DetectedProject project) => (
   flutter: project.usesFlutter,
   fvm: project.usesFvm,
   codegen: project.usesCodegen,
@@ -21,7 +27,7 @@ Future<DetectedProject> _detect(Map<String, Object> files) => ProjectDetector(
   assets: project.usesAssets,
 );
 
-const _nothing = (
+const _Facts _nothing = (
   flutter: false,
   fvm: false,
   codegen: false,
