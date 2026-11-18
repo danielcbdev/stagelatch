@@ -135,23 +135,26 @@ dependencies:
       expect(project.usesFvm, isTrue);
     });
 
-    test('detects code generation from build_runner in dev_dependencies', () async {
-      final project = await _detect({
-        'pubspec.yaml': '''
+    test(
+      'detects code generation from build_runner in dev_dependencies',
+      () async {
+        final project = await _detect({
+          'pubspec.yaml': '''
 name: app
 dev_dependencies:
   build_runner: ^2.4.0
 ''',
-      });
+        });
 
-      expect(_facts(project), (
-        flutter: false,
-        fvm: false,
-        codegen: true,
-        l10n: false,
-        assets: false,
-      ));
-    });
+        expect(_facts(project), (
+          flutter: false,
+          fvm: false,
+          codegen: true,
+          l10n: false,
+          assets: false,
+        ));
+      },
+    );
 
     test('ignores build_runner outside dev_dependencies', () async {
       final project = await _detect({
