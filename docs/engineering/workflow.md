@@ -107,6 +107,13 @@ Do not ask about things a spec already decides, and do not work around a gate.
 
 The first publish of the package name to pub.dev is done manually by the owner; automated publishing can be enabled only for a package that already exists.
 
+`release-please-config.json` carries two settings that exist because of that manual first release:
+
+- `include-component-in-tag: false`. By default release-please prefixes tags with the pubspec name (`stagelatch-v0.1.0`). Tags must be `v<version>`, the pattern `publish.yaml` triggers on and the one pub.dev's automated publishing is configured with.
+- `bootstrap-sha`. `0.1.0-dev.1` is published by hand, so it has no tag and no GitHub release. Without a release to anchor on, release-please would read the whole history and propose `0.2.0-dev.1` (it keeps the pre-release suffix and bumps the minor for `feat`). With the bootstrap SHA, release-please stops reading history at that commit and starts from the version in `.release-please-manifest.json`. The commits after it that ship in `0.1.0-dev.1` are `ci` and `docs` only, which are not user facing, so the run triggered by the release merge opens no pull request. It is ignored once release-please finds a release of its own, and can be removed after that.
+
+From `0.1.0-dev.1`, a `feat` bumps to `0.2.0-dev.1` and a `fix` to `0.1.1-dev.1`. When a plan targets another version (plan 02 releases `0.1.0`), set `"release-as": "<version>"` on the `.` package before the release pull request into `main`, and remove it after release-please's pull request is merged.
+
 ## 9. One-time repository setup (owner)
 
 - Protect `main` and `develop`: require the CI checks, require pull requests, forbid force pushes.
