@@ -21,6 +21,7 @@ Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
     ..addFlag('overlays', defaultsTo: true)
     ..addOption('flutter')
+    ..addOption('corpus', defaultsTo: 'corpus')
     ..addOption('cache');
   final args = parser.parse(arguments);
   if (args.rest.length != 2) {
@@ -31,7 +32,7 @@ Future<void> main(List<String> arguments) async {
     exitCode = 64;
     return;
   }
-  final ws = BenchWorkspace.find();
+  final ws = BenchWorkspace.find(corpus: args.option('corpus')!);
   final corpus = Corpus.load(ws);
   final probe = probeNamed(
     args.rest[0],

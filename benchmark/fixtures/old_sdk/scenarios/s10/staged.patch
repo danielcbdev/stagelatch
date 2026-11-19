@@ -1,0 +1,129 @@
+diff --git a/lib/badges/badge_catalog.dart b/lib/badges/badge_catalog.dart
+index 5cf69f0..b553d63 100644
+--- a/lib/badges/badge_catalog.dart
++++ b/lib/badges/badge_catalog.dart
+@@ -16,6 +16,7 @@ const List<BadgeInfo> badgeCatalog = <BadgeInfo>[
+ 
+ /// The catalog entry for [id], or null for a badge this version does not know.
+ BadgeInfo? badgeInfo(String id) {
++  final int known = badgeCatalog.length;
+   for (final BadgeInfo info in badgeCatalog) {
+     if (info.id == id) return info;
+   }
+diff --git a/lib/badges/badge_sheet.dart b/lib/badges/badge_sheet.dart
+index 51af67f..72ea5a7 100644
+--- a/lib/badges/badge_sheet.dart
++++ b/lib/badges/badge_sheet.dart
+@@ -11,12 +11,12 @@ class BadgeSheet extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     final BadgeInfo? info = badgeInfo(badgeId);
+-    final bool small = MediaQuery.sizeOf(context).height < 700;
++    final bool small =   MediaQuery.sizeOf(context).height<700;
+     return Column(
+       mainAxisSize: MainAxisSize.min,
+       children: <Widget>[
+         Icon(info?.icon ?? Icons.help_outline, size: small ? 48 : 96),
+-        const SizedBox(height: 8),
++        SizedBox(height: 8),
+         Text(
+           info?.id ?? 'unknown',
+           textAlign: TextAlign.center,
+diff --git a/lib/badges/badges_bloc.dart b/lib/badges/badges_bloc.dart
+index 5135929..d176f20 100644
+--- a/lib/badges/badges_bloc.dart
++++ b/lib/badges/badges_bloc.dart
+@@ -10,6 +10,7 @@ class BadgesBloc extends ValueNotifier<BadgesStatus> {
+ 
+   Future<void> load() async {
+     value = BadgesStatus.loading;
++    value = 'checking';
+     final List<EarnedBadge> badges = await _repository.check();
+     value = badges.isEmpty ? BadgesStatus.failure : BadgesStatus.success;
+   }
+diff --git a/lib/core/hub.dart b/lib/core/hub.dart
+index e85e2d0..c7b3963 100644
+--- a/lib/core/hub.dart
++++ b/lib/core/hub.dart
+@@ -2,6 +2,9 @@
+ enum Tone { calm, bright, muted }
+ 
+ extension ToneX on Tone {
++  /// Whether the tone draws attention.
++  bool get isLoud => this == Tone.bright;
++
+   String get wireValue => switch (this) {
+     Tone.calm => 'calm',
+     Tone.bright => 'bright',
+diff --git a/lib/tiles/tile_003.dart b/lib/tiles/tile_003.dart
+index 48f5c7d..a496454 100644
+--- a/lib/tiles/tile_003.dart
++++ b/lib/tiles/tile_003.dart
+@@ -1,6 +1,7 @@
+ import 'package:fixture_app/core/hub.dart';
+ import 'package:flutter/widgets.dart';
+ 
++/// Tile 3 (stagelatch spike scenario s10).
+ class Tile3 extends StatelessWidget {
+   const Tile3({super.key, this.tone = Tone.calm});
+ 
+diff --git a/lib/tiles/tile_017.dart b/lib/tiles/tile_017.dart
+index e357279..d6aef08 100644
+--- a/lib/tiles/tile_017.dart
++++ b/lib/tiles/tile_017.dart
+@@ -1,6 +1,7 @@
+ import 'package:fixture_app/core/hub.dart';
+ import 'package:flutter/widgets.dart';
+ 
++/// Tile 17 (stagelatch spike scenario s10).
+ class Tile17 extends StatelessWidget {
+   const Tile17({super.key, this.tone = Tone.calm});
+ 
+diff --git a/lib/tiles/tile_029.dart b/lib/tiles/tile_029.dart
+index 8be367b..fc10969 100644
+--- a/lib/tiles/tile_029.dart
++++ b/lib/tiles/tile_029.dart
+@@ -1,6 +1,7 @@
+ import 'package:fixture_app/core/hub.dart';
+ import 'package:flutter/widgets.dart';
+ 
++/// Tile 29 (stagelatch spike scenario s10).
+ class Tile29 extends StatelessWidget {
+   const Tile29({super.key, this.tone = Tone.calm});
+ 
+diff --git a/lib/tiles/tile_048.dart b/lib/tiles/tile_048.dart
+index 4b1944c..54990f7 100644
+--- a/lib/tiles/tile_048.dart
++++ b/lib/tiles/tile_048.dart
+@@ -1,6 +1,7 @@
+ import 'package:fixture_app/core/hub.dart';
+ import 'package:flutter/widgets.dart';
+ 
++/// Tile 48 (stagelatch spike scenario s10).
+ class Tile48 extends StatelessWidget {
+   const Tile48({super.key, this.tone = Tone.calm});
+ 
+diff --git a/lib/tiles/tile_071.dart b/lib/tiles/tile_071.dart
+index 9b56daa..b9a4326 100644
+--- a/lib/tiles/tile_071.dart
++++ b/lib/tiles/tile_071.dart
+@@ -1,6 +1,7 @@
+ import 'package:fixture_app/core/hub.dart';
+ import 'package:flutter/widgets.dart';
+ 
++/// Tile 71 (stagelatch spike scenario s10).
+ class Tile71 extends StatelessWidget {
+   const Tile71({super.key, this.tone = Tone.calm});
+ 
+diff --git a/lib/tiles/tile_096.dart b/lib/tiles/tile_096.dart
+index e70bbad..ea9df73 100644
+--- a/lib/tiles/tile_096.dart
++++ b/lib/tiles/tile_096.dart
+@@ -1,6 +1,7 @@
+ import 'package:fixture_app/core/hub.dart';
+ import 'package:flutter/widgets.dart';
+ 
++/// Tile 96 (stagelatch spike scenario s10).
+ class Tile96 extends StatelessWidget {
+   const Tile96({super.key, this.tone = Tone.calm});
+ 

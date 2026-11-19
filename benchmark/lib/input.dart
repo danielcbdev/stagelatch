@@ -52,7 +52,7 @@ Future<ProbeInput> buildProbeInput({
     ], workingDirectory: repo),
   );
 
-  final blobs = await readIndexBlobs(repo, diverging);
+  final blobs = await readBlobs(repo, [for (final path in diverging) ':$path']);
   final overlays = <String, String>{
     for (final (i, path) in diverging.indexed) p.join(repo, path): blobs[i],
   };
@@ -80,13 +80,15 @@ List<String> _paths(String nulSeparated) =>
 String readThroughOverlay(ProbeInput input, String path) =>
     input.overlays[path] ?? File(path).readAsStringSync();
 
-/// Reads the index content of [paths] through one `git cat-file --batch`
+/// Reads the content of [objects] through one `git cat-file --batch`
 /// process, as the real tool does (ADR-0001): one spawn, not one per file.
 ///
-/// Results are in the order of [paths]. A path absent from the index
-/// yields an empty string (the scenarios never delete files).
-Future<List<String>> readIndexBlobs(String repo, List<String> paths) async {
-  if (paths.isEmpty) return const [];
+/// Each entry is an object name git understands: a blob id, or
+/// `:<path>` for the index content of a path (stage 0). Results are in the
+/// order of [objects]. A missing object yields an empty string (the
+/// scenarios never delete files).
+Future<List<String>> readBlobs(String repo, List<String> objects) async {
+  if (objects.isEmpty) return const [];
   final process = await Process.start('git', [
     'cat-file',
     '--batch',
@@ -94,9 +96,8 @@ Future<List<String>> readIndexBlobs(String repo, List<String> paths) async {
   final reader = _ByteReader(process.stdout);
   try {
     final result = <String>[];
-    for (final path in paths) {
-      // ':<path>' names the blob of <path> in the index (stage 0).
-      process.stdin.add(utf8.encode(':$path\n'));
+    for (final object in objects) {
+      process.stdin.add(utf8.encode('$object\n'));
       await process.stdin.flush();
       final header = utf8.decode(await reader.readLine());
       if (header.endsWith(' missing')) {

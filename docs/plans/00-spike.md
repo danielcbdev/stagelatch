@@ -111,11 +111,11 @@ abstract interface class Probe { String get name; Future<ProbeResult> run(ProbeI
 - Consumes: both probes.
 - Produces: `Future<ProbeResult> runOracle(ProbeInput)`; `List<String> diffResults(ProbeResult expected, ProbeResult actual)`, empty when identical.
 
-- [ ] **Step 1: Implement the oracle.** Build a tree from the index (`git write-tree`), export it to a temporary directory with `git archive | tar -x`, copy `.dart_tool/package_config.json` and rewrite its relative roots to absolute, then run the corpus SDK's `dart analyze --format=json` and `dart format --output=show` there. Map results back to repository paths. Remove the directory in a `finally`.
-- [ ] **Step 2: Implement `diffResults`:** compare diagnostics as the set of `(path, code, severity, offset, length)` restricted to the requested files, and formatted text byte for byte. One line per difference.
-- [ ] **Step 3: Run `parity.dart`** for both probes on `s3` and `s10` with the corpus's pinned SDK. Record the diffs.
-- [ ] **Step 4: Repeat on an older SDK:** install the previous stable Flutter minor with FVM, re-resolve the corpus if it supports it (otherwise use a small fixture project created for this purpose with an SDK constraint that fits), and record the diffs for both probes.
-- [ ] **Step 5: Commit.** `chore(spike): add parity oracle`
+- [x] **Step 1: Implement the oracle.** Build a tree from the index (`git write-tree`), export it to a temporary directory with `git archive | tar -x`, copy `.dart_tool/package_config.json` and rewrite its relative roots to absolute, then run the corpus SDK's `dart analyze --format=json` and `dart format --output=show` there. Map results back to repository paths. Remove the directory in a `finally`.
+- [x] **Step 2: Implement `diffResults`:** compare diagnostics as the set of `(path, code, severity, offset, length)` restricted to the requested files, and formatted text byte for byte. One line per difference.
+- [x] **Step 3: Run `parity.dart`** for both probes on `s3` and `s10` with the corpus's pinned SDK. Record the diffs.
+- [x] **Step 4: Repeat on an older SDK:** install the previous stable Flutter minor with FVM, re-resolve the corpus if it supports it (otherwise use a small fixture project created for this purpose with an SDK constraint that fits), and record the diffs for both probes.
+- [x] **Step 5: Commit.** `chore(spike): add parity oracle`
 
 ### Task 5: Import graph timing
 
