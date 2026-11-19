@@ -1,0 +1,11 @@
+diff --git a/lib/badges/badge_repository.dart b/lib/badges/badge_repository.dart
+index c9dcbb2..0090c10 100644
+--- a/lib/badges/badge_repository.dart
++++ b/lib/badges/badge_repository.dart
+@@ -7,5 +7,5 @@ class EarnedBadge {
+ 
+ abstract class BadgeRepository {
+   /// Asks the server to award any badges now earned.
+-  Future<List<EarnedBadge>> check();
++  Future<List<EarnedBadge>> checkAll();
+ }

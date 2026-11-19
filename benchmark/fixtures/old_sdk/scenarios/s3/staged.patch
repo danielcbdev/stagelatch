@@ -1,0 +1,43 @@
+diff --git a/lib/badges/badge_catalog.dart b/lib/badges/badge_catalog.dart
+index 5cf69f0..b553d63 100644
+--- a/lib/badges/badge_catalog.dart
++++ b/lib/badges/badge_catalog.dart
+@@ -16,6 +16,7 @@ const List<BadgeInfo> badgeCatalog = <BadgeInfo>[
+ 
+ /// The catalog entry for [id], or null for a badge this version does not know.
+ BadgeInfo? badgeInfo(String id) {
++  final int known = badgeCatalog.length;
+   for (final BadgeInfo info in badgeCatalog) {
+     if (info.id == id) return info;
+   }
+diff --git a/lib/badges/badge_sheet.dart b/lib/badges/badge_sheet.dart
+index 51af67f..72ea5a7 100644
+--- a/lib/badges/badge_sheet.dart
++++ b/lib/badges/badge_sheet.dart
+@@ -11,12 +11,12 @@ class BadgeSheet extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     final BadgeInfo? info = badgeInfo(badgeId);
+-    final bool small = MediaQuery.sizeOf(context).height < 700;
++    final bool small =   MediaQuery.sizeOf(context).height<700;
+     return Column(
+       mainAxisSize: MainAxisSize.min,
+       children: <Widget>[
+         Icon(info?.icon ?? Icons.help_outline, size: small ? 48 : 96),
+-        const SizedBox(height: 8),
++        SizedBox(height: 8),
+         Text(
+           info?.id ?? 'unknown',
+           textAlign: TextAlign.center,
+diff --git a/lib/badges/badges_bloc.dart b/lib/badges/badges_bloc.dart
+index 5135929..d176f20 100644
+--- a/lib/badges/badges_bloc.dart
++++ b/lib/badges/badges_bloc.dart
+@@ -10,6 +10,7 @@ class BadgesBloc extends ValueNotifier<BadgesStatus> {
+ 
+   Future<void> load() async {
+     value = BadgesStatus.loading;
++    value = 'checking';
+     final List<EarnedBadge> badges = await _repository.check();
+     value = badges.isEmpty ? BadgesStatus.failure : BadgesStatus.success;
+   }

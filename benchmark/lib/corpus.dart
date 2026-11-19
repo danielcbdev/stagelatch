@@ -1,4 +1,4 @@
-/// The pinned corpus described by `benchmark/corpus.yaml`.
+/// The pinned corpus described by a `corpus.yaml`.
 library;
 
 import 'dart:io';
@@ -19,7 +19,7 @@ final class Corpus {
 
   /// Reads `corpus.yaml` of [workspace].
   factory load(BenchWorkspace workspace) {
-    final file = File(p.join(workspace.benchmarkDir, 'corpus.yaml'));
+    final file = File(workspace.corpusFile);
     final yaml = loadYaml(file.readAsStringSync());
     if (yaml case {
       'repository': final String repository,

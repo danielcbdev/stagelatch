@@ -31,7 +31,7 @@ final class Scenario {
 /// Loads the scenario [name] of [workspace].
 Scenario loadScenario(String name, [BenchWorkspace? workspace]) {
   final ws = workspace ?? BenchWorkspace.find();
-  final dir = p.join(ws.benchmarkDir, 'scenarios', name);
+  final dir = p.join(ws.scenariosDir, name);
   return Scenario(
     name: name,
     stagedPatch: File(p.join(dir, 'staged.patch')).readAsStringSync(),
