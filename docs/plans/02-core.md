@@ -526,7 +526,7 @@ Commit snapshots are already read through `git ls-tree -r -z` (plan 01, `git_sna
 - Consumes: `PrePushEntry`, `PushedRef` (`entry_point.dart`, plan 01), `CommitSnapshot`, `ResolvedRun`, `Environment.stdinIsTerminal`.
 - Produces: `List<PushedRef> parsePushedRefs(String stdin)` throwing `UsageException`; `GitCliRepository.resolve(PrePushEntry)`; `Future<PrePushEntry> GitCliRepository.synthesizePrePush({String? remote})` for manual runs, where `GitCliRepository` gains it as a `GitRepository` port method with the same signature.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('parses one ref per line and rejects malformed lines', () {
@@ -557,10 +557,10 @@ test('one extra argument is the unknown-hook usage error', () async {
 test('the pre-push hook installed by init lets a real git push through', () async { /* push to a bare remote in a temp dir: exit 0 */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/git.md` section 4.2 and `specs/cli.md` section 3.4. `targetBranch` and `label` are the remote branch name. Stdin is read to its end only when `Environment.stdinIsTerminal` is false; empty input then means a manual run.
-- [ ] **Step 4: Run** all four commands, including AC-19. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(cli): add run pre-push over pushed commits`. The pull request description calls out the `0.1.0-dev.1` bug it fixes: every `git push` in a repository set up by `init` was blocked with exit 64.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/git.md` section 4.2 and `specs/cli.md` section 3.4. `targetBranch` and `label` are the remote branch name. Stdin is read to its end only when `Environment.stdinIsTerminal` is false; empty input then means a manual run.
+- [x] **Step 4: Run** all four commands, including AC-19. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(cli): add run pre-push over pushed commits`. The pull request description calls out the `0.1.0-dev.1` bug it fixes: every `git push` in a repository set up by `init` was blocked with exit 64.
 
 ### Task 13: CI entry point
 

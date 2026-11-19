@@ -72,7 +72,9 @@ Per stdin line `<local ref> <local sha> <remote ref> <remote sha>`:
 
 Then `git diff --name-status -z -M <base> <local sha>`. Snapshot: the commit `<local sha>`. Target branch: `<remote ref>` without `refs/heads/`.
 
-A line that does not have four space-separated fields is a usage error.
+A line that does not have four space-separated fields is a usage error: `Malformed pre-push input: "<line>".` Blank lines and a trailing `\r` are ignored. The runs follow the order of the lines.
+
+**Empty tree.** A base of "the empty tree" means no base snapshot: every file of the pushed commit counts as `added`.
 
 ### 4.3 CI
 

@@ -77,6 +77,10 @@ final class FakeGitRepository implements GitRepository {
   };
 
   @override
+  Future<PrePushEntry> synthesizePrePush({String? remote}) async =>
+      PrePushEntry(remote: remote ?? 'origin', refs: const []);
+
+  @override
   Future<Set<RepoPath>> divergingFromWorktree(SnapshotRef ref) async =>
       _diverging.map(RepoPath.new).toSet();
 

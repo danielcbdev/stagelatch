@@ -102,7 +102,7 @@ final class GitCliRepository implements GitRepository {
     if (all) throw UnsupportedError('--all arrives in 0.2.0.');
     return switch (entry) {
       PreCommitEntry() => [await _resolvePreCommit()],
-      PrePushEntry() ||
+      PrePushEntry() => await _resolvePrePush(entry),
       CiEntry() => throw UnsupportedError('This entry point arrives in 0.1.0.'),
     };
   }
@@ -144,6 +144,134 @@ final class GitCliRepository implements GitRepository {
       targetBranch: layout.branch,
       label: 'index',
     );
+  }
+
+  /// One run per pushed branch (docs/specs/git.md, section 4.2).
+  Future<List<ResolvedRun>> _resolvePrePush(PrePushEntry entry) async {
+    final runs = <ResolvedRun>[];
+    for (final ref in entry.refs) {
+      // A deletion has nothing to validate, and a tag is not a branch.
+      if (_isZero(ref.localSha)) continue;
+      if (!ref.remoteRef.startsWith('refs/heads/')) continue;
+      final base = await _pushBase(entry.remote, ref);
+      final List<FileChange> changes;
+      if (base == null) {
+        // The empty tree: every file of the pushed commit is new. Listing
+        // the commit avoids naming the empty tree, whose id depends on the
+        // repository's object format.
+        changes = [
+          for (final file in await files(CommitSnapshot(ref.localSha)).list())
+            FileChange(path: file.path, kind: ChangeKind.added),
+        ];
+      } else {
+        // --name-status -z -M: as for pre-commit, between two commits.
+        final diff = await _git.run([
+          'diff',
+          '--name-status',
+          '-z',
+          '-M',
+          base,
+          ref.localSha,
+        ]);
+        changes = parseNameStatus(diff.nulSeparated);
+      }
+      final branch = ref.remoteRef.substring('refs/heads/'.length);
+      runs.add(
+        ResolvedRun(
+          snapshot: CommitSnapshot(ref.localSha),
+          base: base == null ? null : CommitSnapshot(base),
+          changes: ChangeSet(changes),
+          targetBranch: branch,
+          label: branch,
+        ),
+      );
+    }
+    return runs;
+  }
+
+  /// The commit a pushed ref is compared with, or null for the empty tree.
+  Future<String?> _pushBase(String remote, PushedRef ref) async {
+    if (!_isZero(ref.remoteSha) && await _hasCommit(ref.remoteSha)) {
+      return ref.remoteSha;
+    }
+    // A new branch, or a remote sha this clone has not fetched: the newest
+    // commit of the pushed history that some branch of the remote already
+    // contains. --format=%(objectname): one sha per ref, nothing else.
+    final refs = await _git.run([
+      'for-each-ref',
+      '--format=%(objectname)',
+      'refs/remotes/$remote/',
+    ]);
+    final known = const LineSplitter()
+        .convert(refs.text)
+        .where((line) => line.isNotEmpty)
+        .toList();
+    if (known.isEmpty) return null;
+    // With several commits after the first, merge-base answers for the
+    // first against any of the others. Exit 1: no common ancestor.
+    final mergeBase = await _git.run(
+      ['merge-base', ref.localSha, ...known],
+      okExitCodes: {0, 1},
+    );
+    return mergeBase.exitCode == 0 ? mergeBase.text.trim() : null;
+  }
+
+  Future<bool> _hasCommit(String sha) async {
+    // -e: exit 0 when the object exists and is valid, silently.
+    final result = await _git.run(
+      ['cat-file', '-e', '$sha^{commit}'],
+      okExitCodes: {0, 1, 128},
+    );
+    return result.exitCode == 0;
+  }
+
+  static bool _isZero(String sha) =>
+      sha.isNotEmpty && sha.replaceAll('0', '').isEmpty;
+
+  @override
+  Future<PrePushEntry> synthesizePrePush({String? remote}) async {
+    // --short: the branch name without refs/heads/; exit 1 when detached.
+    final branch = await _git.run(
+      ['symbolic-ref', '--quiet', '--short', 'HEAD'],
+      okExitCodes: {0, 1, 128},
+    );
+    final name = branch.text.trim();
+    if (branch.exitCode != 0 || name.isEmpty) {
+      return PrePushEntry(remote: remote ?? 'origin', refs: const []);
+    }
+    final head = (await _git.run(['rev-parse', 'HEAD'])).text.trim();
+    // The upstream as configured: branch.<name>.remote and .merge.
+    final configuredRemote = await _config('branch.$name.remote');
+    final merge = await _config('branch.$name.merge');
+    // --verify --quiet: the upstream's commit, or nothing when there is no
+    // upstream or it was never fetched.
+    final upstream = await _git.run(
+      ['rev-parse', '--verify', '--quiet', '$name@{upstream}'],
+      okExitCodes: {0, 1, 128},
+    );
+    final upstreamSha = upstream.exitCode == 0 ? upstream.text.trim() : '';
+    return PrePushEntry(
+      remote: remote ?? configuredRemote ?? 'origin',
+      refs: [
+        PushedRef(
+          localRef: 'refs/heads/$name',
+          localSha: head,
+          remoteRef: merge ?? 'refs/heads/$name',
+          remoteSha: upstreamSha.isEmpty ? '0' * head.length : upstreamSha,
+        ),
+      ],
+    );
+  }
+
+  /// The value of the git config [key], or null when unset.
+  Future<String?> _config(String key) async {
+    // --get: one value; exit 1 when the key is not set.
+    final result = await _git.run(
+      ['config', '--get', key],
+      okExitCodes: {0, 1},
+    );
+    final value = result.text.trim();
+    return result.exitCode == 0 && value.isNotEmpty ? value : null;
   }
 
   /// ADR-0007: during a merge only paths that differ from every parent
