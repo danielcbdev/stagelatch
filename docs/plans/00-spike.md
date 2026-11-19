@@ -77,10 +77,10 @@ final class ProbeResult {
 abstract interface class Probe { String get name; Future<ProbeResult> run(ProbeInput input); }
 ```
 
-- [ ] **Step 1: Implement `EmbeddedProbe`** with `AnalysisContextCollection`, an `OverlayResourceProvider` over the physical provider, and `sdkPath` set from the input. Diagnostics come from the session's per-file error query; formatting from `DartFormatter` with the file's language version and the page width from `analysis_options.yaml`. Confirm the exact API names against the pinned `analyzer` version's documentation before writing; record the version in the report.
-- [ ] **Step 2: Prove the overlay.** Run on `s3`: the result must contain the staged error and must **not** contain the error that only exists in `unstaged.patch`. Then run with empty overlays and confirm the unstaged error appears. Record both outputs.
-- [ ] **Step 3: Record phase timings** for `s3` and `s10` from a single in-process run (not yet the official numbers).
-- [ ] **Step 4: Commit.** `chore(spike): add embedded analyzer probe`
+- [x] **Step 1: Implement `EmbeddedProbe`** with `AnalysisContextCollection`, an `OverlayResourceProvider` over the physical provider, and `sdkPath` set from the input. Diagnostics come from the session's per-file error query; formatting from `DartFormatter` with the file's language version and the page width from `analysis_options.yaml`. Confirm the exact API names against the pinned `analyzer` version's documentation before writing; record the version in the report.
+- [x] **Step 2: Prove the overlay.** Run on `s3`: the result must contain the staged error and must **not** contain the error that only exists in `unstaged.patch`. Then run with empty overlays and confirm the unstaged error appears. Record both outputs.
+- [x] **Step 3: Record phase timings** for `s3` and `s10` from a single in-process run (not yet the official numbers).
+- [x] **Step 4: Commit.** `chore(spike): add embedded analyzer probe`
 
 ### Task 3: Probe B, delegated analysis server
 
