@@ -1,6 +1,8 @@
 /// Candidate A: `package:analyzer` and `package:dart_style` in-process.
 library;
 
+import 'dart:io';
+
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:analyzer/file_system/overlay_file_system.dart';
@@ -54,6 +56,9 @@ final class EmbeddedProbe implements Probe {
     phases['overlay'] = lap();
 
     final dir = cacheDir;
+    // FileByteStore does not create its directory, and a failed write is
+    // silent: every run would then be cold.
+    if (dir != null) Directory(dir).createSync(recursive: true);
     final collection = AnalysisContextCollectionImpl(
       includedPaths: [input.packageRoot],
       resourceProvider: provider,

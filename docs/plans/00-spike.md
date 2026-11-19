@@ -144,11 +144,11 @@ abstract interface class Probe { String get name; Future<ProbeResult> run(ProbeI
 - Consumes: both probes, scenarios.
 - Produces: `stagelatch_bench <probe> <scenario> --cache <dir>` prints one JSON line with `phases` and `totalMs`, where `totalMs` is measured by the caller from process start to exit.
 
-- [ ] **Step 1: Activate:** `dart pub global activate --source path benchmark`. Confirm with `dart pub global list`.
-- [ ] **Step 2: Cold runs.** For each probe and scenario, 3 runs, each with a fresh empty `--cache` directory and after one unrelated `dart --version` call.
-- [ ] **Step 3: Warm runs.** For each probe and scenario, 10 consecutive runs sharing one `--cache` directory, discarding the first.
-- [ ] **Step 4: Write `docs/spike/report.md`** with: machine, OS, Dart and Flutter versions, corpus identity, `analyzer` and `dart_style` versions; a table of cold and warm p50/p95 per probe and scenario with the phase breakdown; the parity results of Task 4; the import graph numbers of Task 5; the overlay proofs.
-- [ ] **Step 5: Commit.** `docs(spike): record latency and parity measurements`
+- [x] **Step 1: Activate:** `dart pub global activate --source path benchmark`. Confirm with `dart pub global list`.
+- [x] **Step 2: Cold runs.** For each probe and scenario, 3 runs, each with a fresh empty `--cache` directory and after one unrelated `dart --version` call.
+- [x] **Step 3: Warm runs.** For each probe and scenario, 10 consecutive runs sharing one `--cache` directory, discarding the first.
+- [x] **Step 4: Write `docs/spike/report.md`** with: machine, OS, Dart and Flutter versions, corpus identity, `analyzer` and `dart_style` versions; a table of cold and warm p50/p95 per probe and scenario with the phase breakdown; the parity results of Task 4; the import graph numbers of Task 5; the overlay proofs.
+- [x] **Step 5: Commit.** `docs(spike): record latency and parity measurements`
 
 ### Task 7: Decision
 
