@@ -1,0 +1,1157 @@
+{
+  "recorded": "2026-11-19T02:04:16.353373Z",
+  "startupMs": [
+    789,
+    812,
+    846,
+    829,
+    838,
+    800,
+    817,
+    780,
+    789,
+    802
+  ],
+  "results": [
+    {
+      "probe": "embedded",
+      "scenario": "s3",
+      "cold": [
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 60,
+            "overlay": 0,
+            "start": 284,
+            "diagnose": 12996,
+            "format": 68
+          },
+          "diagnostics": 2,
+          "inProcessMs": 13432,
+          "totalMs": 14852
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "overlay": 0,
+            "start": 289,
+            "diagnose": 12890,
+            "format": 72
+          },
+          "diagnostics": 2,
+          "inProcessMs": 13343,
+          "totalMs": 14970
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "overlay": 0,
+            "start": 286,
+            "diagnose": 12870,
+            "format": 69
+          },
+          "diagnostics": 2,
+          "inProcessMs": 13316,
+          "totalMs": 14930
+        }
+      ],
+      "warm": [
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 69,
+            "overlay": 0,
+            "start": 289,
+            "diagnose": 1744,
+            "format": 87
+          },
+          "diagnostics": 2,
+          "inProcessMs": 2198,
+          "totalMs": 3202
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 62,
+            "overlay": 0,
+            "start": 287,
+            "diagnose": 1455,
+            "format": 86
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1899,
+          "totalMs": 2735
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 60,
+            "overlay": 0,
+            "start": 283,
+            "diagnose": 1371,
+            "format": 86
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1809,
+          "totalMs": 2632
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 75,
+            "overlay": 0,
+            "start": 352,
+            "diagnose": 1402,
+            "format": 136
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1975,
+          "totalMs": 2800
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 62,
+            "overlay": 0,
+            "start": 284,
+            "diagnose": 1362,
+            "format": 95
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1812,
+          "totalMs": 2624
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 62,
+            "overlay": 0,
+            "start": 301,
+            "diagnose": 1376,
+            "format": 92
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1839,
+          "totalMs": 2737
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 61,
+            "overlay": 0,
+            "start": 283,
+            "diagnose": 1372,
+            "format": 86
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1811,
+          "totalMs": 2637
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 61,
+            "overlay": 0,
+            "start": 284,
+            "diagnose": 1426,
+            "format": 92
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1872,
+          "totalMs": 2716
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 68,
+            "overlay": 0,
+            "start": 375,
+            "diagnose": 1372,
+            "format": 89
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1914,
+          "totalMs": 2757
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s3",
+          "phases": {
+            "read": 62,
+            "overlay": 0,
+            "start": 285,
+            "diagnose": 1372,
+            "format": 85
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1812,
+          "totalMs": 2629
+        }
+      ]
+    },
+    {
+      "probe": "delegated",
+      "scenario": "s3",
+      "cold": [
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 60,
+            "start": 131,
+            "overlay": 13537,
+            "diagnose": 14,
+            "format": 30
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13843,
+          "totalMs": 14662
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 66,
+            "start": 26,
+            "overlay": 14496,
+            "diagnose": 8,
+            "format": 50
+          },
+          "diagnostics": 4,
+          "inProcessMs": 14697,
+          "totalMs": 15640
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 14005,
+            "diagnose": 8,
+            "format": 43
+          },
+          "diagnostics": 4,
+          "inProcessMs": 14202,
+          "totalMs": 15175
+        }
+      ],
+      "warm": [
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 66,
+            "start": 26,
+            "overlay": 13647,
+            "diagnose": 20,
+            "format": 31
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13867,
+          "totalMs": 14862
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 66,
+            "start": 26,
+            "overlay": 13476,
+            "diagnose": 20,
+            "format": 33
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13680,
+          "totalMs": 14647
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 74,
+            "start": 28,
+            "overlay": 13479,
+            "diagnose": 10,
+            "format": 27
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13683,
+          "totalMs": 14668
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 66,
+            "start": 26,
+            "overlay": 13403,
+            "diagnose": 20,
+            "format": 36
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13615,
+          "totalMs": 14594
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 66,
+            "start": 26,
+            "overlay": 13389,
+            "diagnose": 20,
+            "format": 29
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13578,
+          "totalMs": 14594
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 27,
+            "overlay": 13377,
+            "diagnose": 14,
+            "format": 127
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13781,
+          "totalMs": 14784
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 13131,
+            "diagnose": 19,
+            "format": 30
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13334,
+          "totalMs": 14325
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 66,
+            "start": 27,
+            "overlay": 13063,
+            "diagnose": 13,
+            "format": 30
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13243,
+          "totalMs": 14219
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 66,
+            "start": 26,
+            "overlay": 13119,
+            "diagnose": 15,
+            "format": 35
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13324,
+          "totalMs": 14292
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 13167,
+            "diagnose": 16,
+            "format": 32
+          },
+          "diagnostics": 4,
+          "inProcessMs": 13369,
+          "totalMs": 14360
+        }
+      ]
+    },
+    {
+      "probe": "delegated-files",
+      "scenario": "s3",
+      "cold": [
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 12233,
+            "diagnose": 12,
+            "format": 319
+          },
+          "diagnostics": 4,
+          "inProcessMs": 12696,
+          "totalMs": 13660
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 27,
+            "overlay": 12247,
+            "diagnose": 8,
+            "format": 325
+          },
+          "diagnostics": 4,
+          "inProcessMs": 12721,
+          "totalMs": 13679
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 12192,
+            "diagnose": 355,
+            "format": 19
+          },
+          "diagnostics": 4,
+          "inProcessMs": 12697,
+          "totalMs": 13667
+        }
+      ],
+      "warm": [
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 66,
+            "start": 26,
+            "overlay": 11665,
+            "diagnose": 17,
+            "format": 317
+          },
+          "diagnostics": 4,
+          "inProcessMs": 12130,
+          "totalMs": 13107
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 11533,
+            "diagnose": 16,
+            "format": 438
+          },
+          "diagnostics": 4,
+          "inProcessMs": 12118,
+          "totalMs": 13095
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 68,
+            "start": 26,
+            "overlay": 11529,
+            "diagnose": 16,
+            "format": 313
+          },
+          "diagnostics": 4,
+          "inProcessMs": 11989,
+          "totalMs": 12971
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 11759,
+            "diagnose": 20,
+            "format": 321
+          },
+          "diagnostics": 4,
+          "inProcessMs": 12231,
+          "totalMs": 13216
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 11734,
+            "diagnose": 360,
+            "format": 15
+          },
+          "diagnostics": 4,
+          "inProcessMs": 12240,
+          "totalMs": 13280
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 72,
+            "start": 28,
+            "overlay": 11723,
+            "diagnose": 15,
+            "format": 319
+          },
+          "diagnostics": 4,
+          "inProcessMs": 12194,
+          "totalMs": 13194
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 11420,
+            "diagnose": 15,
+            "format": 317
+          },
+          "diagnostics": 4,
+          "inProcessMs": 11885,
+          "totalMs": 12883
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 26,
+            "overlay": 11372,
+            "diagnose": 10,
+            "format": 315
+          },
+          "diagnostics": 4,
+          "inProcessMs": 11828,
+          "totalMs": 12835
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 67,
+            "start": 27,
+            "overlay": 12122,
+            "diagnose": 8,
+            "format": 315
+          },
+          "diagnostics": 4,
+          "inProcessMs": 12577,
+          "totalMs": 13594
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s3",
+          "phases": {
+            "read": 68,
+            "start": 27,
+            "overlay": 10901,
+            "diagnose": 355,
+            "format": 13
+          },
+          "diagnostics": 4,
+          "inProcessMs": 11414,
+          "totalMs": 12423
+        }
+      ]
+    },
+    {
+      "probe": "embedded",
+      "scenario": "s10",
+      "cold": [
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 64,
+            "overlay": 0,
+            "start": 290,
+            "diagnose": 13073,
+            "format": 89
+          },
+          "diagnostics": 2,
+          "inProcessMs": 13539,
+          "totalMs": 15226
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 75,
+            "overlay": 0,
+            "start": 295,
+            "diagnose": 13171,
+            "format": 88
+          },
+          "diagnostics": 2,
+          "inProcessMs": 13652,
+          "totalMs": 15180
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 79,
+            "overlay": 0,
+            "start": 291,
+            "diagnose": 12894,
+            "format": 90
+          },
+          "diagnostics": 2,
+          "inProcessMs": 13376,
+          "totalMs": 14992
+        }
+      ],
+      "warm": [
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 76,
+            "overlay": 0,
+            "start": 295,
+            "diagnose": 1688,
+            "format": 129
+          },
+          "diagnostics": 2,
+          "inProcessMs": 2198,
+          "totalMs": 3209
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "overlay": 0,
+            "start": 290,
+            "diagnose": 1376,
+            "format": 127
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1866,
+          "totalMs": 2697
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "overlay": 0,
+            "start": 287,
+            "diagnose": 1365,
+            "format": 128
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1853,
+          "totalMs": 2691
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "overlay": 0,
+            "start": 287,
+            "diagnose": 1367,
+            "format": 125
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1851,
+          "totalMs": 2692
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "overlay": 0,
+            "start": 290,
+            "diagnose": 1363,
+            "format": 127
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1852,
+          "totalMs": 2685
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "overlay": 0,
+            "start": 287,
+            "diagnose": 1371,
+            "format": 128
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1857,
+          "totalMs": 2673
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "overlay": 0,
+            "start": 287,
+            "diagnose": 1367,
+            "format": 128
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1852,
+          "totalMs": 2691
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "overlay": 0,
+            "start": 287,
+            "diagnose": 1368,
+            "format": 129
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1855,
+          "totalMs": 2669
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "overlay": 0,
+            "start": 285,
+            "diagnose": 1379,
+            "format": 126
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1861,
+          "totalMs": 2695
+        },
+        {
+          "probe": "embedded",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "overlay": 0,
+            "start": 287,
+            "diagnose": 1358,
+            "format": 127
+          },
+          "diagnostics": 2,
+          "inProcessMs": 1843,
+          "totalMs": 2680
+        }
+      ]
+    },
+    {
+      "probe": "delegated",
+      "scenario": "s10",
+      "cold": [
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 76,
+            "overlay": 13278,
+            "diagnose": 40,
+            "format": 142
+          },
+          "diagnostics": 5,
+          "inProcessMs": 13643,
+          "totalMs": 14445
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 27,
+            "overlay": 13099,
+            "diagnose": 43,
+            "format": 133
+          },
+          "diagnostics": 5,
+          "inProcessMs": 13411,
+          "totalMs": 14271
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 26,
+            "overlay": 12993,
+            "diagnose": 34,
+            "format": 144
+          },
+          "diagnostics": 5,
+          "inProcessMs": 13309,
+          "totalMs": 14141
+        }
+      ],
+      "warm": [
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 25,
+            "overlay": 12972,
+            "diagnose": 43,
+            "format": 135
+          },
+          "diagnostics": 5,
+          "inProcessMs": 13279,
+          "totalMs": 14105
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 12934,
+            "diagnose": 42,
+            "format": 140
+          },
+          "diagnostics": 5,
+          "inProcessMs": 13248,
+          "totalMs": 14090
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 12710,
+            "diagnose": 32,
+            "format": 135
+          },
+          "diagnostics": 5,
+          "inProcessMs": 13011,
+          "totalMs": 13836
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 12688,
+            "diagnose": 41,
+            "format": 146
+          },
+          "diagnostics": 5,
+          "inProcessMs": 13008,
+          "totalMs": 13849
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 12487,
+            "diagnose": 44,
+            "format": 151
+          },
+          "diagnostics": 5,
+          "inProcessMs": 12818,
+          "totalMs": 13634
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 12443,
+            "diagnose": 42,
+            "format": 135
+          },
+          "diagnostics": 5,
+          "inProcessMs": 12751,
+          "totalMs": 13572
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 12292,
+            "diagnose": 38,
+            "format": 138
+          },
+          "diagnostics": 5,
+          "inProcessMs": 12601,
+          "totalMs": 13439
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 25,
+            "overlay": 12121,
+            "diagnose": 32,
+            "format": 133
+          },
+          "diagnostics": 5,
+          "inProcessMs": 12420,
+          "totalMs": 13258
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 65,
+            "start": 28,
+            "overlay": 11929,
+            "diagnose": 36,
+            "format": 140
+          },
+          "diagnostics": 5,
+          "inProcessMs": 12243,
+          "totalMs": 13069
+        },
+        {
+          "probe": "delegated",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 25,
+            "overlay": 11610,
+            "diagnose": 35,
+            "format": 144
+          },
+          "diagnostics": 5,
+          "inProcessMs": 11936,
+          "totalMs": 12774
+        }
+      ]
+    },
+    {
+      "probe": "delegated-files",
+      "scenario": "s10",
+      "cold": [
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 11583,
+            "diagnose": 40,
+            "format": 343
+          },
+          "diagnostics": 5,
+          "inProcessMs": 12093,
+          "totalMs": 12890
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 11580,
+            "diagnose": 40,
+            "format": 352
+          },
+          "diagnostics": 5,
+          "inProcessMs": 12100,
+          "totalMs": 12899
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 25,
+            "overlay": 11757,
+            "diagnose": 29,
+            "format": 462
+          },
+          "diagnostics": 5,
+          "inProcessMs": 12375,
+          "totalMs": 13167
+        }
+      ],
+      "warm": [
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 11302,
+            "diagnose": 42,
+            "format": 338
+          },
+          "diagnostics": 5,
+          "inProcessMs": 11808,
+          "totalMs": 12661
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 27,
+            "overlay": 10776,
+            "diagnose": 30,
+            "format": 338
+          },
+          "diagnostics": 5,
+          "inProcessMs": 11269,
+          "totalMs": 12101
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 10514,
+            "diagnose": 35,
+            "format": 463
+          },
+          "diagnostics": 5,
+          "inProcessMs": 11139,
+          "totalMs": 11964
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 25,
+            "overlay": 10339,
+            "diagnose": 61,
+            "format": 426
+          },
+          "diagnostics": 5,
+          "inProcessMs": 10954,
+          "totalMs": 11767
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 10395,
+            "diagnose": 61,
+            "format": 434
+          },
+          "diagnostics": 5,
+          "inProcessMs": 11014,
+          "totalMs": 11839
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 25,
+            "overlay": 10042,
+            "diagnose": 58,
+            "format": 426
+          },
+          "diagnostics": 5,
+          "inProcessMs": 10652,
+          "totalMs": 11504
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 25,
+            "overlay": 9643,
+            "diagnose": 32,
+            "format": 323
+          },
+          "diagnostics": 5,
+          "inProcessMs": 10124,
+          "totalMs": 10936
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 62,
+            "start": 25,
+            "overlay": 9532,
+            "diagnose": 39,
+            "format": 338
+          },
+          "diagnostics": 5,
+          "inProcessMs": 10033,
+          "totalMs": 10861
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 9446,
+            "diagnose": 60,
+            "format": 388
+          },
+          "diagnostics": 5,
+          "inProcessMs": 10019,
+          "totalMs": 10841
+        },
+        {
+          "probe": "delegated-files",
+          "scenario": "s10",
+          "phases": {
+            "read": 61,
+            "start": 25,
+            "overlay": 9125,
+            "diagnose": 33,
+            "format": 330
+          },
+          "diagnostics": 5,
+          "inProcessMs": 9612,
+          "totalMs": 10455
+        }
+      ]
+    }
+  ]
+}
