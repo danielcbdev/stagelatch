@@ -153,6 +153,11 @@ final class GitCliRepository implements GitRepository {
       // A deletion has nothing to validate, and a tag is not a branch.
       if (_isZero(ref.localSha)) continue;
       if (!ref.remoteRef.startsWith('refs/heads/')) continue;
+      if (!await _hasCommit(ref.localSha)) {
+        throw UsageException(
+          'Unknown commit "${ref.localSha}" in the pre-push input.',
+        );
+      }
       final base = await _pushBase(entry.remote, ref);
       final List<FileChange> changes;
       if (base == null) {

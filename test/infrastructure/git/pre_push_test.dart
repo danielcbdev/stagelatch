@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 
 import 'package:stagelatch/src/application/entry_point.dart';
+import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
 import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
@@ -151,6 +152,19 @@ void main() {
       expect(changed(run), ['a.txt']);
     },
   );
+
+  test('a pushed sha that is not a commit is a usage error', () async {
+    await expectLater(
+      push([ref('main', '1234', _zeros)]),
+      throwsA(
+        isA<UsageException>().having(
+          (e) => e.message,
+          'message',
+          'Unknown commit "1234" in the pre-push input.',
+        ),
+      ),
+    );
+  });
 
   test('the snapshot is the pushed commit, not the index', () async {
     await commitFile('a.txt', 'committed\n');
