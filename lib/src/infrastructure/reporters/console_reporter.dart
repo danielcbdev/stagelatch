@@ -54,7 +54,7 @@ final class ConsoleReporter implements Reporter {
       if (report.fixes.isNotEmpty || report.findings.isNotEmpty)
         _details(report),
       if (notes.isNotEmpty) notes.join('\n'),
-      _summary(report),
+      summaryLine(report),
     ];
     return sections.join('\n\n');
   }
@@ -143,29 +143,6 @@ final class ConsoleReporter implements Reporter {
     final budget = formatBudget(report.timeBudget);
     final total = formatSeconds(report.total);
     return 'note: Time budget of $budget exceeded ($total).';
-  }
-
-  String _summary(RunReport report) {
-    final errors = report.findings
-        .where((finding) => finding.severity == Severity.error)
-        .length;
-    final warnings = report.findings.length - errors;
-    final outcome = switch ((report.entry, report.verdict)) {
-      (EntryKind.preCommit, Verdict.fail) => 'Commit blocked',
-      (EntryKind.preCommit, Verdict.pass) => 'Commit allowed',
-      (EntryKind.prePush, Verdict.fail) => 'Push blocked',
-      (EntryKind.prePush, Verdict.pass) => 'Push allowed',
-      (EntryKind.ci, Verdict.fail) => 'Failed',
-      (EntryKind.ci, Verdict.pass) => 'Passed',
-    };
-    final counts = counted(errors, 'error');
-    final warningCounts = counted(warnings, 'warning');
-    final total = formatSeconds(report.total);
-    return [
-      '$counts, $warningCounts. $outcome. ($total)',
-      if (report.suppressed > 0 || report.baselined > 0)
-        '(${report.suppressed} suppressed, ${report.baselined} baselined)',
-    ].join('\n');
   }
 
   String _severity(Severity severity) {
