@@ -195,6 +195,40 @@ import 'dart:core';
     });
   });
 
+  test('nothing imports package:analyzer or package:dart_style (ADR-0008)', () {
+    final offenders = [
+      for (final file in Directory('lib').listSync(recursive: true))
+        if (file is File && file.path.endsWith('.dart'))
+          for (final uri in directiveUris(file.readAsStringSync()))
+            if (uri.startsWith('package:analyzer/') ||
+                uri.startsWith('package:dart_style/'))
+              '${file.path}: $uri',
+    ];
+
+    expect(offenders, isEmpty);
+  });
+
+  test(
+    'only infrastructure/dart starts the analysis server or dart format',
+    () {
+      final dartDir = [
+        'lib',
+        'src',
+        'infrastructure',
+        'dart',
+      ].join(Platform.pathSeparator);
+      final offenders = [
+        for (final file in Directory('lib').listSync(recursive: true))
+          if (file is File &&
+              file.path.endsWith('.dart') &&
+              !file.path.contains(dartDir))
+            if (_spawnsDartTool(file.readAsStringSync())) file.path,
+      ];
+
+      expect(offenders, isEmpty);
+    },
+  );
+
   test('every file under lib/src obeys the module table', () {
     final violations = <String>[];
     final files = Directory('lib/src')
@@ -215,3 +249,8 @@ import 'dart:core';
     expect(violations, isEmpty);
   });
 }
+
+/// Whether [source] starts the analysis server or `dart format`.
+bool _spawnsDartTool(String source) =>
+    source.contains("'language-server'") ||
+    (source.contains('Process.') && source.contains("'format'"));
