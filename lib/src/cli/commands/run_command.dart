@@ -1,9 +1,12 @@
 /// `stagelatch run`.
 library;
 
+import 'dart:convert';
+
 import 'package:args/command_runner.dart' hide UsageException;
 import 'package:stagelatch/src/application/entry_point.dart';
 import 'package:stagelatch/src/application/errors.dart';
+import 'package:stagelatch/src/application/hooks/pushed_refs.dart';
 import 'package:stagelatch/src/application/pipeline/run_report.dart';
 import 'package:stagelatch/src/application/ports/reporter.dart';
 import 'package:stagelatch/src/cli/composition.dart';
@@ -36,9 +39,12 @@ final class RunCommand extends Command<int> {
   Future<int> run() async {
     final io = scopeCommand(this, _io);
     final hook = argResults?.rest ?? const <String>[];
-    final known =
-        hook.length == 1 &&
-        (hook.single == 'pre-commit' || hook.single == 'pre-push');
+    // Git calls pre-push with `<remote> <url>`, and the hook script passes
+    // them on (docs/specs/cli.md, section 3.4). pre-commit takes none.
+    final known = switch (hook) {
+      ['pre-commit'] || ['pre-push'] || ['pre-push', _, _] => true,
+      _ => false,
+    };
     if (!known) {
       final name = hook.isEmpty ? '' : hook.join(' ');
       throw UsageException(
@@ -51,17 +57,21 @@ final class RunCommand extends Command<int> {
         'Unknown reporter "$reporter". Expected console or json.',
       );
     }
-    if (hook.single == 'pre-push') {
-      throw const UsageException('pre-push arrives in 0.1.0.');
-    }
     if (argResults?.flag('all') ?? false) {
       throw const UsageException('--all arrives in 0.2.0.');
     }
     final composition = await _open(io);
     try {
+      final entry = hook.first == 'pre-push'
+          ? await _prePush(
+              io,
+              composition,
+              remote: hook.length == 3 ? hook[1] : null,
+            )
+          : const PreCommitEntry() as EntryPoint;
       final reports = await composition.pipeline.run(
         RunRequest(
-          entry: const PreCommitEntry(),
+          entry: entry,
           allowFixes: !(argResults?.flag('no-fix') ?? false),
         ),
       );
@@ -75,5 +85,24 @@ final class RunCommand extends Command<int> {
     } finally {
       await composition.close();
     }
+  }
+
+  /// The push to judge: the refs git wrote on standard input, or, for a
+  /// manual run with nothing on it, the current branch towards its
+  /// upstream. Standard input is read only when it is not a terminal, so
+  /// a manual run never waits for input (ADR-0011).
+  Future<PrePushEntry> _prePush(
+    Io io,
+    Composition composition, {
+    required String? remote,
+  }) async {
+    final input = io.environment.stdinIsTerminal
+        ? ''
+        : await utf8.decodeStream(io.stdin);
+    final refs = parsePushedRefs(input);
+    if (refs.isEmpty) {
+      return await composition.git.synthesizePrePush(remote: remote);
+    }
+    return PrePushEntry(remote: remote ?? 'origin', refs: refs);
   }
 }

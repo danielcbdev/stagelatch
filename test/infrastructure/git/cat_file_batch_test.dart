@@ -2,6 +2,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/infrastructure/git/cat_file_batch.dart';
@@ -143,4 +144,33 @@ void main() {
       expect(batch.spawnCount, 0);
     });
   });
+
+  test(
+    'a git that dies reports what it said instead of a pipe error',
+    () async {
+      final outside = await Directory.systemTemp.createTemp('not_a_repo_');
+      addTearDown(() => outside.delete(recursive: true));
+      final dead = CatFileBatch(
+        GitProcess(
+          workingDirectory: outside.path,
+          environment: repo.environment,
+        ),
+      );
+      addTearDown(dead.close);
+
+      await expectLater(
+        dead.read('0123456789012345678901234567890123456789'),
+        throwsA(
+          isA<InternalException>().having(
+            (e) => e.message,
+            'message',
+            allOf(
+              startsWith('git cat-file ended unexpectedly'),
+              contains('not a git repository'),
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }

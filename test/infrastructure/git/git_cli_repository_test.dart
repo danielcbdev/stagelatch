@@ -343,14 +343,7 @@ void main() {
   });
 
   group('not yet supported', () {
-    test('pre-push and ci entries arrive in 0.1.0', () {
-      expect(
-        () => git.resolve(
-          const PrePushEntry(remote: 'origin', refs: []),
-          all: false,
-        ),
-        throwsUnsupportedError,
-      );
+    test('the ci entry arrives in 0.1.0', () {
       expect(
         () => git.resolve(const CiEntry(baseRef: 'main'), all: false),
         throwsUnsupportedError,
