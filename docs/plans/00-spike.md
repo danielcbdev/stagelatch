@@ -127,10 +127,10 @@ abstract interface class Probe { String get name; Future<ProbeResult> run(ProbeI
 **Interfaces:**
 - Produces: `List<String> directivesByParser(String source)` using `parseString`; `List<String> directivesByScanner(String source)` using a hand-written scanner that skips comments and strings and stops at the first declaration; both return directive URIs in source order.
 
-- [ ] **Step 1: Implement both extractors.**
-- [ ] **Step 2: Run over every `.dart` file of the corpus,** reading content through one `git cat-file --batch` by blob id. Record: file count, total time per extractor (cold process), and the number of files where the two disagree. List the disagreeing files.
-- [ ] **Step 3: Record** the time to compute the transitive dependents of the widely imported file of `s10`.
-- [ ] **Step 4: Commit.** `chore(spike): measure import graph construction`
+- [x] **Step 1: Implement both extractors.**
+- [x] **Step 2: Run over every `.dart` file of the corpus,** reading content through one `git cat-file --batch` by blob id. Record: file count, total time per extractor (cold process), and the number of files where the two disagree. List the disagreeing files.
+- [x] **Step 3: Record** the time to compute the transitive dependents of the widely imported file of `s10`.
+- [x] **Step 4: Commit.** `chore(spike): measure import graph construction`
 
 ### Task 6: Official measurements
 
