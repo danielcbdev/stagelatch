@@ -10,7 +10,7 @@ Status: **Approved (2026-11-12); mechanism selected 2026-11-19 (ADR-0008).** Sec
 |---|---|---|
 | 1 | `sdk_path` | Relative paths resolve against the repository root |
 | 2 | `fvm` | The directory `.fvm/flutter_sdk` when present; else `.fvmrc` (JSON, key `flutter`) resolved under `$FVM_CACHE_PATH/versions/<v>`, defaulting to `~/fvm/versions/<v>` |
-| 3 | `path` | The first `dart` executable on `PATH` |
+| 3 | `path` | The first `dart` executable on `PATH`; on Windows `dart.exe` or `dart.bat`, the name a Flutter SDK puts on `PATH` |
 
 - A directory is a **Flutter SDK root** when it contains `bin/cache/dart-sdk/version`; the Dart SDK is then `bin/cache/dart-sdk`. It is a **Dart SDK root** when it contains `version` and `bin/dart` (`bin/dart.exe` on Windows).
 - For source `path`, symlinks are resolved and the SDK root is found by walking up from the executable until one of the two shapes matches.
