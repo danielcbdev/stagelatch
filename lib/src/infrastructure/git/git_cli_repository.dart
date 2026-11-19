@@ -3,6 +3,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:stagelatch/src/application/entry_point.dart';
@@ -201,9 +202,90 @@ final class GitCliRepository implements GitRepository {
     return paths.toSet();
   }
 
+  /// Writes [fixes] to the index without losing unstaged work
+  /// (ADR-0002, docs/specs/git.md section 6). Only the mutations of
+  /// security rule S4 are used: `hash-object -w`, `update-index
+  /// --index-info` and `checkout-index`.
   @override
   Future<List<AppliedFix>> applyFixes(List<Fix> fixes) async {
-    throw UnsupportedError('Fixes arrive in 0.1.0.');
+    if (fixes.isEmpty) return const [];
+    final sorted = [...fixes]..sort((a, b) => a.path.compareTo(b.path));
+    final paths = [for (final fix in sorted) fix.path.value];
+    final index = files(const IndexSnapshot());
+
+    // Step 1, before anything is written: which of these paths already
+    // differ from the working tree. Their working tree copy holds unstaged
+    // work and must not be overwritten.
+    // --name-only -z: NUL-separated paths only. --no-renames: plain paths.
+    final diverging = (await _git.run([
+      'diff',
+      '--name-only',
+      '-z',
+      '--no-renames',
+      '--',
+      ...paths,
+    ])).nulSeparated.toSet();
+
+    // Step 2: one blob per fix. --stdin: the content comes from us.
+    // --no-filters: the content came from the index, so it is already in
+    // repository form; filters would convert it a second time.
+    final records = BytesBuilder(copy: false);
+    for (final fix in sorted) {
+      final entry = await index.entry(fix.path);
+      if (entry == null || !entry.mode.isFile) {
+        throw InternalException(
+          'Cannot fix ${fix.path.value}: it is not a file in the index.',
+          where: 'git',
+        );
+      }
+      final blob = await _git.run([
+        'hash-object',
+        '-w',
+        '--stdin',
+        '--no-filters',
+      ], stdin: utf8.encode(fix.content));
+      final mode = entry.mode == FileMode.executable ? '100755' : '100644';
+      records
+        ..add(utf8.encode('$mode ${blob.text.trim()}\t${fix.path.value}'))
+        ..addByte(0);
+    }
+
+    // Step 3: every entry in one atomic update-index call, so the index is
+    // never left half-updated by us. A held index.lock fails here, before
+    // anything changed; git's message names the lock.
+    // -z --index-info: NUL-terminated `<mode> <blob>\t<path>` records.
+    await _git.run([
+      'update-index',
+      '-z',
+      '--index-info',
+    ], stdin: records.takeBytes());
+    _views.remove(const IndexSnapshot());
+
+    // Step 4: refresh the working tree copies that had no unstaged work,
+    // through git, so line-ending and filter configuration apply.
+    final refresh = [
+      for (final path in paths)
+        if (!diverging.contains(path)) path,
+    ];
+    var refreshed = refresh.isNotEmpty;
+    if (refreshed) {
+      // --force: overwrite the existing working tree file.
+      final result = await _git.run(
+        ['checkout-index', '--force', '--', ...refresh],
+        okExitCodes: const {0, 1, 128},
+      );
+      // The commit content is already correct; a failure here only leaves
+      // the working tree copy as it was.
+      refreshed = result.exitCode == 0;
+    }
+    return [
+      for (final fix in sorted)
+        AppliedFix(
+          rule: fix.rule,
+          path: fix.path,
+          worktreeUpdated: refreshed && !diverging.contains(fix.path.value),
+        ),
+    ];
   }
 
   @override
