@@ -367,7 +367,7 @@ The contract tests use the `dart` on `PATH` as the resolved SDK, through `FileSd
 - Consumes: `Fix`, `AppliedFix`, the `GitRepository.applyFixes` port (plan 01).
 - Produces: `GitCliRepository.applyFixes(List<Fix> fixes) -> Future<List<AppliedFix>>` for the index; afterwards `files(IndexSnapshot())` returns a view of the updated index.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('a clean file is fixed in the index and in the working tree', () async {
@@ -390,10 +390,10 @@ test('several fixes are applied by a single update-index call', () async { /* co
 test('the index view is refreshed after fixes', () async { expect(await git.files(const IndexSnapshot()).readText(RepoPath('a.dart')), 'fixed\n'); });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, `applyFixes` throws `UnsupportedError`.
-- [ ] **Step 3: Implement** the four steps of `specs/git.md` section 6, in that order, through `GitProcess` only (S4: `diff`, `hash-object -w --stdin --no-filters`, `update-index -z --index-info`, `checkout-index --force --`). A held `index.lock` makes step 3 fail; map that failure to `InternalException` whose message names `index.lock`, before step 4 runs.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(git): apply fixes through the index without touching unstaged work`
+- [x] **Step 2: Run.** Expected: FAIL, `applyFixes` throws `UnsupportedError`.
+- [x] **Step 3: Implement** the four steps of `specs/git.md` section 6, in that order, through `GitProcess` only (S4: `diff`, `hash-object -w --stdin --no-filters`, `update-index -z --index-info`, `checkout-index --force --`). A held `index.lock` makes step 3 fail; map that failure to `InternalException` whose message names `index.lock`, before step 4 runs.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(git): apply fixes through the index without touching unstaged work`
 
 ### Task 9: The `format` check
 

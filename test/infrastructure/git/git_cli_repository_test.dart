@@ -363,10 +363,6 @@ void main() {
         throwsUnsupportedError,
       );
     });
-
-    test('fixes arrive in 0.1.0', () {
-      expect(() => git.applyFixes(const []), throwsUnsupportedError);
-    });
   });
 
   test('files returns the same view for the same snapshot', () {
