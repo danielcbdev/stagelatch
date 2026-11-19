@@ -19,7 +19,11 @@ const badPubspec =
 ///
 /// Durations are the only part of a report that depends on the machine
 /// (ADR-0003).
+///
+/// A check-table row ends with its duration, right-aligned to the widest
+/// one, so the spaces before it vary with the timings too: they become two.
 String stabilize(String text) => text
+    .replaceAll(RegExp(r' +(\d+ms|\d+\.\ds)$', multiLine: true), '  Nms')
     .replaceAll(RegExp(r'\b\d+ms\b'), 'Nms')
     .replaceAll(RegExp(r'\b\d+\.\ds\b'), 'N.Ns');
 
@@ -28,7 +32,8 @@ String cleanReport(int files) {
   final counted = files == 1 ? '1 file' : '$files files';
   return 'stagelatch pre-commit: $counted\n'
       '\n'
-      '  pubspec  ok  Nms\n'
+      '  pubspec          ok  Nms\n'
+      '  sensitive-files  ok  Nms\n'
       '\n'
       '0 errors, 0 warnings. Commit allowed. (N.Ns)\n';
 }
@@ -38,7 +43,8 @@ String blockedReport(int files) {
   final counted = files == 1 ? '1 file' : '$files files';
   return 'stagelatch pre-commit: $counted\n'
       '\n'
-      '  pubspec  1 error  Nms\n'
+      '  pubspec          1 error  Nms\n'
+      '  sensitive-files  ok  Nms\n'
       '\n'
       'pubspec.yaml:4:11  error  pubspec/path-dependency\n'
       '  Dependency "design_system" uses a path that is not a package in '

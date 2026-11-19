@@ -113,7 +113,7 @@ void main() {
     expect(result.exitCode, 0);
     expect(
       await repo.read('stagelatch.yaml'),
-      contains('pre-commit: [pubspec]'),
+      contains('pre-commit: [pubspec, sensitive-files]'),
     );
     expect(result.stdout, contains('Created stagelatch.yaml.\n'));
     expect(result.stdout, contains('Installed pre-commit hook at '));
