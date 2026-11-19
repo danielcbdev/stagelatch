@@ -9,6 +9,7 @@ import 'package:stagelatch/src/application/pipeline/pipeline.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
 import 'package:stagelatch/src/application/ports/working_tree.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
+import 'package:stagelatch/src/checks/sensitive_files/sensitive_files_check.dart';
 import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
@@ -51,7 +52,10 @@ final class Composition {
       final layout = await git.layout();
       const documents = StructuredDocuments();
       final worktree = LocalWorkingTree(layout.root);
-      final registry = CheckRegistry(const [PubspecCheck()]);
+      final registry = CheckRegistry(const [
+        PubspecCheck(),
+        SensitiveFilesCheck(),
+      ]);
       final loader = ConfigLoader(documents, worktree);
       final store = FileHookStore(
         hooksDirectory: layout.hooksDir,

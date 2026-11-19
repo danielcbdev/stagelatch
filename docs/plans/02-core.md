@@ -488,7 +488,7 @@ test('analyze is on pre-push and ci by default, not on pre-commit', () {
 - Consumes: `CheckContext.changes`, `snapshot` and `documents` (JSON).
 - Produces: `SensitiveFilesCheck implements Check` (`id: 'sensitive-files'`, `phase: CheckPhase.verify`; rules `signing`, `credentials`).
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('signing material by name and extension', () async {
@@ -506,10 +506,10 @@ test('no finding message ever contains file content', () async {
 test('deleted files are not reported; renamed files are, at the new path', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/rules.md` `sensitive-files`. Extension matching is case-insensitive; basename matching is exact. JSON is read only when `SnapshotFiles.size` is at most 1 MiB, then parsed through `Documents.json`.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add sensitive-files check`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/rules.md` `sensitive-files`. Extension matching is case-insensitive; basename matching is exact. JSON is read only when `SnapshotFiles.size` is at most 1 MiB, then parsed through `Documents.json`.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add sensitive-files check`
 
 ### Task 12: Pre-push entry point
 
