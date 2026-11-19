@@ -55,13 +55,18 @@ final class FileSdkLocator implements SdkLocator {
           ));
     }
 
+    // On Windows a Dart SDK has bin\dart.exe, but a Flutter SDK puts only
+    // bin\dart.bat on PATH.
+    final names = _windows ? const ['dart.exe', 'dart.bat'] : const ['dart'];
     for (final entry in _pathEntries()) {
-      final executable = File(p.join(entry, _windows ? 'dart.exe' : 'dart'));
-      if (!executable.existsSync()) continue;
-      final real = await executable.resolveSymbolicLinks();
-      for (String? dir = p.dirname(real); dir != null; dir = _up(dir)) {
-        final sdk = await _shaped(dir, SdkSource.path);
-        if (sdk != null) return sdk;
+      for (final name in names) {
+        final executable = File(p.join(entry, name));
+        if (!executable.existsSync()) continue;
+        final real = await executable.resolveSymbolicLinks();
+        for (String? dir = p.dirname(real); dir != null; dir = _up(dir)) {
+          final sdk = await _shaped(dir, SdkSource.path);
+          if (sdk != null) return sdk;
+        }
       }
     }
     throw const ConfigException(
