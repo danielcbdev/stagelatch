@@ -21,7 +21,9 @@ import 'package:test/test.dart';
 
 import '../../support/fake_check.dart';
 import '../../support/fake_clock.dart';
+import '../../support/fake_dart_toolchain_factory.dart';
 import '../../support/fake_git_repository.dart';
+import '../../support/fake_sdk_locator.dart';
 import '../../support/fake_working_tree.dart';
 
 const _preCommit = RunRequest(entry: PreCommitEntry());
@@ -30,6 +32,7 @@ Pipeline _pipeline(
   FakeGitRepository git,
   List<Check> checks, {
   FakeClock? clock,
+  FakeDartToolchainFactory? toolchains,
 }) => Pipeline(
   git: git,
   configLoader: ConfigLoader(const StructuredDocuments(), FakeWorkingTree()),
@@ -37,6 +40,8 @@ Pipeline _pipeline(
   documents: const StructuredDocuments(),
   clock: clock ?? FakeClock(),
   toolVersion: Version.parse('0.1.0'),
+  sdkLocator: FakeSdkLocator(),
+  toolchains: toolchains ?? FakeDartToolchainFactory(),
 );
 
 /// A staged config whose pre-commit hook runs [selectors].
@@ -410,13 +415,14 @@ void main() {
       expect(alpha.lastContext!.base, isNull);
     });
 
-    test('has no Dart toolchain before 0.1.0', () async {
-      final alpha = FakeCheck('alpha');
+    test('creates no toolchain when no check asks for it', () async {
+      final toolchains = FakeDartToolchainFactory();
 
-      await _run(_git(['alpha']), [alpha]);
+      await _pipeline(_git(['alpha']), [
+        FakeCheck('alpha'),
+      ], toolchains: toolchains).run(_preCommit);
 
-      expect(() => alpha.lastContext!.dart, throwsUnsupportedError);
-      expect(() => alpha.lastContext!.importGraph, throwsUnsupportedError);
+      expect(toolchains.createCount, 0);
     });
   });
 
@@ -728,6 +734,8 @@ void main() {
         documents: const StructuredDocuments(),
         clock: FakeClock(),
         toolVersion: Version.parse('0.1.0'),
+        sdkLocator: FakeSdkLocator(),
+        toolchains: FakeDartToolchainFactory(),
       );
 
       final report = (await pipeline.run(_preCommit)).single;

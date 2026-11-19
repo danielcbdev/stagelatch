@@ -23,8 +23,10 @@ import 'package:test/test.dart';
 import '../support/acceptance.dart';
 import '../support/fake_check.dart';
 import '../support/fake_clock.dart';
+import '../support/fake_dart_toolchain_factory.dart';
 import '../support/fake_git_repository.dart';
 import '../support/fake_hook_store.dart';
+import '../support/fake_sdk_locator.dart';
 import '../support/fake_working_tree.dart';
 import '../support/temp_repo.dart';
 
@@ -199,6 +201,8 @@ void main() {
           documents: const StructuredDocuments(),
           clock: FakeClock(),
           toolVersion: Version.parse('0.1.0'),
+          sdkLocator: FakeSdkLocator(),
+          toolchains: FakeDartToolchainFactory(),
         ),
         hookInstaller: HookInstaller(FakeHookStore()),
         git: git,

@@ -5,6 +5,7 @@ import 'package:stagelatch/src/application/config/config.dart';
 import 'package:stagelatch/src/application/pipeline/selection.dart';
 import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/check.dart';
+import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
 import 'package:stagelatch/src/domain/dart/import_graph.dart';
 import 'package:stagelatch/src/domain/documents.dart';
@@ -25,6 +26,8 @@ final class PipelineCheckContext implements CheckContext {
     required this.base,
     required this.documents,
     required this.targetBranch,
+    required this.packages,
+    required this.dart,
     required this._selection,
     required this._config,
   });
@@ -50,20 +53,28 @@ final class PipelineCheckContext implements CheckContext {
   @override
   final String? targetBranch;
 
-  /// No packages are known before 0.1.0, which adds package discovery.
   @override
-  final PackageMap packages = PackageMap(const []);
+  final PackageMap packages;
 
-  /// The Dart toolchain is wired in by 0.1.0. No check of this version
-  /// needs it, and none may assume it exists.
+  /// The toolchain of this phase; it starts nothing until asked.
   @override
-  DartToolchain get dart =>
-      throw UnsupportedError('The Dart toolchain arrives in 0.1.0.');
+  final DartToolchain dart;
 
-  /// Built from the toolchain's facts, so it arrives with the toolchain.
+  /// Built once, from the directives of every `.dart` file of [snapshot].
+  /// `facts` starts no process.
   @override
-  Future<ImportGraph> get importGraph =>
-      throw UnsupportedError('The Dart toolchain arrives in 0.1.0.');
+  Future<ImportGraph> get importGraph => _importGraph ??= () async {
+    final directives = {
+      for (final entry in await snapshot.list())
+        if (entry.path.extension == '.dart' && entry.mode.isFile)
+          entry.path:
+              (await dart.facts(snapshot, entry.path))?.directives ??
+              const <Directive>[],
+    };
+    return ImportGraph.build(directives: directives, packages: packages);
+  }();
+
+  Future<ImportGraph>? _importGraph;
 
   @override
   bool isEnabled(RuleId rule) => _selection.isEnabled(rule);
