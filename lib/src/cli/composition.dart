@@ -11,11 +11,15 @@ import 'package:stagelatch/src/application/ports/git_repository.dart';
 import 'package:stagelatch/src/application/ports/hook_store.dart';
 import 'package:stagelatch/src/application/ports/sdk_locator.dart';
 import 'package:stagelatch/src/application/ports/working_tree.dart';
+import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
+import 'package:stagelatch/src/checks/format/format_check.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
 import 'package:stagelatch/src/checks/sensitive_files/sensitive_files_check.dart';
 import 'package:stagelatch/src/cli/io.dart';
+import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/infrastructure/dart/file_sdk_locator.dart';
+import 'package:stagelatch/src/infrastructure/dart/sdk_dart_toolchain.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
 import 'package:stagelatch/src/infrastructure/git/git_cli_repository.dart';
 import 'package:stagelatch/src/infrastructure/git/git_process.dart';
@@ -50,7 +54,10 @@ final class Composition {
   ///
   /// Throws when [io] is not inside a git work tree.
   /// The git processes are closed by [close], including when layout fails.
-  static Future<Composition> create(Io io) async {
+  ///
+  /// [checks] replaces the production registry, in tests that need a
+  /// different order (the determinism test of testing.md section 5).
+  static Future<Composition> create(Io io, {List<Check>? checks}) async {
     final process = GitProcess(
       workingDirectory: io.environment.workingDirectory,
       environment: io.environment.variables,
@@ -60,10 +67,20 @@ final class Composition {
       final layout = await git.layout();
       const documents = StructuredDocuments();
       final worktree = LocalWorkingTree(layout.root);
-      final registry = CheckRegistry(const [
-        PubspecCheck(),
-        SensitiveFilesCheck(),
-      ]);
+      // Registry order is the order of the documented hook lists.
+      final registry = CheckRegistry(
+        checks ??
+            const [
+              FormatCheck(),
+              AnalyzeCheck(),
+              PubspecCheck(),
+              SensitiveFilesCheck(),
+            ],
+      );
+      final sdkLocator = FileSdkLocator(
+        repoRoot: layout.root,
+        environment: io.environment,
+      );
       final loader = ConfigLoader(documents, worktree);
       final store = FileHookStore(
         hooksDirectory: layout.hooksDir,
@@ -77,6 +94,8 @@ final class Composition {
           documents: documents,
           clock: SystemClock(),
           toolVersion: Version.parse(packageVersion),
+          sdkLocator: sdkLocator,
+          toolchains: const SdkDartToolchainFactory(),
         ),
         hookInstaller: HookInstaller(store),
         git: git,
@@ -86,10 +105,7 @@ final class Composition {
         worktree: worktree,
         trackedHooks: () => store.directoryIsTracked,
         hookStore: store,
-        sdkLocator: FileSdkLocator(
-          repoRoot: layout.root,
-          environment: io.environment,
-        ),
+        sdkLocator: sdkLocator,
         doctorProbes: LocalDoctorProbes(
           repoRoot: layout.root,
           environment: io.environment,

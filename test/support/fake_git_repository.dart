@@ -47,7 +47,17 @@ final class FakeGitRepository implements GitRepository {
 
   @override
   Future<RepoLayout> layout() async =>
-      _layout ?? (throw UnimplementedError('FakeGitRepository has no layout.'));
+      _layout ??
+      const RepoLayout(
+        root: '/repo',
+        gitDir: '/repo/.git',
+        commonDir: '/repo/.git',
+        hooksDir: '/repo/.git/hooks',
+        branch: 'main',
+        mergeInProgress: false,
+        rebaseInProgress: false,
+        shallow: false,
+      );
 
   final RepoLayout? _layout;
 

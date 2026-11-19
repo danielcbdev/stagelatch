@@ -639,7 +639,7 @@ The console budget note already exists (`console_reporter.dart`, plan 01) and ne
 - Consumes: `SdkLocator` (Task 4), `buildPackageMap` (Task 5), `ImportGraph` and `SyntacticFacts` through `DartToolchain.facts` (Task 6), `DartToolchainFactory` and `FakeDartToolchainFactory` (Task 7), `FormatCheck` (Task 9), `AnalyzeCheck` (Task 10).
 - Produces: `Pipeline` gains `required SdkLocator sdkLocator` and `required DartToolchainFactory toolchains`; `context.dart`, `context.packages` and `context.importGraph` are real. Production registry order: `FormatCheck`, `AnalyzeCheck`, `PubspecCheck`, `SensitiveFilesCheck`, the order of the documented hook lists.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('the toolchain is not created when no check asks for it', () async { expect(factory.createCount, 0); });
@@ -666,10 +666,10 @@ Acceptance:
   - AC-18: a staged file imports a file broken only in the working tree: exit 0. The reverse (broken in the index, fixed on disk): exit 1. A staged file imports an untracked file: exit 1 with `analyze/uri_does_not_exist`. A file removed with `git rm --cached` but still on disk, imported by a staged file: exit 1.
   - AC-21: two packages with different `analysis_options.yaml`; each file gets its own package's lints.
   - AC-22: a symlink and a submodule entry in the changeset: no crash, no content finding.
-- [ ] **Step 2: Run.** Expected: FAIL, `UnsupportedError('The Dart toolchain arrives in 0.1.0.')`.
-- [ ] **Step 3: Implement.** One lazily created toolchain per phase, memoized in the phase's context so concurrent checks share it, all closed in a `finally` around the run. The SDK is located on the first `dart` access, not before. `importGraph` is memoized per context and built from `dart.facts` of every `.dart` file of the snapshot (`facts` starts no process). Acceptance tests that need `analyze` run `dart pub get --offline` in their temp repository first.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(pipeline): wire the Dart toolchain over a materialized snapshot`
+- [x] **Step 2: Run.** Expected: FAIL, `UnsupportedError('The Dart toolchain arrives in 0.1.0.')`.
+- [x] **Step 3: Implement.** One lazily created toolchain per phase, memoized in the phase's context so concurrent checks share it, all closed in a `finally` around the run. The SDK is located on the first `dart` access, not before. `importGraph` is memoized per context and built from `dart.facts` of every `.dart` file of the snapshot (`facts` starts no process). Acceptance tests that need `analyze` run `dart pub get --offline` in their temp repository first.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(pipeline): wire the Dart toolchain over a materialized snapshot`
 
 ### Task 16: Composite action and dogfooding
 

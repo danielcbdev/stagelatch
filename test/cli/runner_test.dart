@@ -15,8 +15,10 @@ import 'package:test/test.dart';
 
 import '../support/fake_check.dart';
 import '../support/fake_clock.dart';
+import '../support/fake_dart_toolchain_factory.dart';
 import '../support/fake_git_repository.dart';
 import '../support/fake_hook_store.dart';
+import '../support/fake_sdk_locator.dart';
 import '../support/fake_working_tree.dart';
 import '../support/temp_repo.dart';
 
@@ -113,10 +115,14 @@ void main() {
     expect(result.exitCode, 0);
     expect(
       await repo.read('stagelatch.yaml'),
-      contains('pre-commit: [pubspec, sensitive-files]'),
+      contains(
+        'pre-commit: [format, pubspec, sensitive-files]\n'
+        '  pre-push: [analyze]\n',
+      ),
     );
     expect(result.stdout, contains('Created stagelatch.yaml.\n'));
     expect(result.stdout, contains('Installed pre-commit hook at '));
+    expect(result.stdout, contains('Installed pre-push hook at '));
   });
 
   test('init refuses to overwrite without --force', () async {
@@ -216,6 +222,8 @@ void main() {
           documents: const StructuredDocuments(),
           clock: FakeClock(),
           toolVersion: Version.parse('0.1.0-dev.1'),
+          sdkLocator: FakeSdkLocator(),
+          toolchains: FakeDartToolchainFactory(),
         ),
         hookInstaller: HookInstaller(FakeHookStore()),
         git: git,
