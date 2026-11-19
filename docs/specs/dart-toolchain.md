@@ -24,6 +24,7 @@ Status: **Approved (2026-11-12); mechanism selected 2026-11-19 (ADR-0008).** Sec
 
 - A file belongs to the package with the deepest root that contains it. Files outside every package belong to none and are skipped by Dart rules.
 - `DartPackage { root, name, usesFlutter }`; `usesFlutter` is true when the pubspec has a dependency with `sdk: flutter`.
+- A `pubspec.yaml` that does not parse, or has no string `name`, still defines a package. Its name is the empty string, so no `package:` URI resolves to it. The directory name is not used: it depends on where the repository was cloned (ADR-0003).
 - Pub workspaces (a root pubspec with `workspace:` and members with `resolution: workspace`) are recognized from `0.3.0`: members share the root's `pubspec.lock` and `.dart_tool/package_config.json`.
 
 **Package config.** Dart analysis needs `.dart_tool/package_config.json` in the working tree for each package that has files to analyze (for workspace members, the root's). When it is missing: usage error `Missing <path>. Run: dart pub get`, where `<path>` is the repository-relative location of the file, for example `.dart_tool/package_config.json` or `packages/ui/.dart_tool/package_config.json`. Checks that do not use diagnostics are unaffected.
@@ -61,7 +62,9 @@ Built in `0.1.0` for `analyze.scope: affected`, reused by `tests/affected` and `
 
 ## 6. Facts
 
-`DartToolchain.facts(SnapshotFiles files, RepoPath path) -> Future<DartFileFacts?>`, purely syntactic (ADR-0013). Null when the file is absent or has syntax errors.
+`DartToolchain.facts(SnapshotFiles files, RepoPath path) -> Future<DartFileFacts?>`, purely syntactic (ADR-0013). Null when the file is absent or is not text (`SnapshotFiles.readText` is null).
+
+**Directives in `0.1.0`.** Only `directives` is filled, by the directive scanner of section 8. It reads from the top of the file, skipping whitespace, comments, a `#!` line, `library` directives and annotations, and stops at the first token that does not start a directive. Inside a directive, string literals outside parentheses are the URI, and adjacent literals are concatenated; literals inside a configuration's parentheses are not URIs, but the literal after each `if (...)` is a branch. `part of` followed by a library name instead of a string produces nothing. The scanner does not detect syntax errors: a broken file still yields the directives before the point where it stops. The location of a `Directive` is its URI literal, from the opening quote to just after the closing quote (for adjacent literals, from the first opening quote to just after the last closing quote). Whether facts are null for a file with syntax errors is decided with the extractor of `annotatedDeclarations` and `testCalls` (plan 03).
 
 ```dart
 enum DirectiveKind { import, export, part, partOf }
@@ -115,7 +118,7 @@ Selected by the spike ([`spike/report.md`](../spike/report.md)) and recorded in 
 | | How |
 |---|---|
 | Diagnostics (section 4) | On the first `diagnose`, write the materialized snapshot (section 4), then start one `dart language-server --protocol=analyzer` of the resolved SDK: `server.setSubscriptions` with `STATUS`; `analysis.setAnalysisRoots` with the materialized roots of the packages that own the requested files; then `analysis.getErrors` for each requested file. No `analysis.updateContent`. `close()` sends `server.shutdown`, kills the process if it has not exited after 5 s, then removes the directory. Writing the corpus's 2,472 Dart and YAML files took about 0.25 s. |
-| Formatting (section 5) | `dart format --output=show --stdin-name=<absolute path>` of the resolved SDK, the snapshot content on stdin. Exit 0: stdout is the formatted text. Exit 65 (the source does not parse): `Unparseable()`. Any other exit is an internal error naming the exit code. No server. |
+| Formatting (section 5) | `dart format --output=show --stdin-name=<path>` of the resolved SDK, the source on stdin. `<path>` is the file's place inside a settings directory written on the first `format`: the snapshot's `pubspec.yaml` and `analysis_options.yaml` files and the package configs (rewritten as in section 4), no Dart files. So `page_width`, `trailing_commas` and the language version come from the snapshot, never from the working tree. `close()` removes it. Exit 0: stdout is the formatted text. Exit 65 (the source does not parse): `Unparseable()`. Any other exit is an internal error naming the exit code. No server. |
 | Facts (section 6) | A hand-written directive scanner, in-process. It skips comments and strings and yields `import`, `export`, `part` and `part of` with their URIs, conditional branches included. |
 | Parity | By construction: the project's own SDK produces every diagnostic and every formatted text. |
 | Cost | Formatting: about 20 ms per file. Diagnostics: one server start, about 1 s on a Dart-only package, about 5 s on a small Flutter package, about 13 s on a 2,400-file Flutter app, cache or not. |

@@ -80,14 +80,17 @@ lib/
       pipeline/                      # Pipeline, CheckRegistry, finding filters, RunReport
       text/                          # sanitizeForTerminal (S5)
       baseline/                      # Baseline, Fingerprint, BaselineStore port
-      hooks/                         # HookInstaller, hook script template
+      hooks/                         # HookInstaller, hook script template, parsePushedRefs
+      packages/                      # buildPackageMap
+      doctor/                        # Doctor, ProbeResult
       ports/                         # GitRepository, Reporter, HookStore, WorkingTree, Clock, ...
     infrastructure/
       git/                           # GitProcess, CatFileBatch, GitCliRepository, GitSnapshotFiles
-      dart/                          # SdkLocator, DartToolchain adapter, fact extractor
+      dart/                          # FileSdkLocator, SdkDartToolchain(+Factory), MaterializedSnapshot,
+                                     # AnalysisServerClient, SyntacticFacts (directive scanner)
       documents/                     # YamlDocuments, JsonDocuments
-      reporters/                     # ConsoleReporter, ansi, console format, JsonReporter, ...
-      io/                            # LocalWorkingTree, FileHookStore, SystemClock
+      reporters/                     # ConsoleReporter, ansi, console format, JsonReporter, GithubReporter, ...
+      io/                            # LocalWorkingTree, FileHookStore, SystemClock, LocalDoctorProbes
     cli/
       runner.dart                    # StagelatchCommandRunner
       composition.dart               # the only place that wires adapters to ports
@@ -231,6 +234,16 @@ abstract interface class DartToolchain {
 }
 ```
 
+```dart
+/// Edges from import, export and part directives; `part of` adds the
+/// reverse edge (dart-toolchain.md section 3).
+final class ImportGraph {
+  factory ImportGraph.build({required Map<RepoPath, List<Directive>> directives, required PackageMap packages});
+  Set<RepoPath> dependentsOf(Set<RepoPath> files);              // reverse transitive closure, inputs included, sorted
+  List<RepoPath>? shortestChain(RepoPath from, RepoPath to);    // breadth-first, ties by path order
+}
+```
+
 `DartToolchain` is the seam that makes ADR-0008 a one-adapter decision. `DartFileFacts` is why checks never see an AST (ADR-0013).
 
 ### 4.2 The check contract
@@ -321,7 +334,33 @@ abstract interface class Reporter { void report(List<RunReport> runs); }
 abstract interface class Clock { Duration get elapsed; }   // monotonic; only differences matter
 ```
 
-`HookStore`, `WorkingTree`, `BaselineStore`, `DartToolchainFactory` and `SdkLocator` follow the same shape and are specified in the plan that introduces them.
+`HookStore`, `WorkingTree` and `BaselineStore` follow the same shape and are specified in the plan that introduces them. Plan 02 adds these ports:
+
+```dart
+enum SdkSource { sdkPath, fvm, path }
+final class ResolvedSdk {
+  String get root;                       // the Dart SDK root
+  String get dartExecutable;
+  String? get flutterExecutable;
+  String get version;
+  SdkSource get source;
+}
+abstract interface class SdkLocator { Future<ResolvedSdk> locate(Config config); }
+
+/// Creating starts no process and writes no file (dart-toolchain.md section 7).
+abstract interface class DartToolchainFactory {
+  DartToolchain create({required ResolvedSdk sdk, required String repoRoot, required SnapshotFiles snapshot, required PackageMap packages});
+}
+
+abstract interface class DoctorProbes {
+  Future<String?> gitVersion();
+  Future<String?> resolveOnPath(String name);
+  Future<bool> exists(String repoRelativePath);
+}
+
+// GitRepository gains, for `run pre-push` without stdin (cli.md 3.4):
+Future<PrePushEntry> synthesizePrePush({String? remote});
+```
 
 ### 5.3 The pipeline
 
@@ -357,6 +396,39 @@ final class RunReport {
 }
 ```
 
+### 5.3.1 Toolchain lifecycle in a run
+
+- `Pipeline` receives `SdkLocator` and `DartToolchainFactory` through its constructor; `Composition.create` wires `FileSdkLocator` and `SdkDartToolchainFactory`.
+- `context.dart` creates a toolchain on first access through `DartToolchainFactory`, after `SdkLocator.locate`. A run in which no check touches it locates no SDK and starts nothing.
+- The fix phase and the verify phase each have their own context, so each has its own toolchain, bound to the snapshot view of that phase. Concurrent verify checks share one. Every toolchain is closed in a `finally` around the run.
+- `context.packages` is `buildPackageMap(snapshot, documents)`; `context.importGraph` is built once per context from `dart.facts` of every `.dart` file of the snapshot.
+
+### 5.3.2 Other application functions added in plan 02
+
+```dart
+// pipeline/inline_ignore.dart (baseline-and-suppression.md section 2)
+final class IgnoreId { String get text; int get column; }
+final class IgnoreDirective { int get line; List<IgnoreId> get ids; }
+List<IgnoreDirective> scanIgnores(String text, {required String commentOpener});
+String? commentOpenerFor(RepoPath path);                 // '//', '#' or null
+final class IgnoreOutcome { List<Finding> get kept; int get suppressed; List<Finding> get invalid; }
+Future<IgnoreOutcome> applyInlineIgnores(List<Finding> findings, {required SnapshotFiles snapshot, required ChangeSet changes, required CheckCatalog catalog});
+
+// packages/package_map_builder.dart (dart-toolchain.md section 2)
+Future<PackageMap> buildPackageMap(SnapshotFiles snapshot, Documents documents);
+
+// hooks/pushed_refs.dart (git.md section 4.2)
+List<PushedRef> parsePushedRefs(String stdin);           // throws UsageException
+
+// doctor/ (cli.md section 3.6)
+enum ProbeStatus { ok, warn, fail }
+final class ProbeResult { String get id; ProbeStatus get status; String get message; }
+final class Doctor {
+  Doctor({required GitRepository git, required HookStore hooks, required ConfigLoader loader, required SdkLocator sdk, required Environment environment, required DoctorProbes probes});
+  Future<List<ProbeResult>> run();                       // D1 to D9, in order
+}
+```
+
 ### 5.4 Errors
 
 ```dart
@@ -370,6 +442,42 @@ final class InternalException extends StagelatchException {}   // exit 70
 - Problems in **how the tool was invoked** are `UsageException`.
 - Anything unexpected is mapped to exit 70 with a bypass hint. Two places catch everything, and no other does: `Pipeline`, around each check, because only there is it still known which check was running; and `cli/runner.dart`, around the whole command.
 
+### 5.5 Infrastructure added in plan 02
+
+```dart
+// dart/
+final class FileSdkLocator implements SdkLocator { FileSdkLocator({required String repoRoot, required Environment environment}); }
+final class SyntacticFacts {                             // the directive scanner of dart-toolchain.md section 6
+  const SyntacticFacts();
+  DartFileFacts extract(String source, RepoPath path);
+}
+final class MaterializedSnapshot {                       // ADR-0001; dart-toolchain.md section 4
+  static Future<MaterializedSnapshot> write({required SnapshotFiles snapshot, required String repoRoot, required Iterable<DartPackage> packages, bool settingsOnly = false});
+  String get root;
+  String pathOf(RepoPath path);
+  RepoPath? repoPathOf(String absolutePath);
+  Future<void> delete();
+}
+final class AnalysisServerClient {
+  static Future<AnalysisServerClient> start(String dartExecutable);
+  Future<Map<String, Object?>> request(String method, Map<String, Object?> params);
+  Future<void> close();
+}
+final class SdkDartToolchainFactory implements DartToolchainFactory {}
+final class SdkDartToolchain implements DartToolchain {}
+
+// reporters/
+final class JsonReporter implements Reporter { JsonReporter(StringSink out, {required String toolVersion}); }
+String renderErrorJson({required String kind, required String message, required int exitCode});
+final class GithubReporter implements Reporter { GithubReporter(StringSink out); }
+String escapeWorkflowData(String value);
+String escapeWorkflowProperty(String value);
+String summaryLine(RunReport report);                    // shared by the console and GitHub reporters
+
+// io/
+final class LocalDoctorProbes implements DoctorProbes {}
+```
+
 ## 6. Infrastructure decisions that shape everything else
 
 - **Snapshots are addressed by blob id.** `git ls-files -s -z` (index) or `git ls-tree -r -z` (commit) gives `path -> (mode, blob id)` once. Content is then read from one persistent `git cat-file --batch` by blob id. This avoids path quoting problems and gives every file a free content hash for caching.
@@ -377,6 +485,7 @@ final class InternalException extends StagelatchException {}   // exit 70
 - **The process environment is inherited unchanged by git** so that `GIT_INDEX_FILE`, `GIT_DIR` and `GIT_WORK_TREE`, which git sets while running a hook, are honored.
 - **The working tree is written by git, not by us.** After an index fix, `git checkout-index` materializes the file, so line-ending and filter configuration apply.
 - **The Dart toolchain adapter is created lazily.** A commit that touches only `pubspec.yaml` never starts it.
+- **Dart analysis runs on a materialized snapshot** (ADR-0001): the snapshot's Dart and YAML files written into a temporary directory with the package configs, never the working tree with overlays.
 
 Details: [`specs/git.md`](specs/git.md), [`specs/dart-toolchain.md`](specs/dart-toolchain.md).
 
