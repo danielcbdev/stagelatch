@@ -162,6 +162,6 @@ abstract interface class Probe { String get name; Future<ProbeResult> run(ProbeI
   - **G2, latency:** warm p50 of the whole process on `s10` at or below 2.0 s.
 - [x] **Step 2: Choose.** Among candidates that pass G1 and G2, take the lower warm p50 on `s10`. If the two are within 15% of each other, take B, because it has no analyzer version coupling. If a candidate passes G1 but none passes G2, write a "Daemon evaluation" section (what would stay alive, how it is started and stopped, what it costs in complexity) and **stop: ask the owner**. If none passes G1, stop and ask the owner.
 - [x] **Step 3: Decide the fact extractor** from Task 5: use `parseString` unless the scanner is at least 5 times faster on the corpus and the two never disagree.
-- [ ] **Step 4: Record the decision** in the report and amend ADR-0008: status `Accepted`, the mechanism, the numbers, the resulting SDK floor and dependency list. Update the other files listed above so that no document still calls the mechanism undecided.
-- [ ] **Step 5: Commit.** `docs(adr): select the Dart toolchain mechanism`
-- [ ] **Step 6: Gate.** The owner approves this pull request before plan 02 starts.
+- [x] **Step 4: Record the decision** in the report and amend ADR-0008: status `Accepted`, the mechanism, the numbers, the resulting SDK floor and dependency list. Update the other files listed above so that no document still calls the mechanism undecided.
+- [x] **Step 5: Commit.** `docs(adr): select the Dart toolchain mechanism`
+- [x] **Step 6: Gate.** The owner approves this pull request before plan 02 starts.

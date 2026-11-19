@@ -1,6 +1,6 @@
 # Dart toolchain specification
 
-Status: **Approved (2026-11-12).** Sections 4 and 5 describe a contract; which mechanism fulfils it is decided by the spike (ADR-0008). Sections 1–3, 6 and 7 do not depend on that decision.
+Status: **Approved (2026-11-12); mechanism selected 2026-11-19 (ADR-0008).** Sections 4 and 5 describe a contract; section 8 records the mechanism that fulfils it. Sections 1–3, 6 and 7 do not depend on the mechanism.
 
 ## 1. SDK resolution
 
@@ -105,16 +105,17 @@ final class DartFileFacts {
 - `facts` must not require the expensive part of the toolchain to start: syntactic extraction runs in-process.
 - `DartToolchain.close()` is called in a `finally` by the pipeline.
 
-## 8. The two candidate mechanisms
+## 8. Mechanism
 
-Both implement sections 4 and 5 behind the same port. The spike measures both; see [`plans/00-spike.md`](../plans/00-spike.md).
+Selected by the spike ([`spike/report.md`](../spike/report.md)) and recorded in ADR-0008: the resolved SDK does the work, one shot per run.
 
-| | A, embedded | B, delegated |
-|---|---|---|
-| Diagnostics | `package:analyzer`: `AnalysisContextCollection` with an `OverlayResourceProvider`, `sdkPath` set to the resolved SDK | The resolved SDK's `dart language-server --protocol=analyzer`: `analysis.setAnalysisRoots`, `analysis.updateContent`, `analysis.getErrors` |
-| Formatting | `package:dart_style` | The same server: `edit.format` |
-| Parity | Depends on how close the embedded versions are to the project's SDK | By construction |
-| Cost | No spawn; analyzer warm-up inside the tool's JIT | One process spawn; the server's own startup |
-| Coupling | Tool's SDK floor follows `analyzer` (14.7.0 needs Dart 3.13) | Protocol only |
+| | How |
+|---|---|
+| Diagnostics (section 4) | One `dart language-server --protocol=analyzer` of the resolved SDK per run, started on the first `diagnose`: `server.setSubscriptions` with `STATUS`; `analysis.setAnalysisRoots` with the roots of the packages that own the requested files; one `analysis.updateContent` with an `add` overlay for every path whose snapshot content differs from the working tree; then `analysis.getErrors` for each requested file. `close()` sends `server.shutdown` and kills the process if it has not exited after 5 s. The spike did not cover paths absent from the snapshot: how the adapter hides them is settled by the contract test "a null overlay hides a file that exists on disk" (plan 02, Task 7), and a way that fails it is a reason to stop and ask. |
+| Formatting (section 5) | `dart format --output=show --stdin-name=<absolute path>` of the resolved SDK, the snapshot content on stdin. Exit 0: stdout is the formatted text. Exit 65 (the source does not parse): `Unparseable()`. Any other exit is an internal error naming the exit code. No server. |
+| Facts (section 6) | A hand-written directive scanner, in-process. It skips comments and strings and yields `import`, `export`, `part` and `part of` with their URIs, conditional branches included. |
+| Parity | By construction: the project's own SDK produces every diagnostic and every formatted text. |
+| Cost | Formatting: about 20 ms per file. Diagnostics: one server start, about 1 s on a Dart-only package, about 5 s on a small Flutter package, about 13 s on a 2,400-file Flutter app, cache or not. |
+| Coupling | The analysis server's legacy protocol, tested on Flutter 3.47.8 and 3.44.9. No `analyzer` or `dart_style` dependency. |
 
-Whichever is chosen, syntactic facts need a Dart parser in-process. The spike also decides between `package:analyzer`'s `parseString` (stable API, wide version range) and a hand-written directive scanner for the import graph alone.
+The candidates that were measured and rejected (embedded `analyzer` with `OverlayResourceProvider`, and a long-lived server) are described in the spike report.

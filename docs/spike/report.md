@@ -144,9 +144,9 @@ Graph construction: 30 ms. Transitive dependents of the `s10` hub file
 
 ## 7. Decision
 
-Status: **gates applied; mechanism not selected.** Plan 00, Task 7 step 2
-stops here and asks the owner, because a candidate passes G1 and none
-passes G2.
+Status: **decided on 2026-11-19: option 1 below, approved by the owner.**
+Task 7 step 2 stopped here and asked the owner, because a candidate
+passes G1 and none passes G2.
 
 ### Gates (step 1)
 
@@ -248,5 +248,19 @@ Recommendation: option 1, with formatting through `dart format
 moved out of the default `pre-commit` list, and the daemon left for after
 `0.1.0` if real use asks for it. Under this option the root package gains
 no `analyzer` or `dart_style` dependency, and the SDK floor of the tool
-stays `^3.13.0` (the project SDK is whatever the project uses). This is the owner's decision; ADR-0008, the specs, the
-coding standards and `CLAUDE.md` are not amended until it is made.
+stays `^3.13.0` (the project SDK is whatever the project uses).
+
+### Decision (step 4)
+
+The owner chose **option 1** on 2026-11-19. Recorded in ADR-0008:
+
+- Diagnostics: the resolved SDK's analysis server, one per run, with
+  the snapshot as overlays.
+- Formatting: the resolved SDK's `dart format --stdin-name`, one process
+  per file.
+- Facts for the import graph: the hand-written directive scanner.
+- Default hooks: `analyze` on `pre-push` and `ci`, not on `pre-commit`.
+- Dependencies: none added; no `analyzer`, no `dart_style`. The tool's
+  SDK floor stays `^3.13.0`.
+- Daemon: not built for `0.1.0`; reconsidered only if real use asks for
+  it, under its own ADR.

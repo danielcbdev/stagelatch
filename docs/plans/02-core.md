@@ -4,9 +4,9 @@
 
 **Goal:** Ship `0.1.0`: `format` with safe autofix, `analyze` on the affected scope with overlays, `sensitive-files`, `run pre-push`, `ci`, `doctor`, JSON and GitHub reporters, SDK resolution, multi-package repositories and inline suppression.
 
-**Architecture:** The Dart toolchain enters behind the `DartToolchain` port, implemented by the mechanism the spike selected. The pipeline gains the fix phase for real, an inline-ignore filter, and two more entry points that reuse the same use case with commit snapshots.
+**Architecture:** The Dart toolchain enters behind the `DartToolchain` port, implemented with the resolved SDK's analysis server for diagnostics and its `dart format --stdin-name` for formatting (ADR-0008). The pipeline gains the fix phase for real, an inline-ignore filter, and two more entry points that reuse the same use case with commit snapshots.
 
-**Tech Stack:** As plan 01, plus the Dart toolchain dependencies recorded in ADR-0008 after the spike, and `crypto`.
+**Tech Stack:** As plan 01, plus `crypto`. No `analyzer` or `dart_style` dependency (ADR-0008).
 
 **Spec:** [`specs/dart-toolchain.md`](../specs/dart-toolchain.md); [`specs/git.md`](../specs/git.md) 4.2, 4.3, 6; [`specs/cli.md`](../specs/cli.md) 3.4–3.6, 5, 6; [`specs/rules.md`](../specs/rules.md) `format`, `analyze`, `sensitive-files`, `stagelatch`; [`specs/baseline-and-suppression.md`](../specs/baseline-and-suppression.md) 1–3.
 
@@ -15,7 +15,7 @@
 ## Global Constraints
 
 - Everything in plan 01's Global Constraints.
-- `package:analyzer`, `package:dart_style` and the analysis server protocol are referenced only under `lib/src/infrastructure/dart/`. The layering test is extended to enforce it.
+- The analysis server protocol and the `dart format` invocation exist only under `lib/src/infrastructure/dart/`, and the tool imports neither `package:analyzer` nor `package:dart_style`. The layering test is extended to enforce both.
 - `format` and `analyze` results equal those of the resolved SDK's `dart format` and `dart analyze` (ADR-0008). The contract tests of Task 7 are the proof and may not be weakened.
 - The resolved SDK is outside the repository (S2).
 - Fixes use only `hash-object -w`, `update-index --index-info` and `checkout-index` (S4).
@@ -247,7 +247,7 @@ test('directive-like text in comments and strings is ignored', () { /* "// impor
 ```
 
 - [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.** `SyntacticFacts` uses the extractor chosen in the spike (Task 7, step 3 of plan 00). The graph stores reverse adjacency in sorted sets.
+- [ ] **Step 3: Implement.** `SyntacticFacts` is the hand-written directive scanner selected by the spike (ADR-0008; `benchmark/lib/directives_scan.dart` is the measured prototype): it skips comments, strings and raw strings, and yields each `import`, `export`, `part` and `part of` with its URI and location, one per conditional branch. The graph stores reverse adjacency in sorted sets.
 - [ ] **Step 4: Run** all four commands. Expected: PASS.
 - [ ] **Step 5: Commit.** `feat(dart): add directive facts and import graph`
 
@@ -257,9 +257,9 @@ test('directive-like text in comments and strings is ignored', () { /* "// impor
 
 **Files:**
 - Create: `lib/src/application/ports/dart_toolchain_factory.dart`, `test/support/fake_dart_toolchain.dart`
-- Create: under `lib/src/infrastructure/dart/`, the adapter for the mechanism recorded in ADR-0008
+- Create: `lib/src/infrastructure/dart/analysis_server_client.dart` (JSON-RPC over the server's stdin and stdout), `lib/src/infrastructure/dart/sdk_dart_toolchain.dart` (the adapter: diagnostics through the server, formatting through `dart format --stdin-name`)
 - Create: `test/fixtures/dart_app/` (a dependency-free Dart package: `pubspec.yaml`, `analysis_options.yaml` with `page_width: 100`, `lib/`), `test/support/oracle.dart`
-- Modify: `test/architecture/layering_test.dart` (toolchain packages allowed only under `infrastructure/dart/`)
+- Modify: `test/architecture/layering_test.dart` (no `package:analyzer` or `package:dart_style` anywhere; the server protocol only under `infrastructure/dart/`)
 - Test: `test/infrastructure/dart/toolchain_contract_test.dart`
 
 **Interfaces:**
@@ -298,7 +298,7 @@ test('close ends every child process', () async { /* ... */ });
 ```
 
 - [ ] **Step 2: Run** `dart test test/infrastructure/dart/toolchain_contract_test.dart`. Expected: FAIL, no adapter.
-- [ ] **Step 3: Implement** the mechanism of ADR-0008 per `specs/dart-toolchain.md` sections 4, 5 and 7. Overlays are installed once, before the first request. `facts` delegates to `SyntacticFacts` and must not start the expensive part. Every protocol call or analyzer API call has a comment saying what it does and why that call was chosen.
+- [ ] **Step 3: Implement** the mechanism of ADR-0008 per `specs/dart-toolchain.md` sections 4, 5, 7 and 8. The server starts on the first `diagnose`, never for `format` or `facts`; overlays are installed once, before the first request; `format` runs `dart format --output=show --stdin-name=<absolute path>` with the source on stdin. `close()` shuts the server down and kills it after 5 s. Every protocol call has a comment saying what it does and why that call was chosen; `benchmark/lib/server_client.dart` and `benchmark/lib/probe_delegated.dart` are the measured prototypes.
 - [ ] **Step 4: Run** all four commands on all matrix cells. Expected: PASS. A contract test that fails on one OS or on Dart beta is a blocker, not a skip.
 - [ ] **Step 5: Commit.** `feat(dart): add toolchain adapter with snapshot overlays`
 
@@ -381,6 +381,7 @@ test('on a commit snapshot the finding blocks and nothing is applied', () async 
 
 **Files:**
 - Create: `lib/src/checks/analyze/analyze_check.dart`, `analysis_scope.dart`
+- Modify: `lib/src/application/config/default_hooks.dart` (`analyze` leaves the `pre-commit` default and stays in `pre-push`, so also in `ci`; ADR-0008), `test/application/config/default_hooks_test.dart`
 - Test: `test/checks/analyze/analysis_scope_test.dart`, `analyze_check_test.dart`
 
 **Interfaces:**

@@ -8,7 +8,7 @@ Status: **Approved (2026-11-12).** This document is the single source for struct
 2. **Determinism.** Same snapshot, same config, same tool version: same findings in the same order on every machine (ADR-0003).
 3. **Latency.** A typical pre-commit finishes in 1–2 s. Every design choice that costs a process spawn or a full-repo scan must justify itself.
 4. **Safety.** The tool mutates the index and installs hooks. It must never lose user work (ADR-0002, [`security.md`](engineering/security.md)).
-5. **Replaceability of the Dart toolchain.** How diagnostics and formatting are produced is decided by the spike (ADR-0008) and may change again. Nothing outside one adapter may know.
+5. **Replaceability of the Dart toolchain.** Diagnostics and formatting come from the project's resolved SDK, through its analysis server and `dart format` (ADR-0008), and the mechanism may change again. Nothing outside one adapter may know.
 
 ## 2. Style: ports and adapters, five modules
 
@@ -400,6 +400,6 @@ Details: [`specs/git.md`](specs/git.md), [`specs/dart-toolchain.md`](specs/dart-
 ## 9. What this architecture deliberately does not have
 
 - No plugin loading before 1.0.0 ([`specs/custom-checks.md`](specs/custom-checks.md)).
-- No daemon, unless the spike fails its latency target.
+- No daemon in `0.1.0`. The spike missed its latency target and the owner chose one-shot runs with `analyze` off the default `pre-commit` list (ADR-0008); a daemon needs its own ADR.
 - No dependency injection framework, code generation or reflection.
 - No abstraction over git itself: the git CLI is the only supported backend.

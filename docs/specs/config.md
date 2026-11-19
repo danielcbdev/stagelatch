@@ -15,7 +15,7 @@ Status: **Approved (2026-11-12).**
 min_version: 0.1.0
 
 hooks:
-  pre-commit: [format, analyze, codegen, pubspec, l10n, assets, sensitive-files, tests/solo, tests/new-skip]
+  pre-commit: [format, codegen, pubspec, l10n, assets, sensitive-files, tests/solo, tests/new-skip]
   pre-push: [analyze, tests/affected]
 
 rules:
