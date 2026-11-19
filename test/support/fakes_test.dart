@@ -2,8 +2,11 @@ import 'dart:convert';
 
 import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/check.dart';
+import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
+import 'package:stagelatch/src/domain/dart/import_graph.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/location.dart';
+import 'package:stagelatch/src/domain/package_map.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
 import 'package:stagelatch/src/domain/snapshot.dart';
@@ -143,6 +146,32 @@ void main() {
   });
 
   group('FakeCheckContext', () {
+    test('exposes the import graph it was given, else an empty one', () async {
+      final graph = ImportGraph.build(
+        directives: {
+          RepoPath('lib/a.dart'): [
+            Directive(
+              kind: DirectiveKind.import,
+              uri: 'b.dart',
+              location: Location.wholeFile(RepoPath('lib/a.dart')),
+            ),
+          ],
+        },
+        packages: PackageMap(const []),
+      );
+
+      expect(
+        await FakeCheckContext(importGraph: graph).importGraph,
+        same(graph),
+      );
+      expect(
+        (await FakeCheckContext().importGraph).dependentsOf({
+          RepoPath('lib/b.dart'),
+        }),
+        {RepoPath('lib/b.dart')},
+      );
+    });
+
     test('enables every rule unless a set is given', () {
       final open = FakeCheckContext();
       final restricted = FakeCheckContext(

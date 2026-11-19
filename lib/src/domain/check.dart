@@ -3,6 +3,7 @@ library;
 
 import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
+import 'package:stagelatch/src/domain/dart/import_graph.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/finding.dart';
 import 'package:stagelatch/src/domain/fix.dart';
@@ -92,6 +93,11 @@ abstract interface class CheckContext {
   /// Dart diagnostics, formatting and facts. Started on first access, so a
   /// check that does not need Dart must not touch it.
   DartToolchain get dart;
+
+  /// Which Dart files depend on which, built once per context from the
+  /// directives of every `.dart` file of [snapshot]. Like [dart], only a
+  /// check that needs it should ask.
+  Future<ImportGraph> get importGraph;
 
   /// The branch the change is headed for: the current branch on commit,
   /// the remote branch on push, the base ref in CI. Null when unknown.

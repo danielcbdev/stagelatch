@@ -249,7 +249,7 @@ test('packages are sorted by root', () async { /* ... */ });
 - Consumes: `Directive`, `DirectiveKind`, `DartFileFacts` (`lib/src/domain/dart/dart_file_facts.dart`, since plan 01), `PackageMap`.
 - Produces: `ImportGraph.build({required Map<RepoPath, List<Directive>> directives, required PackageMap packages})`; `Set<RepoPath> dependentsOf(Set<RepoPath> files)`; `List<RepoPath>? shortestChain(RepoPath from, RepoPath to)`; `const SyntacticFacts()` with `DartFileFacts extract(String source, RepoPath path)`, filling `directives` only in this version (`specs/dart-toolchain.md` section 6). The `tests.functions` parameter arrives with `testCalls` in plan 03.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('relative, package and part URIs become edges; external ones are ignored', () {
@@ -285,10 +285,10 @@ test('directive-like text in comments and strings is ignored', () { /* "// impor
 test('adjacent string literals are concatenated', () { /* "import 'a' '.dart';" -> a.dart */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.** `SyntacticFacts` is the hand-written directive scanner selected by the spike (ADR-0008; `benchmark/lib/directives_scan.dart` is the measured prototype): it skips comments, strings and raw strings, and yields each `import`, `export`, `part` and `part of` with its URI and location, one per conditional branch. The graph stores reverse adjacency in sorted sets.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(dart): add directive facts and import graph`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.** `SyntacticFacts` is the hand-written directive scanner selected by the spike (ADR-0008; `benchmark/lib/directives_scan.dart` is the measured prototype): it skips comments, strings and raw strings, and yields each `import`, `export`, `part` and `part of` with its URI and location, one per conditional branch. The graph stores reverse adjacency in sorted sets.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(dart): add directive facts and import graph`
 
 ### Task 7: Dart toolchain adapter
 
