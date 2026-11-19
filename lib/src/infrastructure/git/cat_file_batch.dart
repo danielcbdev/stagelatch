@@ -99,24 +99,36 @@ final class CatFileBatch {
   Future<_Channel> _open(String mode) async {
     _spawnCount++;
     final process = await _git.start(['cat-file', mode]);
-    // Nothing useful arrives on stderr, but an unread pipe that fills up
-    // would block git, so it is drained for the life of the process.
-    unawaited(process.stderr.drain<void>());
-    return _Channel(process, ByteStreamReader(process.stdout));
+    // stderr is read for the life of the process: an unread pipe that fills
+    // up would block git, and when git dies its last words explain why.
+    final stderr = StringBuffer();
+    final stderrDone = process.stderr
+        .transform(const Utf8Decoder(allowMalformed: true))
+        .forEach(stderr.write);
+    unawaited(stderrDone);
+    return _Channel(
+      process,
+      ByteStreamReader(process.stdout),
+      stderr,
+      stderrDone,
+    );
   }
 
   /// Sends [blobId] and returns the object size from the header line:
   /// `<id> <type> <size>`, or `<id> missing`.
   Future<int> _request(_Channel channel, String blobId) async {
-    channel.process.stdin.add(utf8.encode('$blobId\n'));
-    await channel.process.stdin.flush();
-    final header = await channel.reader.readLine();
-    if (header == null) {
-      throw const InternalException(
-        'git cat-file ended unexpectedly.',
-        where: 'git',
-      );
+    String? header;
+    try {
+      channel.process.stdin.add(utf8.encode('$blobId\n'));
+      await channel.process.stdin.flush();
+      header = await channel.reader.readLine();
+    } on IOException {
+      // git exited before reading the request: a broken pipe. Whether that
+      // or the end of its output comes first is a race, so both are
+      // reported the same way, with what git said.
+      header = null;
     }
+    if (header == null) throw await _ended(channel);
     final fields = header.split(' ');
     if (fields.length == 2 && fields[1] == 'missing') {
       throw InternalException(
@@ -135,10 +147,33 @@ final class CatFileBatch {
   }
 }
 
+/// The failure of a `cat-file` process that stopped answering, with the
+/// first line git wrote to stderr.
+Future<InternalException> _ended(_Channel channel) async {
+  await Future.wait([channel.process.exitCode, channel.stderrDone])
+      .timeout(const Duration(seconds: 5), onTimeout: () => const []);
+  final said = const LineSplitter()
+      .convert(channel.stderr.toString())
+      .where((line) => line.trim().isNotEmpty)
+      .firstOrNull;
+  return InternalException(
+    said == null
+        ? 'git cat-file ended unexpectedly.'
+        : 'git cat-file ended unexpectedly: ${said.trim()}',
+    where: 'git',
+  );
+}
+
 /// One running `cat-file` process and the reader over its output.
 final class _Channel {
-  const new(this.process, this.reader);
+  const new(this.process, this.reader, this.stderr, this.stderrDone);
 
   final Process process;
   final ByteStreamReader reader;
+
+  /// Everything git wrote to stderr so far.
+  final StringBuffer stderr;
+
+  /// Completes when git closes stderr.
+  final Future<void> stderrDone;
 }
