@@ -145,7 +145,7 @@ The shuffled-registry half of the determinism test needs several registered chec
 - Consumes: `Reporter`, `RunReport`, `sanitizeForTerminal`, `counted` and `formatSeconds` (`console_format.dart`, plan 01).
 - Produces: `String escapeWorkflowData(String)`; `String escapeWorkflowProperty(String)`; `GithubReporter(StringSink out) implements Reporter`; `String summaryLine(RunReport report)` moved out of `ConsoleReporter` into `console_format.dart` so both reporters print the same line. Only `ci` offers `--reporter github` (Task 13).
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('data escapes percent, CR and LF', () { expect(escapeWorkflowData('50%\r\nx'), '50%25%0D%0Ax'); });
@@ -161,10 +161,10 @@ test('a message carrying a newline and a workflow command cannot start a new com
 test('the console summary line follows the commands', () { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.** Paths containing `,` or `:` go through `escapeWorkflowProperty`.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(reporters): add GitHub workflow command reporter`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.** Paths containing `,` or `:` go through `escapeWorkflowProperty`.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(reporters): add GitHub workflow command reporter`
 
 ### Task 4: SDK locator
 

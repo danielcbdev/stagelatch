@@ -1,5 +1,10 @@
-/// Renders durations and counts for the console reporter.
+/// Renders durations, counts and the summary for the console and GitHub
+/// reporters.
 library;
+
+import 'package:stagelatch/src/application/pipeline/run_report.dart';
+import 'package:stagelatch/src/domain/check.dart';
+import 'package:stagelatch/src/domain/severity.dart';
 
 /// How long [duration] took, for one row of the check table.
 ///
@@ -42,4 +47,30 @@ String formatBudget(Duration duration) {
 String counted(int count, String singular, {String? plural}) {
   final word = count == 1 ? singular : (plural ?? '${singular}s');
   return '$count $word';
+}
+
+/// The summary of [report]: counts, outcome and total time, followed by a
+/// second line when anything was suppressed or baselined
+/// (docs/specs/cli.md, section 4). No trailing newline.
+String summaryLine(RunReport report) {
+  final errors = report.findings
+      .where((finding) => finding.severity == Severity.error)
+      .length;
+  final warnings = report.findings.length - errors;
+  final outcome = switch ((report.entry, report.verdict)) {
+    (EntryKind.preCommit, Verdict.fail) => 'Commit blocked',
+    (EntryKind.preCommit, Verdict.pass) => 'Commit allowed',
+    (EntryKind.prePush, Verdict.fail) => 'Push blocked',
+    (EntryKind.prePush, Verdict.pass) => 'Push allowed',
+    (EntryKind.ci, Verdict.fail) => 'Failed',
+    (EntryKind.ci, Verdict.pass) => 'Passed',
+  };
+  final counts = counted(errors, 'error');
+  final warningCounts = counted(warnings, 'warning');
+  final total = formatSeconds(report.total);
+  return [
+    '$counts, $warningCounts. $outcome. ($total)',
+    if (report.suppressed > 0 || report.baselined > 0)
+      '(${report.suppressed} suppressed, ${report.baselined} baselined)',
+  ].join('\n');
 }
