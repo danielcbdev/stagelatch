@@ -33,7 +33,11 @@ Future<void> main(List<String> arguments) async {
   }
   final ws = BenchWorkspace.find();
   final corpus = Corpus.load(ws);
-  final probe = probeNamed(args.rest[0], cacheDir: args.option('cache'));
+  final probe = probeNamed(
+    args.rest[0],
+    scratchDir: ws.scratchDir,
+    cacheDir: args.option('cache'),
+  );
   await applyScenario(loadScenario(args.rest[1], ws), ws);
   var input = await buildProbeInput(
     sdkRoot: Corpus.dartSdk(args.option('flutter') ?? corpus.flutter),
