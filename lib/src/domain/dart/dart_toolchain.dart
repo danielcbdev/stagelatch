@@ -69,10 +69,11 @@ final class Unparseable extends FormatOutcome {
 
 /// Everything Dart-specific a check may ask for.
 ///
-/// How the answers are produced is hidden behind this interface on purpose:
-/// the mechanism is chosen by the spike and may change (ADR-0008). Results
-/// must equal those of the project SDK's `dart analyze` and `dart format`
-/// on a working tree identical to the snapshot.
+/// How the answers are produced is hidden behind this interface on purpose
+/// (ADR-0008): today the project's own SDK analyzes a materialized copy of
+/// the snapshot and formats through `dart format`, and that may change.
+/// Results must equal those of the project SDK's `dart analyze` and
+/// `dart format` on a working tree identical to the snapshot.
 abstract interface class DartToolchain {
   /// The diagnostics of exactly [files], sorted by path, position and code.
   Future<List<DartDiagnostic>> diagnose(Set<RepoPath> files);
@@ -81,8 +82,7 @@ abstract interface class DartToolchain {
   Future<FormatOutcome> format(RepoPath path, String source);
 
   /// The syntactic facts of [path] in [files], or null when the file is
-  /// absent or does not parse. Never starts the expensive part of the
-  /// toolchain.
+  /// absent or not text. Never starts the expensive part of the toolchain.
   Future<DartFileFacts?> facts(SnapshotFiles files, RepoPath path);
 
   /// Releases every resource, including child processes.
