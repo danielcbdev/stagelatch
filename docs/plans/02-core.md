@@ -577,7 +577,7 @@ The `hooks.ci` default already exists: `ConfigLoader` fills `ci` with `unionOfSe
 - Consumes: `CiEntry`, `unionOfSelectors` and `ciHook` (`default_hooks.dart`), `JsonReporter` (Task 2), `GithubReporter` (Task 3).
 - Produces: `GitCliRepository.resolve(CiEntry)`; `CiCommand`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('without hooks.ci, ci runs the union of pre-commit and pre-push', () async { /* end to end: a sensitive file and an analyze finding both reported */ });
@@ -593,10 +593,10 @@ test('an unknown reporter is a usage error naming the accepted values', () async
 });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/git.md` section 4.3 and `specs/cli.md` section 3.5.
-- [ ] **Step 4: Run** all four commands, including AC-20. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(cli): add ci command over the pull request diff`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/git.md` section 4.3 and `specs/cli.md` section 3.5.
+- [x] **Step 4: Run** all four commands, including AC-20. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(cli): add ci command over the pull request diff`
 
 ### Task 14: `doctor`
 

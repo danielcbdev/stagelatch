@@ -103,7 +103,7 @@ final class GitCliRepository implements GitRepository {
     return switch (entry) {
       PreCommitEntry() => [await _resolvePreCommit()],
       PrePushEntry() => await _resolvePrePush(entry),
-      CiEntry() => throw UnsupportedError('This entry point arrives in 0.1.0.'),
+      CiEntry() => [await _resolveCi(entry)],
     };
   }
 
@@ -144,6 +144,57 @@ final class GitCliRepository implements GitRepository {
       targetBranch: layout.branch,
       label: 'index',
     );
+  }
+
+  /// The pull request's head against its fork point (docs/specs/git.md,
+  /// section 4.3).
+  Future<ResolvedRun> _resolveCi(CiEntry entry) async {
+    // Exit 1: no common ancestor. Exit 128: a ref git does not know, as
+    // when a shallow clone never fetched the base branch. Either way the
+    // diff would be wrong, so nothing is analyzed (ADR-0007).
+    final mergeBase = await _git.run(
+      ['merge-base', entry.baseRef, entry.headRef],
+      okExitCodes: {0, 1, 128},
+    );
+    if (mergeBase.exitCode != 0) {
+      throw UsageException(
+        'Cannot find a merge base between ${entry.baseRef} and '
+        '${entry.headRef}. If this is a shallow clone, fetch full history '
+        '(actions/checkout: fetch-depth: 0).',
+      );
+    }
+    final base = mergeBase.text.trim();
+    // ^{commit}: the commit a tag or branch name points at.
+    final head = (await _git.run([
+      'rev-parse',
+      '--verify',
+      '${entry.headRef}^{commit}',
+    ])).text.trim();
+    // --name-status -z -M: as for pre-commit, between two commits.
+    final diff = await _git.run([
+      'diff',
+      '--name-status',
+      '-z',
+      '-M',
+      base,
+      head,
+    ]);
+    final target = _branchName(entry.baseRef);
+    return ResolvedRun(
+      snapshot: CommitSnapshot(head),
+      base: CommitSnapshot(base),
+      changes: ChangeSet(parseNameStatus(diff.nulSeparated)),
+      targetBranch: target,
+      label: target,
+    );
+  }
+
+  /// [ref] without a leading `origin/` or `refs/heads/`.
+  static String _branchName(String ref) {
+    for (final prefix in const ['refs/heads/', 'origin/']) {
+      if (ref.startsWith(prefix)) return ref.substring(prefix.length);
+    }
+    return ref;
   }
 
   /// One run per pushed branch (docs/specs/git.md, section 4.2).

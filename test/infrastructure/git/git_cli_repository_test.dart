@@ -343,13 +343,6 @@ void main() {
   });
 
   group('not yet supported', () {
-    test('the ci entry arrives in 0.1.0', () {
-      expect(
-        () => git.resolve(const CiEntry(baseRef: 'main'), all: false),
-        throwsUnsupportedError,
-      );
-    });
-
     test('--all arrives in 0.2.0', () {
       expect(
         () => git.resolve(const PreCommitEntry(), all: true),
