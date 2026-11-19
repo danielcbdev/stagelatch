@@ -21,6 +21,7 @@ final class FakeGitRepository implements GitRepository {
     this.targetBranch,
     this._runs,
     this._diverging = const {},
+    this._layout,
   }) : index = {...index},
        _changes = changes ?? ChangeSet(const []);
 
@@ -45,8 +46,10 @@ final class FakeGitRepository implements GitRepository {
   bool closed = false;
 
   @override
-  Future<RepoLayout> layout() =>
-      throw UnimplementedError('FakeGitRepository has no layout.');
+  Future<RepoLayout> layout() async =>
+      _layout ?? (throw UnimplementedError('FakeGitRepository has no layout.'));
+
+  final RepoLayout? _layout;
 
   @override
   Future<List<ResolvedRun>> resolve(

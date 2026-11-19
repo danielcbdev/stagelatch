@@ -353,9 +353,10 @@ abstract interface class DartToolchainFactory {
 }
 
 abstract interface class DoctorProbes {
-  Future<String?> gitVersion();
+  Future<String?> gitVersion();                          // first line of `git --version`
   Future<String?> resolveOnPath(String name);
-  Future<bool> exists(String repoRelativePath);
+  Future<bool> globallyActivated();                      // <pub cache>/global_packages/stagelatch
+  Future<bool> packageConfigExists(RepoPath? packageRoot);
 }
 
 // GitRepository gains, for `run pre-push` without stdin (cli.md 3.4):
@@ -424,7 +425,7 @@ List<PushedRef> parsePushedRefs(String stdin);           // throws UsageExceptio
 enum ProbeStatus { ok, warn, fail }
 final class ProbeResult { String get id; ProbeStatus get status; String get message; }
 final class Doctor {
-  Doctor({required GitRepository git, required HookStore hooks, required ConfigLoader loader, required SdkLocator sdk, required Environment environment, required DoctorProbes probes});
+  Doctor({required GitRepository git, required HookStore hooks, required ConfigLoader loader, required Documents documents, required WorkingTree worktree, required CheckCatalog catalog, required SdkLocator sdk, required Environment environment, required DoctorProbes probes, required Version toolVersion});
   Future<List<ProbeResult>> run();                       // D1 to D9, in order
 }
 ```
