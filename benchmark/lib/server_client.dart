@@ -77,6 +77,9 @@ final class ServerClient {
   final _connected = Completer<void>();
   var _nextId = 0;
 
+  /// Process id of the server, for memory measurements.
+  int get pid => _process.pid;
+
   /// Every notification the server sent, in order.
   Stream<Map<String, Object?>> get notifications => _notifications.stream;
 
