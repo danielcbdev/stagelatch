@@ -106,7 +106,7 @@ test('the pipeline drops covered findings and reports how many', () async {
 - Consumes: `Reporter`, `RunReport`, `AppliedFix`, `CheckTiming` (plan 01).
 - Produces: `JsonReporter(StringSink out, {required String toolVersion}) implements Reporter`; `String renderErrorJson({required String kind, required String message, required int exitCode})`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('one run renders the object of specs/cli.md section 5, keys in order', () { /* golden: single.json */ });
@@ -128,10 +128,10 @@ test('two runs with --reporter json are byte-identical once durationMs is remove
 
 The shuffled-registry half of the determinism test needs several registered checks and arrives in Task 15.
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** with `JsonEncoder.withIndent('  ')` over a `LinkedHashMap` built in the documented key order (`specs/cli.md` section 5); the error object is rendered compact. `--all` stays the usage error `--all arrives in 0.2.0.`
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(reporters): add JSON reporter`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** with `JsonEncoder.withIndent('  ')` over a `LinkedHashMap` built in the documented key order (`specs/cli.md` section 5); the error object is rendered compact. `--all` stays the usage error `--all arrives in 0.2.0.`
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(reporters): add JSON reporter`
 
 ### Task 3: GitHub reporter
 

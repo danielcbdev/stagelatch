@@ -5,10 +5,13 @@ import 'package:args/command_runner.dart' hide UsageException;
 import 'package:stagelatch/src/application/entry_point.dart';
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/application/pipeline/run_report.dart';
+import 'package:stagelatch/src/application/ports/reporter.dart';
 import 'package:stagelatch/src/cli/composition.dart';
 import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/cli/scope.dart';
 import 'package:stagelatch/src/infrastructure/reporters/console_reporter.dart';
+import 'package:stagelatch/src/infrastructure/reporters/json_reporter.dart';
+import 'package:stagelatch/src/version.dart';
 
 /// Runs the checks for one git hook.
 final class RunCommand extends Command<int> {
@@ -17,7 +20,7 @@ final class RunCommand extends Command<int> {
     argParser
       ..addFlag('all', negatable: false, help: 'Check every file.')
       ..addFlag('no-fix', negatable: false, help: 'Do not apply fixes.')
-      ..addOption('reporter', help: 'console, the only reporter so far.');
+      ..addOption('reporter', help: 'console (default) or json.');
   }
 
   final Io _io;
@@ -43,8 +46,10 @@ final class RunCommand extends Command<int> {
       );
     }
     final reporter = argResults?.option('reporter');
-    if (reporter != null && reporter != 'console') {
-      throw UsageException('Unknown reporter "$reporter". Expected console.');
+    if (reporter != null && reporter != 'console' && reporter != 'json') {
+      throw UsageException(
+        'Unknown reporter "$reporter". Expected console or json.',
+      );
     }
     if (hook.single == 'pre-push') {
       throw const UsageException('pre-push arrives in 0.1.0.');
@@ -60,10 +65,11 @@ final class RunCommand extends Command<int> {
           allowFixes: !(argResults?.flag('no-fix') ?? false),
         ),
       );
-      ConsoleReporter(
-        io.stdout,
-        color: io.environment.useColor,
-      ).report(reports);
+      (reporter == 'json'
+              ? JsonReporter(io.stdout, toolVersion: packageVersion)
+              : ConsoleReporter(io.stdout, color: io.environment.useColor)
+                    as Reporter)
+          .report(reports);
       final failed = reports.any((report) => report.verdict == Verdict.fail);
       return failed ? 1 : 0;
     } finally {

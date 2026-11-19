@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "stagelatchVersion": "0.1.0",
+  "entry": "pre-commit",
+  "verdict": "fail",
+  "exitCode": 1,
+  "files": 4,
+  "findings": [
+    {
+      "rule": "pubspec/path-dependency",
+      "severity": "error",
+      "path": "pubspec.yaml",
+      "line": 14,
+      "column": 5,
+      "endLine": 14,
+      "endColumn": 26,
+      "message": "Dependency \"design_system\" uses a path that is not a package in this repository: ../design_system."
+    }
+  ],
+  "fixes": [
+    {
+      "rule": "format/unformatted",
+      "path": "lib/checkout/cart.dart",
+      "worktreeUpdated": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "format",
+      "durationMs": 41,
+      "errors": 0,
+      "warnings": 0,
+      "fixed": 1
+    },
+    {
+      "id": "pubspec",
+      "durationMs": 6,
+      "errors": 1,
+      "warnings": 0,
+      "fixed": 0
+    }
+  ],
+  "suppressed": 0,
+  "baselined": 0,
+  "notices": [],
+  "durationMs": 917,
+  "timeBudgetExceeded": false
+}

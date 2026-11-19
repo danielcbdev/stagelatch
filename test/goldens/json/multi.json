@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "stagelatchVersion": "0.1.0",
+  "verdict": "fail",
+  "exitCode": 1,
+  "runs": [
+    {
+      "entry": "pre-push",
+      "verdict": "pass",
+      "exitCode": 0,
+      "files": 1,
+      "findings": [],
+      "fixes": [],
+      "checks": [],
+      "suppressed": 0,
+      "baselined": 0,
+      "notices": [],
+      "durationMs": 120,
+      "timeBudgetExceeded": false
+    },
+    {
+      "entry": "pre-push",
+      "verdict": "fail",
+      "exitCode": 1,
+      "files": 2,
+      "findings": [
+        {
+          "rule": "pubspec/dependency-overrides",
+          "severity": "error",
+          "path": "pubspec.yaml",
+          "line": 3,
+          "column": 1,
+          "endLine": 3,
+          "endColumn": 2,
+          "message": "x"
+        }
+      ],
+      "fixes": [],
+      "checks": [],
+      "suppressed": 1,
+      "baselined": 0,
+      "notices": [
+        "a notice"
+      ],
+      "durationMs": 2500,
+      "timeBudgetExceeded": true
+    }
+  ]
+}
