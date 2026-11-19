@@ -7,15 +7,22 @@ import 'package:stagelatch/src/application/config/default_hooks.dart';
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/application/pipeline/check_registry.dart';
 import 'package:stagelatch/src/application/pipeline/finding_filters.dart';
+import 'package:stagelatch/src/application/pipeline/inline_ignore.dart';
 import 'package:stagelatch/src/application/pipeline/pipeline_check_context.dart';
 import 'package:stagelatch/src/application/pipeline/run_report.dart';
 import 'package:stagelatch/src/application/pipeline/selection.dart';
 import 'package:stagelatch/src/application/ports/clock.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
+import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/finding.dart';
 import 'package:stagelatch/src/domain/severity.dart';
+import 'package:stagelatch/src/domain/snapshot.dart';
+
+/// Per-check filtering looks for covering comments only; unknown ids are
+/// reported once per run, against the real changeset.
+final ChangeSet _noChanges = ChangeSet(const []);
 
 /// Judges what an entry point publishes (docs/architecture.md, 5.3).
 ///
@@ -81,10 +88,26 @@ final class Pipeline {
       config: config,
     );
 
-    List<Finding> filtered(List<Finding> findings) => applyExclude(
-      applyLevels(applySelection(findings, selection), config.rules),
-      config.exclude,
-    );
+    // The fixed chain of docs/specs/baseline-and-suppression.md, section 1.
+    // Inline comments are read from [snapshot]: the fix phase sees the text
+    // it is about to fix, the verify phase the text that will be published.
+    var suppressed = 0;
+    Future<List<Finding>> filtered(
+      List<Finding> findings,
+      SnapshotFiles snapshot,
+    ) async {
+      final outcome = await applyInlineIgnores(
+        applyExclude(
+          applyLevels(applySelection(findings, selection), config.rules),
+          config.exclude,
+        ),
+        snapshot: snapshot,
+        changes: _noChanges,
+        catalog: _registry,
+      );
+      suppressed += outcome.suppressed;
+      return outcome.kept;
+    }
 
     final outcomes = <String, _Outcome>{};
 
@@ -94,8 +117,9 @@ final class Pipeline {
     final mayFix = request.allowFixes && run.snapshot is IndexSnapshot;
     for (final check in _registry.checks) {
       if (check.phase != CheckPhase.fix || !selection.runs(check)) continue;
-      final (result, duration) = await _timed(check, context());
-      var findings = filtered(result.findings);
+      final fixContext = context();
+      final (result, duration) = await _timed(check, fixContext);
+      var findings = await filtered(result.findings, fixContext.snapshot);
       var applied = const <AppliedFix>[];
       if (mayFix) {
         // A fix is applied only for a finding that survived the filters:
@@ -139,18 +163,33 @@ final class Pipeline {
     for (final (index, check) in verifying.indexed) {
       final (result, duration) = results[index];
       outcomes[check.id] = _Outcome(
-        filtered(result.findings),
+        await filtered(result.findings, verifyContext.snapshot),
         const [],
         duration,
       );
     }
 
+    // Unknown ids in ignore comments of changed files. They belong to no
+    // check and bypass selection, but `rules:` and `exclude` still apply.
+    final ignores = await applyInlineIgnores(
+      const [],
+      snapshot: verifyContext.snapshot,
+      changes: run.changes,
+      catalog: _registry,
+    );
+    final invalidIgnores = applyExclude(
+      applyLevels(ignores.invalid, config.rules),
+      config.exclude,
+    );
+
     final ran = [
       for (final check in _registry.checks)
         if (outcomes[check.id] case final outcome?) (check.id, outcome),
     ];
-    final findings = [for (final (_, outcome) in ran) ...outcome.findings]
-      ..sort(Finding.compare);
+    final findings = [
+      for (final (_, outcome) in ran) ...outcome.findings,
+      ...invalidIgnores,
+    ]..sort(Finding.compare);
     final total = _clock.elapsed - started;
 
     return RunReport(
@@ -179,7 +218,7 @@ final class Pipeline {
       // The budget is only ever reported. Skipping or shortening a check
       // would make the verdict depend on the machine (ADR-0003).
       budgetExceeded: total > config.timeBudget,
-      suppressed: 0,
+      suppressed: suppressed,
       baselined: 0,
       notices: loaded.notices,
     );

@@ -57,7 +57,7 @@ Revised on 2026-11-19 after the spike (ADR-0008) and plan 01.
 - Consumes: `Finding`, `SnapshotFiles`, `ChangeSet`, `CheckCatalog`.
 - Produces: `List<IgnoreDirective> scanIgnores(String text, {required String commentOpener})`; `IgnoreDirective { int line; List<IgnoreId> ids }`; `IgnoreId { String text; int column }`; `String? commentOpenerFor(RepoPath path)` returning `//`, `#` or null; `Future<IgnoreOutcome> applyInlineIgnores(List<Finding> findings, {required SnapshotFiles snapshot, required ChangeSet changes, required CheckCatalog catalog})`; `IgnoreOutcome { List<Finding> kept; int suppressed; List<Finding> invalid }`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('a directive covers its own line and the next', () {
@@ -88,10 +88,10 @@ test('the pipeline drops covered findings and reports how many', () async {
 });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, `scanIgnores` undefined.
-- [ ] **Step 3: Implement** with a hand-written scan per line (`indexOf` of the opener, then the marker); no regular expression. Insert the filter in the chain after `exclude` and before the baseline position (`specs/baseline-and-suppression.md` section 1). It reads the snapshot as the fix phase left it. `invalid-ignore` findings bypass inline suppression but still go through the levels filter, so `rules: {stagelatch/invalid-ignore: off}` silences them. `RunRequest`, `RunReport` and the console reporter need no change: `suppressed` already exists and is printed.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(pipeline): add inline stagelatch:ignore suppression`
+- [x] **Step 2: Run.** Expected: FAIL, `scanIgnores` undefined.
+- [x] **Step 3: Implement** with a hand-written scan per line (`indexOf` of the opener, then the marker); no regular expression. Insert the filter in the chain after `exclude` and before the baseline position (`specs/baseline-and-suppression.md` section 1). It reads the snapshot as the fix phase left it. `invalid-ignore` findings bypass inline suppression but still go through the levels filter, so `rules: {stagelatch/invalid-ignore: off}` silences them. `RunRequest`, `RunReport` and the console reporter need no change: `suppressed` already exists and is printed.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(pipeline): add inline stagelatch:ignore suppression`
 
 ### Task 2: JSON reporter
 
