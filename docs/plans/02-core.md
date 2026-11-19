@@ -446,7 +446,7 @@ test('format.fix false returns the finding without a fix', () async { /* ... */ 
 
 The check is registered in Task 15, with the toolchain.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('scope changed is the changed Dart files', () async { /* ... */ });
@@ -470,10 +470,10 @@ test('analyze is on pre-push and ci by default, not on pre-commit', () {
 });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/rules.md` `analyze`.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add analyze check on the affected scope`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/rules.md` `analyze`.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add analyze check on the affected scope`
 
 ### Task 11: The `sensitive-files` check
 
