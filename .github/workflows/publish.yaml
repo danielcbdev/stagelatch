@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+*"
+  # Dispatched by release-please.yaml on the release tag; see the comment
+  # there. A dispatch on a branch is refused by pub.dev (refType must be
+  # "tag"), so it cannot publish anything but a tagged version.
+  workflow_dispatch:
 
 # The reusable workflow checks the repository out, then mints an OIDC token
 # for pub.dev. id-token is set on the job, which is the permission that call

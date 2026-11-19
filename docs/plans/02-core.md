@@ -717,8 +717,8 @@ Acceptance:
 **Interfaces:**
 - Produces: a release that publishes itself once release-please's pull request is merged, with no long-lived secret.
 
-- [ ] **Step 1: Check the premise** in GitHub's documentation ("Triggering a workflow from a workflow") and in dart.dev's automated publishing guide: a tag that release-please creates with the default `GITHUB_TOKEN` starts no new workflow run, except `workflow_dispatch` and `repository_dispatch`. Record what pub.dev accepts (tag push, `workflow_dispatch` on a tag ref, environments).
-- [ ] **Step 2: Implement the simplest fix without a stored secret** that the sources support, for example: the release-please job dispatches `publish.yaml` on the tag ref when `release_created` is true (`actions: write` on that job only), and `publish.yaml` accepts `workflow_dispatch`. A change needed on pub.dev (such as enabling publishing from `workflow_dispatch` events) is described for the owner, never made here.
-- [ ] **Step 3: Set `"release-as": "0.1.0"`** on the `.` package of `release-please-config.json`. Without it a `feat` takes `0.1.0-dev.1` to `0.2.0-dev.1` (workflow section 8). `bootstrap-sha` stays until the first release of release-please's own.
-- [ ] **Step 4: Document** the trigger and the owner's pub.dev step in workflow section 8, with the references.
-- [ ] **Step 5: Commit.** `ci: dispatch the publish workflow from release-please`
+- [x] **Step 1: Check the premise** in GitHub's documentation ("Triggering a workflow from a workflow") and in dart.dev's automated publishing guide: a tag that release-please creates with the default `GITHUB_TOKEN` starts no new workflow run, except `workflow_dispatch` and `repository_dispatch`. Record what pub.dev accepts (tag push, `workflow_dispatch` on a tag ref, environments).
+- [x] **Step 2: Implement the simplest fix without a stored secret** that the sources support, for example: the release-please job dispatches `publish.yaml` on the tag ref when `release_created` is true (`actions: write` on that job only), and `publish.yaml` accepts `workflow_dispatch`. A change needed on pub.dev (such as enabling publishing from `workflow_dispatch` events) is described for the owner, never made here.
+- [x] **Step 3: Set `"release-as": "0.1.0"`** on the `.` package of `release-please-config.json`. Without it a `feat` takes `0.1.0-dev.1` to `0.2.0-dev.1` (workflow section 8). `bootstrap-sha` stays until the first release of release-please's own.
+- [x] **Step 4: Document** the trigger and the owner's pub.dev step in workflow section 8, with the references.
+- [x] **Step 5: Commit.** `ci: dispatch the publish workflow from release-please`
