@@ -683,11 +683,11 @@ Acceptance:
 - Consumes: `stagelatch ci` (Task 13) with every check registered (Task 15).
 - Produces: a composite action with inputs `base` (required), `version` (default: latest), `reporter` (default `github`) that activates stagelatch and runs `stagelatch ci`.
 
-- [ ] **Step 1: Add `stagelatch.yaml`** for this repository: `hooks.pre-commit: [format, pubspec, sensitive-files]`, `hooks.pre-push: [analyze]`, the defaults of ADR-0008.
-- [ ] **Step 2: Add a `dogfood` job** to CI on pull requests: checkout with `fetch-depth: 0`, `dart pub get`, then `dart run bin/stagelatch.dart ci --base "origin/$BASE_REF" --reporter github`, with `BASE_REF: ${{ github.base_ref }}` under `env:`. `permissions: contents: read`.
-- [ ] **Step 3: Write `action.yml`.** Inputs are passed through `env:` and referenced as shell variables, never interpolated into the script text (S8). Third-party actions pinned by SHA.
+- [x] **Step 1: Add `stagelatch.yaml`** for this repository: `hooks.pre-commit: [format, pubspec, sensitive-files]`, `hooks.pre-push: [analyze]`, the defaults of ADR-0008.
+- [x] **Step 2: Add a `dogfood` job** to CI on pull requests: checkout with `fetch-depth: 0`, `dart pub get`, then `dart run bin/stagelatch.dart ci --base "origin/$BASE_REF" --reporter github`, with `BASE_REF: ${{ github.base_ref }}` under `env:`. `permissions: contents: read`.
+- [x] **Step 3: Write `action.yml`.** Inputs are passed through `env:` and referenced as shell variables, never interpolated into the script text (S8). Third-party actions pinned by SHA.
 - [ ] **Step 4: Verify** by opening the pull request: the dogfood job runs and passes; introduce a deliberate formatting error in a scratch commit, see it fail with an annotation, then remove the commit.
-- [ ] **Step 5: Commit.** `ci: add composite action and run stagelatch on itself`. Making `dogfood` a required check is branch protection, an owner action: the pull request description asks for it and nothing here changes repository settings.
+- [x] **Step 5: Commit.** `ci: add composite action and run stagelatch on itself`. Making `dogfood` a required check is branch protection, an owner action: the pull request description asks for it and nothing here changes repository settings.
 
 ### Task 17: Benchmark, demo and 0.1.0
 
