@@ -141,3 +141,137 @@ Full output: [`05-import-graph.md`](../../benchmark/results/05-import-graph.md).
 
 Graph construction: 30 ms. Transitive dependents of the `s10` hub file
 (325 direct importers): 1,705 files in 0.6 ms.
+
+## 7. Decision
+
+Status: **decided on 2026-11-19: option 1 below, approved by the owner.**
+Task 7 step 2 stopped here and asked the owner, because a candidate
+passes G1 and none passes G2.
+
+### Gates (step 1)
+
+| Candidate | G1, parity (zero differences, 2 scenarios x 2 SDKs) | G2, warm p50 of the whole process on s10 <= 2.0 s |
+|---|---|---|
+| A, embedded | **fails**: 2, 3, 2 and 2 differences, all missing lints | 2.69 s, fails (eliminated by G1 anyway) |
+| B, delegated | passes: 0 differences everywhere | **fails**: 13.60 s |
+| B, files as roots | passes: 0 differences everywhere | **fails**: 11.64 s |
+
+A cannot pass G1 by construction: the lint rules it would need are not
+published outside the SDK. B passes G1 by construction and pays the
+analysis server's start on every run, which on a Flutter package is
+seconds even with a warm cache (section 4).
+
+### Fact extractor (step 3)
+
+The rule: `parseString` unless the scanner is at least 5 times faster
+on the corpus and the two never disagree. The scanner is about 170 times
+faster (8 ms against 1,331 to 1,366 ms over 2,462 files) and the two
+agree on every file, so **the directive facts use the hand-written
+scanner**. This needs no `package:analyzer` in the tool for `0.1.0`.
+Note for later plans: `annotatedDeclarations` and `testCalls`
+(`0.2.0`) need more than directives; the scanner covers the import
+graph only, and those facts will need a parser or a larger scanner, to be
+decided in plan 03.
+
+### Daemon evaluation
+
+Required by step 2 before asking the owner.
+
+**What would stay alive.** One analysis server of the resolved SDK
+(`dart language-server --protocol=analyzer`) per repository and SDK,
+with the package roots set and the whole package analyzed. The server
+speaks only over its own stdin and stdout, so a small stagelatch process
+would have to own it and accept requests from each short-lived
+`stagelatch run` over a local channel (a Unix domain socket, a named pipe
+on Windows).
+
+**How it would start and stop.** Started on demand by the first run that
+needs diagnostics; that run pays the cold cost or falls back to a
+one-shot server. Stopped after an idle timeout, when the SDK version,
+`package_config.json`, `analysis_options.yaml` or `pubspec.yaml`
+change (keyed by content hashes), by a `stagelatch daemon stop` command,
+and reported by `doctor`. `stagelatch ci` would never use it.
+
+**What it would buy, measured.** `benchmark/bin/daemon_sim.dart` keeps
+one server alive on the corpus and repeats a warm gate run 10 times:
+install the snapshot overlays, `getErrors` for the staged files,
+`edit.format`, remove the overlays.
+
+| | s3 | s10 |
+|---|---|---|
+| Initial analysis of the whole package (once per daemon) | 27.2 s | 26.7 s |
+| One warm gate run inside the daemon, p50 (max) | 1694 ms (1848 ms) | 1901 ms (1955 ms) |
+| Plus the activated client's own start (section 4) | about 0.8 s | about 0.8 s |
+| Server resident memory | 3003 MB | 3031 MB |
+
+A naive daemon would land at about 2.5 to 2.7 s per run on this corpus,
+still above G2, while holding about 3 GB of memory per repository. A
+daemon that keeps overlays between runs and sends only deltas may do
+better; that was not measured.
+
+**What it would cost.**
+
+- A local IPC channel. Security rule S7 says the tool opens no sockets;
+  a daemon needs an ADR that amends it, plus permissions so other users
+  cannot connect.
+- Lifecycle code: stale daemons, crashes, two hooks at once from linked
+  worktrees, upgrades of stagelatch itself, Windows named pipes.
+- Determinism (ADR-0003): the verdict must not depend on what the daemon
+  saw before. Overlays must be reset on every run, and a test must show
+  that daemon and one-shot results are identical.
+- New CLI surface (`daemon` commands, `doctor` probes), and roughly a
+  plan of its own before `0.1.0` can ship.
+
+### Options for the owner
+
+1. **B, one shot, with the latency stated.** Exact parity, no analyzer
+   coupling, the simplest adapter. Cost per run with `analyze`: about
+   1 s on Dart-only packages, about 5 s on a small Flutter package, about
+   13 to 15 s on a 2,400-file Flutter app. Formatting does not need the
+   server: the resolved SDK's `dart format --stdin-name=<path>` reads the
+   snapshot content from stdin, finds `page_width` from that path, and
+   produced the oracle's output byte for byte on the unformatted file of
+   `s3`, at 20 ms per file (p50 of 10 runs, max 75 ms). So the 1 to 2 s
+   target holds for every `pre-commit` check except `analyze`. Making
+   `analyze` livable could mean it defaults to `pre-push` and `ci` rather
+   than `pre-commit`, which changes the default hook lists of
+   `CLAUDE.md`.
+2. **B plus a daemon** as evaluated above, in its own plan before
+   `0.1.0`, accepting the S7 amendment, the memory, and a measured
+   result still near or above 2 s on large apps.
+3. **A with lints declared out of parity.** Not recommended: it
+   contradicts ADR-0008 ("a difference is a bug") and the gate would stay
+   silent on every lint the IDE shows.
+
+Recommendation: option 1, with formatting through `dart format
+--stdin-name` and diagnostics through the analysis server, `analyze`
+moved out of the default `pre-commit` list, and the daemon left for after
+`0.1.0` if real use asks for it. Under this option the root package gains
+no `analyzer` or `dart_style` dependency, and the SDK floor of the tool
+stays `^3.13.0` (the project SDK is whatever the project uses).
+
+### Decision (step 4)
+
+The owner chose **option 1** on 2026-11-19. Recorded in ADR-0008:
+
+- Diagnostics: the resolved SDK's analysis server, one per run, with
+  the snapshot as overlays.
+- Formatting: the resolved SDK's `dart format --stdin-name`, one process
+  per file.
+- Facts for the import graph: the hand-written directive scanner.
+- Default hooks: `analyze` on `pre-push` and `ci`, not on `pre-commit`.
+- Dependencies: none added; no `analyzer`, no `dart_style`. The tool's
+  SDK floor stays `^3.13.0`.
+- Daemon: not built for `0.1.0`; reconsidered only if real use asks for
+  it, under its own ADR.
+
+**Amendment, same day.** Probing the server for files that are deleted
+in the snapshot showed that `analysis.setAnalysisRoots` `excluded` does
+not hide a file from its importers: the server resolves every URI against
+the disk. Overlays therefore cannot hide an untracked file or a file
+deleted only in the index, and the same was true of the embedded
+candidate's `OverlayResourceProvider`. The owner chose to analyze a
+materialized copy of the snapshot instead (ADR-0001): the snapshot's
+Dart and YAML files written into a temporary directory, which is how the
+oracle of section 3 was built. Writing the corpus's 2,472 such files with
+`git checkout-index --prefix` took 0.24 to 0.31 s over three runs.

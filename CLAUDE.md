@@ -24,8 +24,9 @@ Precedência: este arquivo > ADRs > specs > planos. A documentação e os refina
 
 1. **Validar o index, não o working tree.**
    - Blobs lidos por um processo `git cat-file --batch` persistente: um spawn, não um por arquivo.
-   - Análise com `package:analyzer` + `OverlayResourceProvider`.
-   - O overlay recebe a versão do index de **todo** arquivo que diverge entre index e working tree (`git diff --name-only -z`), não só dos staged. Sem isso, mudanças não staged contaminam a análise.
+   - Análise sobre o snapshot materializado: os `.dart`, `.yaml` e `.yml` do snapshot são gravados a partir dos blobs num diretório temporário novo, com o `.dart_tool/package_config.json` de cada pacote copiado e reescrito, e o servidor de análise do SDK resolvido (`dart language-server --protocol=analyzer`) analisa esse diretório. Mudança não staged, arquivo untracked e deleção só no index ficam invisíveis. Custo medido: ~0,25 s para 2.472 arquivos.
+   - Overlays sobre o working tree foram rejeitados (2026-11-19): o servidor lê do disco tudo o que não está no overlay, então um arquivo untracked importado por um arquivo staged fazia o gate passar.
+   - Formatação pelo `dart format --stdin-name` do mesmo SDK, com o blob na stdin.
    - Nunca usar stash.
 2. **Autofix seguro.**
    - Grava o blob corrigido no index (`git hash-object -w --stdin` + `git update-index --cacheinfo <mode>,<sha>,<path>`).
@@ -62,7 +63,7 @@ Precedência: este arquivo > ADRs > specs > planos. A documentação e os refina
    | pre-push | commit enviado, lido da stdin do hook (`<local ref> <local sha> <remote ref> <remote sha>`) | `<remote sha>..<local sha>` |
    | `ci` | HEAD do PR | `merge-base(--base, HEAD)..HEAD` |
 
-   - O overlay segue a mesma regra da decisão 1: versão do snapshot para todo arquivo que diverge do working tree.
+   - A análise segue a decisão 1 para qualquer snapshot: o diretório materializado tem os arquivos daquele snapshot, seja o index, seja um commit.
    - **Pre-push de branch novo** (`<remote sha>` zerado): a base é o merge-base com todos os branches daquele remoto (`refs/remotes/<remote>/*`); sem nenhum, a árvore vazia. Remoção de branch (`<local sha>` zerado) e push de tag não têm o que validar.
    - **Merge em andamento** (`MERGE_HEAD` existe): o changeset é só o que difere de **ambos** os pais, isto é, resoluções de conflito e edições manuais. O que veio intacto do outro branch já passou pelo CI dele.
    - **Rebase em andamento:** quando o hook dispara, usa o changeset normal (index vs HEAD).
@@ -72,8 +73,9 @@ Precedência: este arquivo > ADRs > specs > planos. A documentação e os refina
    - Resolução do SDK, nesta ordem: `sdk_path` da config, FVM (`.fvmrc`, `.fvm/flutter_sdk`), `dart` no PATH.
    - O SDK resolvido tem de estar fora do working tree do repositório: `sdk_path` e `.fvm/` são conteúdo do repositório e não podem apontar para um binário versionado.
    - Sem `.dart_tool/package_config.json` quando a análise Dart é necessária: erro de uso (exit 64) pedindo `dart pub get`.
-   - O mecanismo (bibliotecas embutidas ou delegar ao SDK resolvido) é decidido no spike, com teste de paridade.
-   - Plugins do analyzer e `custom_lint` não rodam in-process. É limitação documentada, não bug.
+   - Mecanismo, decidido no spike (`docs/spike/report.md`): delegar ao SDK resolvido, um processo por execução. Diagnósticos pelo servidor de análise; formatação pelo `dart format --stdin-name`. A ferramenta não depende de `analyzer` nem de `dart_style`, e o piso de SDK dela continua `^3.13.0`. O teste de paridade compara com o `dart analyze` e o `dart format` do SDK.
+   - O `analyze` custa uma subida do servidor por execução (cerca de 1 s num pacote Dart puro, 13 s num app Flutter de 2.400 arquivos). Por isso fica no `pre-push` e no `ci` por padrão, fora do `pre-commit`.
+   - Plugins do analyzer e `custom_lint` não têm execução garantida. É limitação documentada, não bug.
 9. **Um vocabulário só: o ID de regra.**
    - `<check>/<rule>` é a única notação, usada em hooks, `rules:`, ignore, baseline e reporters.
    - A lista de um hook aceita `<check>` (todas as regras do check) ou `<check>/<rule>`.
@@ -99,7 +101,7 @@ lib/src/
 ├── domain/          # Check, Finding, Severity, Location, ChangeSet, Fix — sem dependência de git/analyzer/IO
 ├── checks/          # uma pasta por check; só importa o domain
 ├── application/     # Pipeline, seleção de checks por hook, scheduler, orçamento de tempo, Baseline, ConfigLoader
-├── infrastructure/  # GitClient, AnalyzerWorkspace, DartStyleFormatter, PubspecReader, SdkLocator, reporters, HookInstaller
+├── infrastructure/  # GitClient, SdkDartToolchain (servidor de análise + dart format), scanner de diretivas, PubspecReader, SdkLocator, reporters, HookInstaller
 └── cli/             # comandos (package:args CommandRunner)
 ```
 
@@ -146,7 +148,7 @@ Exit codes:
 min_version: 0.1.0
 
 hooks:
-  pre-commit: [format, analyze, codegen, pubspec, l10n, assets, sensitive-files, tests/solo, tests/new-skip]
+  pre-commit: [format, codegen, pubspec, l10n, assets, sensitive-files, tests/solo, tests/new-skip]
   pre-push: [analyze, tests/affected]
   # ci: optional; defaults to the union of the two lists above.
 
@@ -207,11 +209,10 @@ Severidade padrão: `error`, exceto `l10n/unused-key`, `tests/new-skip` e `stage
 
 ## Roadmap
 
-0. **Spike (primeiro, antes da arquitetura definitiva).**
-   - Medir `OverlayResourceProvider` com conteúdo do index num app Flutter grande e real, num commit típico de 3 a 10 arquivos.
-   - Medir pelo caminho real de distribuição: o snapshot JIT gerado pelo `pub global activate`, não um binário de `dart compile exe`. Medir a frio e a quente.
-   - Teste de paridade: comparar a saída com o `dart format` e o `dart analyze` do SDK do projeto, e decidir o mecanismo da decisão 8.
-   - Meta: abaixo de ~2 s. Se não atingir, avaliar um processo persistente (daemon) antes de seguir.
+0. **Spike (concluído em 2026-11-19, `docs/spike/report.md`).**
+   - Mediu o `analyzer` embutido (com `OverlayResourceProvider`) e o servidor de análise do SDK num app Flutter real de 2.435 arquivos, em commits de 3 e 10 arquivos, pelo caminho real (`pub global activate`), a frio e a quente.
+   - O embutido falhou na paridade: o `analyzer` do pub.dev não traz as regras de lint. O servidor passou na paridade e ficou em ~13,6 s; um daemon daria ~2,5 s com 3 GB de RAM.
+   - Decisão do owner: servidor por execução, formatação por `dart format --stdin-name`, `analyze` fora do `pre-commit` padrão, sem daemon na `0.1.0` (decisão 8).
 1. **`0.1.0-dev.1`**, para reservar o nome no pub.dev; deliberadamente sem analyzer.
    - `init`, `install`, `uninstall`, `run pre-commit`.
    - `GitClient` com `cat-file --batch`.
@@ -222,7 +223,7 @@ Severidade padrão: `error`, exceto `l10n/unused-key`, `tests/new-skip` e `stage
    - Testes de aceitação.
 2. **`0.1.0`**
    - `format` com autofix seguro.
-   - `analyze` afetado com overlay, sobre o grafo de imports (construído aqui e reaproveitado na `0.3.0`).
+   - `analyze` afetado sobre o snapshot materializado e o grafo de imports (construído aqui e reaproveitado na `0.3.0`).
    - `sensitive-files`.
    - `run pre-push` sobre o commit enviado.
    - `ci --base` com reporter `github`, e composite action (`action.yml`) que instala e roda o `ci`.
@@ -241,7 +242,7 @@ Severidade padrão: `error`, exceto `l10n/unused-key`, `tests/new-skip` e `stage
 - Lint de mensagem de commit (hook `commit-msg`).
 - Execução de plugins do analyzer e de `custom_lint`.
 - Telemetria e checagem de atualização (exigiriam rede).
-- Daemon, a menos que o spike não atinja a meta.
+- Daemon na `0.1.0`. O spike não atingiu a meta e o owner escolheu execução única por run; um daemon depois exige ADR próprio e emenda à S7.
 
 ## Padrões de engenharia
 
@@ -274,7 +275,7 @@ Severidade padrão: `error`, exceto `l10n/unused-key`, `tests/new-skip` e `stage
 ## Riscos conhecidos a verificar cedo
 
 - **Windows:** `pub global activate` gera `stagelatch.bat`, e o hook roda no `sh` do Git for Windows, que pode não resolver `.bat`. O template da decisão 6 trata isso com dois fallbacks; falta provar no runner Windows, na `0.1.0-dev.1`.
-- **Paridade com o SDK:** o `dart_style` e o `analyzer` embutidos podem divergir do SDK do projeto, e aí o gate discorda da IDE. O spike mede e decide (decisão 8).
-- **Startup em JIT:** o `pub global activate` roda um snapshot JIT, não AOT. O aquecimento do analyzer pode consumir o orçamento de 1–2 s sozinho.
-- **API do analyzer:** muda entre versões maiores. Fixar o range e testar contra o Dart beta no CI.
+- **Paridade com o SDK:** resolvida por construção (decisão 8): diagnósticos e formatação vêm do SDK do projeto.
+- **Startup em JIT:** o executável ativado leva ~0,8 s só para subir. Sobra pouco do orçamento de 1–2 s do `pre-commit`, e por isso o `analyze` saiu dele.
+- **Protocolo do servidor de análise:** o protocolo legado pode mudar entre SDKs. O teste de contrato roda no Dart stable e beta do CI, e o de paridade em dois SDKs Flutter.
 - **Codegen:** respeitar projetos que **não** versionam arquivos gerados (`generated_files_committed: false`).

@@ -15,7 +15,7 @@ As a `dev_dependency`, stagelatch's own dependencies would enter the host projec
 ## Consequences
 
 - No version conflicts with the host project.
-- The tool runs from the JIT snapshot that `pub global activate` builds, not an AOT binary. Startup cost is a first-order concern and is measured in the spike.
+- The tool runs from the JIT snapshot that `pub global activate` builds, not an AOT binary. Startup cost is a first-order concern: the spike measured about 0.8 s to start the activated executable before any work.
 - The tool runs on whatever Dart is on PATH, which may differ from the project's SDK. ADR-0008 covers that.
 - Each developer installs it once per machine; ADR-0006 keeps a missing install from blocking work.
 

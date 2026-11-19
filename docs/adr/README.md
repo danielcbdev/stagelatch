@@ -11,7 +11,7 @@ One file per decision, numbered, never renumbered. A decision is changed by a ne
 | [0005](0005-one-engine-for-hooks-and-ci.md) | One engine for hooks and CI | Accepted |
 | [0006](0006-thin-hook-scripts.md) | Thin hook scripts that never block when the tool is missing | Accepted |
 | [0007](0007-snapshot-and-changeset-per-entry-point.md) | Snapshot and changeset per entry point | Accepted |
-| [0008](0008-parity-with-the-project-sdk.md) | Parity with the project SDK | Accepted; mechanism pending the spike |
+| [0008](0008-parity-with-the-project-sdk.md) | Parity with the project SDK | Accepted |
 | [0009](0009-rule-ids-as-the-only-vocabulary.md) | Rule IDs as the only vocabulary | Accepted |
 | [0010](0010-explicit-suppression.md) | Explicit, localized suppression | Accepted |
 | [0011](0011-never-interactive-without-a-tty.md) | Never interactive without a TTY | Accepted |

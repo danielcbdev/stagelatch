@@ -43,7 +43,7 @@ Allowed runtime dependencies, all from the Dart team's verified publishers:
 
 Dev dependencies: `test ^1.33.0` and `very_good_analysis ^11.0.0`. No coverage package is needed: `dart test --coverage-path` writes the lcov report itself.
 
-`analyzer` and `dart_style` are added only if the spike selects them (ADR-0008), and only `infrastructure/dart/` may import them.
+The tool depends on neither `analyzer` nor `dart_style`: diagnostics and formatting come from the project's resolved SDK (ADR-0008). Adding either needs an ADR, and only `infrastructure/dart/` may import them.
 
 Adding any other runtime dependency requires an ADR that states what it replaces, who publishes it and why writing the code ourselves is worse. No mocking library, no code generation, no DI container.
 
@@ -107,9 +107,9 @@ Example of the expected level:
 ```dart
 /// Lists the paths whose snapshot content differs from the working tree.
 ///
-/// The result drives the analysis overlay (ADR-0001): every path returned
-/// here must be shown to the Dart toolchain with its snapshot content,
-/// otherwise unstaged edits leak into the verdict.
+/// `tests/affected` refuses to run when one of these paths is affected,
+/// because the test runner reads the working tree, not the snapshot
+/// (ADR-0001).
 ///
 /// Paths are sorted and unique. Deleted files are included.
 Future<Set<RepoPath>> divergingFromWorktree(SnapshotRef ref) async {

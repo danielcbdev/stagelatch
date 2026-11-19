@@ -20,7 +20,7 @@
 - **Merge in progress** (`MERGE_HEAD` exists): the changeset is the set of paths that differ from **every** parent, i.e. conflict resolutions and manual edits. Paths taken unchanged from either side were already validated on their own branch.
 - **Rebase in progress:** when the hook fires, the normal changeset applies.
 - **Shallow clone in CI** with no reachable merge base: usage error asking for `fetch-depth: 0`. A wrong diff is never analyzed.
-- Overlays follow ADR-0001 for every snapshot kind.
+- Analysis follows ADR-0001 for every snapshot kind: the materialized directory holds the files of that snapshot, whether the index or a commit.
 
 ## Consequences
 

@@ -5,7 +5,7 @@
 
 ## Context
 
-Three things in this project are volatile or hard to test: the git CLI, the Dart toolchain (ADR-0008 leaves its mechanism open) and the terminal. Rule logic is the opposite: stable, pure and worth testing exhaustively. Mixing them would make rule tests need real repositories and would spread toolchain details across the codebase.
+Three things in this project are volatile or hard to test: the git CLI, the Dart toolchain (its mechanism was chosen by measurement and may change again, ADR-0008) and the terminal. Rule logic is the opposite: stable, pure and worth testing exhaustively. Mixing them would make rule tests need real repositories and would spread toolchain details across the codebase.
 
 ## Decision
 
