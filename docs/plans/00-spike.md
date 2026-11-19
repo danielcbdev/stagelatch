@@ -43,12 +43,12 @@
 **Interfaces:**
 - Produces: `.benchmark/corpus/` (a checkout at the pinned SHA with `pub get` done); `Scenario { name, stagedPatch, unstagedPatch }` loaded by `loadScenario(String name)` in `benchmark/lib/scenario.dart`; `applyScenario(Scenario)` which resets the corpus, applies `staged.patch` with `git apply --cached` and `unstaged.patch` with `git apply`.
 
-- [ ] **Step 1: Choose the corpus.** Criteria, all required: public; one Flutter package with at least 1,000 `.dart` files; resolves with `flutter pub get` on a current stable Flutter with no private dependency and no native build step; permissive license. Evaluate candidates in this order and take the first that passes: the Immich mobile app, the AppFlowy Flutter app, then any other large open-source Flutter app. Record the repository URL, SHA, package directory, Flutter version and file count in `corpus.yaml`. If no candidate passes, stop and ask the owner.
-- [ ] **Step 2: Write `setup.dart`:** clone into `.benchmark/corpus`, check out the SHA, run `pub get` with the Flutter version named in `corpus.yaml`. Running it twice is a no-op.
-- [ ] **Step 3: Author scenario `s3`:** three modified files in one feature directory. `staged.patch` introduces exactly one analyzer error, one warning, one lint and leaves one file unformatted. `unstaged.patch` edits a fourth file that one staged file imports, in a way that would add a different error if it were analyzed.
-- [ ] **Step 4: Author scenario `s10`:** ten modified files, one of them imported by at least 100 other files. Same finding mix, same unstaged trap.
-- [ ] **Step 5: Verify.** Run `dart run benchmark/bin/setup.dart` then apply each scenario; `git -C .benchmark/corpus status --short` shows the staged and unstaged paths listed in `expected.md`.
-- [ ] **Step 6: Commit.** `chore(spike): add benchmark corpus and scenarios`
+- [x] **Step 1: Choose the corpus.** Criteria, all required: public; one Flutter package with at least 1,000 `.dart` files; resolves with `flutter pub get` on a current stable Flutter with no private dependency and no native build step; permissive license. Evaluate candidates in this order and take the first that passes: the Immich mobile app, the AppFlowy Flutter app, then any other large open-source Flutter app. Record the repository URL, SHA, package directory, Flutter version and file count in `corpus.yaml`. If no candidate passes, stop and ask the owner.
+- [x] **Step 2: Write `setup.dart`:** clone into `.benchmark/corpus`, check out the SHA, run `pub get` with the Flutter version named in `corpus.yaml`. Running it twice is a no-op.
+- [x] **Step 3: Author scenario `s3`:** three modified files in one feature directory. `staged.patch` introduces exactly one analyzer error, one warning, one lint and leaves one file unformatted. `unstaged.patch` edits a fourth file that one staged file imports, in a way that would add a different error if it were analyzed.
+- [x] **Step 4: Author scenario `s10`:** ten modified files, one of them imported by at least 100 other files. Same finding mix, same unstaged trap.
+- [x] **Step 5: Verify.** Run `dart run benchmark/bin/setup.dart` then apply each scenario; `git -C .benchmark/corpus status --short` shows the staged and unstaged paths listed in `expected.md`.
+- [x] **Step 6: Commit.** `chore(spike): add benchmark corpus and scenarios`
 
 ### Task 2: Probe A, embedded analyzer and formatter
 
