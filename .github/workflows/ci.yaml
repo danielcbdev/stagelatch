@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: dart pub get
 
+      # The spike package (plan 00) is analyzed and format-checked with the
+      # root; without its own resolution its imports would not resolve.
+      - name: Install benchmark dependencies
+        run: dart pub get --directory benchmark
+
       # Formatter output is specific to an SDK release (ADR-0008), so the
       # check is authoritative on stable only.
       - name: Check formatting
