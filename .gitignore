@@ -1,0 +1,9 @@
+# Dart tooling
+.dart_tool/
+doc/api/
+
+# Test coverage output
+coverage/
+
+# Scratch space of the plan executor
+.superpowers/

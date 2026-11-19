@@ -1,0 +1,18 @@
+# pub reads this file instead of .gitignore in this directory, so every
+# pattern of .gitignore is repeated here (test/tool/pubignore_test.dart).
+# Without them, a publish from a working checkout would ship coverage
+# output and scratch files.
+
+# Dart tooling
+.dart_tool/
+doc/api/
+
+# Test coverage output
+coverage/
+
+# Scratch space of the plan executor
+.superpowers/
+
+# Pub's package layout expects a singular `doc/` directory. The repository
+# keeps its notes in `docs/`, so they stay out of the published archive.
+/docs/
