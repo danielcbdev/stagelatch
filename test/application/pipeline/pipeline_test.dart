@@ -416,6 +416,7 @@ void main() {
       await _run(_git(['alpha']), [alpha]);
 
       expect(() => alpha.lastContext!.dart, throwsUnsupportedError);
+      expect(() => alpha.lastContext!.importGraph, throwsUnsupportedError);
     });
   });
 

@@ -6,6 +6,7 @@ import 'package:stagelatch/src/application/pipeline/selection.dart';
 import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
+import 'package:stagelatch/src/domain/dart/import_graph.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/package_map.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
@@ -57,6 +58,11 @@ final class PipelineCheckContext implements CheckContext {
   /// needs it, and none may assume it exists.
   @override
   DartToolchain get dart =>
+      throw UnsupportedError('The Dart toolchain arrives in 0.1.0.');
+
+  /// Built from the toolchain's facts, so it arrives with the toolchain.
+  @override
+  Future<ImportGraph> get importGraph =>
       throw UnsupportedError('The Dart toolchain arrives in 0.1.0.');
 
   @override
