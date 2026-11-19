@@ -178,7 +178,7 @@ test('the console summary line follows the commands', () { /* ... */ });
 - Consumes: `Config.sdkPath`, `Environment` (`variables` for `PATH`, `HOME`, `FVM_CACHE_PATH`), `RepoLayout.root` (plan 01).
 - Produces: `enum SdkSource { sdkPath, fvm, path }`; `ResolvedSdk { String root; String dartExecutable; String? flutterExecutable; String version; SdkSource source }`; `SdkLocator { Future<ResolvedSdk> locate(Config config) }`; `FileSdkLocator({required String repoRoot, required Environment environment})`.
 
-- [ ] **Step 1: Write the failing tests,** each building SDK-shaped directories in a temp folder.
+- [x] **Step 1: Write the failing tests,** each building SDK-shaped directories in a temp folder.
 
 ```dart
 test('sdk_path wins over FVM and PATH', () async { expect(sdk.source, SdkSource.sdkPath); });
@@ -198,10 +198,10 @@ test('each unresolved source has its own message', () async {
 });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/dart-toolchain.md` section 1. Containment is checked on resolved real paths.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(dart): add SDK locator with FVM support and containment rule`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/dart-toolchain.md` section 1. Containment is checked on resolved real paths.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(dart): add SDK locator with FVM support and containment rule`
 
 ### Task 5: Package map
 
