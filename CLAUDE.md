@@ -24,8 +24,9 @@ Precedência: este arquivo > ADRs > specs > planos. A documentação e os refina
 
 1. **Validar o index, não o working tree.**
    - Blobs lidos por um processo `git cat-file --batch` persistente: um spawn, não um por arquivo.
-   - Análise pelo servidor de análise do SDK resolvido (`dart language-server --protocol=analyzer`), com o conteúdo do snapshot como overlays (`analysis.updateContent`). Formatação pelo `dart format --stdin-name` do mesmo SDK, com o blob na stdin.
-   - O overlay recebe a versão do index de **todo** arquivo que diverge entre index e working tree (`git diff --name-only -z`), não só dos staged. Sem isso, mudanças não staged contaminam a análise.
+   - Análise sobre o snapshot materializado: os `.dart`, `.yaml` e `.yml` do snapshot são gravados a partir dos blobs num diretório temporário novo, com o `.dart_tool/package_config.json` de cada pacote copiado e reescrito, e o servidor de análise do SDK resolvido (`dart language-server --protocol=analyzer`) analisa esse diretório. Mudança não staged, arquivo untracked e deleção só no index ficam invisíveis. Custo medido: ~0,25 s para 2.472 arquivos.
+   - Overlays sobre o working tree foram rejeitados (2026-11-19): o servidor lê do disco tudo o que não está no overlay, então um arquivo untracked importado por um arquivo staged fazia o gate passar.
+   - Formatação pelo `dart format --stdin-name` do mesmo SDK, com o blob na stdin.
    - Nunca usar stash.
 2. **Autofix seguro.**
    - Grava o blob corrigido no index (`git hash-object -w --stdin` + `git update-index --cacheinfo <mode>,<sha>,<path>`).
@@ -62,7 +63,7 @@ Precedência: este arquivo > ADRs > specs > planos. A documentação e os refina
    | pre-push | commit enviado, lido da stdin do hook (`<local ref> <local sha> <remote ref> <remote sha>`) | `<remote sha>..<local sha>` |
    | `ci` | HEAD do PR | `merge-base(--base, HEAD)..HEAD` |
 
-   - O overlay segue a mesma regra da decisão 1: versão do snapshot para todo arquivo que diverge do working tree.
+   - A análise segue a decisão 1 para qualquer snapshot: o diretório materializado tem os arquivos daquele snapshot, seja o index, seja um commit.
    - **Pre-push de branch novo** (`<remote sha>` zerado): a base é o merge-base com todos os branches daquele remoto (`refs/remotes/<remote>/*`); sem nenhum, a árvore vazia. Remoção de branch (`<local sha>` zerado) e push de tag não têm o que validar.
    - **Merge em andamento** (`MERGE_HEAD` existe): o changeset é só o que difere de **ambos** os pais, isto é, resoluções de conflito e edições manuais. O que veio intacto do outro branch já passou pelo CI dele.
    - **Rebase em andamento:** quando o hook dispara, usa o changeset normal (index vs HEAD).
@@ -222,7 +223,7 @@ Severidade padrão: `error`, exceto `l10n/unused-key`, `tests/new-skip` e `stage
    - Testes de aceitação.
 2. **`0.1.0`**
    - `format` com autofix seguro.
-   - `analyze` afetado com overlay, sobre o grafo de imports (construído aqui e reaproveitado na `0.3.0`).
+   - `analyze` afetado sobre o snapshot materializado e o grafo de imports (construído aqui e reaproveitado na `0.3.0`).
    - `sensitive-files`.
    - `run pre-push` sobre o commit enviado.
    - `ci --base` com reporter `github`, e composite action (`action.yml`) que instala e roda o `ci`.

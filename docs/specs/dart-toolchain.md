@@ -44,10 +44,12 @@ Built in `0.1.0` for `analyze.scope: affected`, reused by `tests/affected` and `
 
 `DartToolchain.diagnose(Set<RepoPath> files) -> Future<List<DartDiagnostic>>`
 
-- The toolchain analyzes the working tree **with overlays**: every path in `GitRepository.divergingFromWorktree(snapshot)` is shown with its snapshot content; a path that is absent from the snapshot is shown as deleted.
+- The toolchain analyzes a **materialized snapshot** (ADR-0001): a directory created with `Directory.systemTemp.createTemp('stagelatch-')` (security S10) that holds every regular or executable file of the snapshot whose extension is `.dart`, `.yaml` or `.yml`, written byte for byte from its blob, at its repository-relative path. Symlinks and gitlinks are not written. A path that is absent from the snapshot is absent from the directory, whatever the working tree holds.
+- For each package that owns a requested file, the working tree's `.dart_tool/package_config.json` is copied to the same relative place in the directory, with every `rootUri` rewritten: a relative URI whose target is inside the repository stays relative, so it points into the directory; any other becomes the absolute `file:` URI of its original target. Missing file: the usage error of section 2.
 - The result contains the diagnostics of exactly the requested files, as the resolved SDK's `dart analyze` would report them on a working tree identical to the snapshot: same codes, messages, severities and ranges, with `analysis_options.yaml` and `// ignore:` applied.
 - `DartDiagnostic { location, code, severity (error | warning | info), message, correction? }`, sorted by path, then position, then code.
-- Overlays are installed once, before the first request, and never change during a run.
+- The directory is written once, on the first `diagnose`, from the snapshot the toolchain was created with, and removed by `close()`.
+- Paths in the result are repository-relative. In a message, every occurrence of the directory's absolute path is replaced by the repository root's, so the message reads as `dart analyze` in the working tree would print it.
 
 ## 5. Formatting
 
@@ -101,7 +103,8 @@ final class DartFileFacts {
 
 ## 7. Lifecycle and cost
 
-- `DartToolchainFactory.create(ResolvedSdk, overlays) -> DartToolchain` is called by the pipeline the first time a check touches `context.dart`. A run that needs no Dart knowledge never pays for it.
+- `DartToolchainFactory.create(ResolvedSdk, SnapshotFiles, ...) -> DartToolchain` is called by the pipeline the first time a check touches `context.dart`. A run that needs no Dart knowledge never pays for it. Creating starts no process and writes no file.
+- A toolchain is bound to one snapshot view. The fix phase and the verify phase each get their own, created on first access, because fixes change the index between them; the pipeline closes both.
 - `facts` must not require the expensive part of the toolchain to start: syntactic extraction runs in-process.
 - `DartToolchain.close()` is called in a `finally` by the pipeline.
 
@@ -111,7 +114,7 @@ Selected by the spike ([`spike/report.md`](../spike/report.md)) and recorded in 
 
 | | How |
 |---|---|
-| Diagnostics (section 4) | One `dart language-server --protocol=analyzer` of the resolved SDK per run, started on the first `diagnose`: `server.setSubscriptions` with `STATUS`; `analysis.setAnalysisRoots` with the roots of the packages that own the requested files; one `analysis.updateContent` with an `add` overlay for every path whose snapshot content differs from the working tree; then `analysis.getErrors` for each requested file. `close()` sends `server.shutdown` and kills the process if it has not exited after 5 s. The spike did not cover paths absent from the snapshot: how the adapter hides them is settled by the contract test "a null overlay hides a file that exists on disk" (plan 02, Task 7), and a way that fails it is a reason to stop and ask. |
+| Diagnostics (section 4) | On the first `diagnose`, write the materialized snapshot (section 4), then start one `dart language-server --protocol=analyzer` of the resolved SDK: `server.setSubscriptions` with `STATUS`; `analysis.setAnalysisRoots` with the materialized roots of the packages that own the requested files; then `analysis.getErrors` for each requested file. No `analysis.updateContent`. `close()` sends `server.shutdown`, kills the process if it has not exited after 5 s, then removes the directory. Writing the corpus's 2,472 Dart and YAML files took about 0.25 s. |
 | Formatting (section 5) | `dart format --output=show --stdin-name=<absolute path>` of the resolved SDK, the snapshot content on stdin. Exit 0: stdout is the formatted text. Exit 65 (the source does not parse): `Unparseable()`. Any other exit is an internal error naming the exit code. No server. |
 | Facts (section 6) | A hand-written directive scanner, in-process. It skips comments and strings and yields `import`, `export`, `part` and `part of` with their URIs, conditional branches included. |
 | Parity | By construction: the project's own SDK produces every diagnostic and every formatted text. |

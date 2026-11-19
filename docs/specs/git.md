@@ -94,7 +94,7 @@ git diff --name-only -z --no-renames            # index snapshot
 git diff --name-only -z --no-renames <sha>      # commit snapshot
 ```
 
-The result is the overlay set of ADR-0001. Untracked files are not part of any snapshot and are invisible to the tool.
+Untracked files are not part of any snapshot and are invisible to the tool: Dart analysis runs on a materialized copy of the snapshot (ADR-0001), so it never sees them either. This list is used from `0.3.0` by `tests/affected`, which refuses to run tests while an affected file differs from the working tree.
 
 ## 6. Applying fixes
 

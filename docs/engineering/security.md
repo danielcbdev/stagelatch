@@ -46,6 +46,7 @@ The tool writes only to these places, and only after resolving symlinks and conf
 | `stagelatch.yaml` | `init` | repository root |
 | Baseline file | `baseline create`, `baseline prune` | repository root |
 | Cache | cache adapter | `<git common dir>/stagelatch/` |
+| Materialized snapshot for Dart analysis (ADR-0001) | Dart toolchain adapter | its own directory from `Directory.systemTemp.createTemp` (S10), removed by `close()` |
 
 - `RepoPath` rejects absolute paths, `..` segments and NUL. Every path from git or config becomes a `RepoPath` before use.
 - The tool never deletes a file it did not create, except restoring a hook backup it made.

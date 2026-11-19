@@ -77,7 +77,7 @@ Each scenario is one test file under `test/acceptance/`. IDs are stable and refe
 | AC-15 | `git commit -a` and `git commit <path>` (git uses a temporary index) | 0.1.0-dev.1 |
 | AC-16 | Staged config beats unstaged config (ADR-0015) | 0.1.0-dev.1 |
 | AC-17 | Format autofix: clean file, partially staged file, executable bit kept | 0.1.0 |
-| AC-18 | Overlay: unstaged edit in a dependency does not change the verdict | 0.1.0 |
+| AC-18 | Snapshot isolation: an unstaged edit in a dependency, an untracked imported file, and a file deleted only in the index do not change the verdict | 0.1.0 |
 | AC-19 | Pre-push: existing branch, new branch, branch deletion, tag push | 0.1.0 |
 | AC-20 | `ci` in a shallow clone fails with the `fetch-depth` message | 0.1.0 |
 | AC-21 | Repository with two packages: each file checked in its own package | 0.1.0 |

@@ -1,7 +1,7 @@
 # ADR-0008: Parity with the project SDK
 
 - Status: Accepted
-- Date: 2026-11-11; mechanism selected 2026-11-19 after the spike ([`spike/report.md`](../spike/report.md))
+- Date: 2026-11-11; mechanism selected 2026-11-19 after the spike ([`spike/report.md`](../spike/report.md)); diagnostics run on a materialized snapshot (ADR-0001), decided the same day
 
 ## Context
 
@@ -26,7 +26,7 @@ The resolved SDK's `dart format --stdin-name=<path>` reads the snapshot content 
 - SDK resolution order: `sdk_path` in config, then FVM (`.fvm/flutter_sdk`, `.fvmrc`), then `dart` on PATH. The resolved SDK must be outside the repository working tree (see [`security.md`](../engineering/security.md)).
 - Analyzer plugins and `custom_lint` are not guaranteed to run. This is a documented limitation.
 - **The mechanism is B, delegated, one shot per run**, behind the `DartToolchain` port:
-  - **Diagnostics:** one analysis server of the resolved SDK per run (`dart language-server --protocol=analyzer`), with `analysis.setAnalysisRoots` on the affected packages, `analysis.updateContent` for the overlays, and `analysis.getErrors` for the requested files. The server is shut down when the run ends.
+  - **Diagnostics:** the snapshot's Dart and YAML files are written into a fresh temporary directory (ADR-0001), and one analysis server of the resolved SDK per run (`dart language-server --protocol=analyzer`) analyzes it, with `analysis.setAnalysisRoots` on the packages of the requested files and `analysis.getErrors` for each of them. No content overlays. The server is shut down and the directory removed when the run ends.
   - **Formatting:** the resolved SDK's `dart format --output=show --stdin-name=<path>`, one process per file, with the snapshot content on stdin. The server is not started for formatting.
 - **Facts** (ADR-0013) for the import graph come from a hand-written directive scanner in `infrastructure/dart/`. It was about 170 times faster than `parseString` on the corpus and agreed with it on every file.
 - **Default hook lists.** `analyze` runs on `pre-push` and `ci` by default, not on `pre-commit`, so the commit hook stays within its 1 to 2 s budget. A team may still list it under `pre-commit`.
@@ -35,7 +35,7 @@ The resolved SDK's `dart format --stdin-name=<path>` reads the snapshot content 
 ## Consequences
 
 - No code outside `infrastructure/dart/` may reference the analysis server protocol or spawn `dart format`.
-- Parity is exact by construction: the diagnostics and the formatted text come from the project's own SDK.
+- Parity is exact by construction: the diagnostics and the formatted text come from the project's own SDK, on a directory built the way the spike's oracle built it.
 - `analyze` costs one server start per run: about 1 s on a Dart-only package and seconds to tens of seconds on a large Flutter app. The time budget reports it (ADR-0003); it is never shortened.
 - A daemon remains possible later, behind the same port, if real use asks for it. It would need its own ADR, an amendment to S7 and a test that its results equal the one-shot results.
 - `annotatedDeclarations` and `testCalls` (`0.2.0`) need more than directives. Plan 03 decides between a larger scanner and a parser; adding `analyzer` for that needs an ADR.

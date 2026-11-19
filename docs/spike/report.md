@@ -264,3 +264,14 @@ The owner chose **option 1** on 2026-11-19. Recorded in ADR-0008:
   SDK floor stays `^3.13.0`.
 - Daemon: not built for `0.1.0`; reconsidered only if real use asks for
   it, under its own ADR.
+
+**Amendment, same day.** Probing the server for files that are deleted
+in the snapshot showed that `analysis.setAnalysisRoots` `excluded` does
+not hide a file from its importers: the server resolves every URI against
+the disk. Overlays therefore cannot hide an untracked file or a file
+deleted only in the index, and the same was true of the embedded
+candidate's `OverlayResourceProvider`. The owner chose to analyze a
+materialized copy of the snapshot instead (ADR-0001): the snapshot's
+Dart and YAML files written into a temporary directory, which is how the
+oracle of section 3 was built. Writing the corpus's 2,472 such files with
+`git checkout-index --prefix` took 0.24 to 0.31 s over three runs.
