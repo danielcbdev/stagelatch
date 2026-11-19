@@ -215,7 +215,7 @@ test('each unresolved source has its own message', () async {
 - Consumes: `DartPackage { RepoPath? root; String name; bool usesFlutter }` (a null root is the repository root), `PackageMap` and `PackageMap.packageOf`, all in `lib/src/domain/package_map.dart` and tested since plan 01; `SnapshotFiles`; `Documents`.
 - Produces: `Future<PackageMap> buildPackageMap(SnapshotFiles snapshot, Documents documents)`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('a file belongs to the nearest enclosing pubspec', () async {
@@ -231,10 +231,10 @@ test('an unparseable pubspec, or one without a string name, still defines a pack
 test('packages are sorted by root', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/dart-toolchain.md` section 2: list the snapshot once, keep every path whose basename is `pubspec.yaml`, parse each through `Documents.yaml`. The lookup itself is `PackageMap.packageOf` and does not change.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(packages): map files to their nearest pubspec`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/dart-toolchain.md` section 2: list the snapshot once, keep every path whose basename is `pubspec.yaml`, parse each through `Documents.yaml`. The lookup itself is `PackageMap.packageOf` and does not change.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(packages): map files to their nearest pubspec`
 
 ### Task 6: Directive facts and the import graph
 
