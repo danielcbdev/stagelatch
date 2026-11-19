@@ -93,6 +93,13 @@ final class SdkDartToolchain implements DartToolchain {
       ],
       'excluded': const <String>[],
     });
+    // The requested files first: without priority files the server works
+    // through the whole root in its own order, and getErrors waits for it.
+    // The spike's measured probe set them too (benchmark/lib/
+    // probe_delegated.dart).
+    await server.request('analysis.setPriorityFiles', {
+      'files': [for (final file in analyzed) full.pathOf(file)],
+    });
 
     final diagnostics = <DartDiagnostic>[];
     for (final file in analyzed) {
