@@ -6,6 +6,7 @@ import 'package:stagelatch/src/application/config/settings.dart';
 import 'package:stagelatch/src/application/entry_point.dart';
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/application/pipeline/check_registry.dart';
+import 'package:stagelatch/src/application/pipeline/inline_ignore.dart';
 import 'package:stagelatch/src/application/pipeline/pipeline.dart';
 import 'package:stagelatch/src/application/pipeline/run_report.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
@@ -175,6 +176,104 @@ void main() {
       );
 
       expect(report.findings.single.location.path, RepoPath('lib/b.dart'));
+    });
+
+    test('the pipeline drops covered findings and reports how many', () async {
+      late final FakeCheck alpha;
+      alpha = FakeCheck(
+        'alpha',
+        onRun: (_) async =>
+            CheckResult(findings: [alpha.finding('a.yaml', line: 2)]),
+      );
+      final git = FakeGitRepository(
+        index: {
+          'stagelatch.yaml': _config(['alpha']),
+          'a.yaml': 'x: 1 # stagelatch:ignore alpha/one\ny: 2\n',
+        },
+        changes: ChangeSet([
+          FileChange(path: RepoPath('a.yaml'), kind: ChangeKind.modified),
+        ]),
+      );
+
+      final report = await _run(git, [alpha]);
+
+      expect(report.suppressed, 1);
+      expect(report.findings, isEmpty);
+      expect(report.verdict, Verdict.pass);
+    });
+
+    test(
+      'an unknown id is reported, and its level comes from the rules map',
+      () async {
+        final git = FakeGitRepository(
+          index: {
+            'stagelatch.yaml': _config([
+              'alpha',
+            ], more: 'rules:\n  stagelatch/invalid-ignore: error\n'),
+            'a.yaml': 'x: 1 # stagelatch:ignore alpha/nope\n',
+          },
+          changes: ChangeSet([
+            FileChange(path: RepoPath('a.yaml'), kind: ChangeKind.modified),
+          ]),
+        );
+
+        final report = await _run(git, [FakeCheck('alpha')]);
+
+        expect(report.findings.single.rule, invalidIgnoreRule);
+        expect(report.findings.single.severity, Severity.error);
+        expect(report.verdict, Verdict.fail);
+        expect(report.timings.single.errors, 0);
+      },
+    );
+
+    test('an unknown id on an excluded path is not reported', () async {
+      final git = FakeGitRepository(
+        index: {
+          'stagelatch.yaml': _config(['alpha'], more: 'exclude: [a.yaml]\n'),
+          'a.yaml': 'x: 1 # stagelatch:ignore alpha/nope\n',
+        },
+        changes: ChangeSet([
+          FileChange(path: RepoPath('a.yaml'), kind: ChangeKind.modified),
+        ]),
+      );
+
+      final report = await _run(git, [FakeCheck('alpha')]);
+
+      expect(report.findings, isEmpty);
+    });
+
+    test('a fix-phase finding covered by a comment is neither reported nor '
+        'fixed', () async {
+      late final FakeCheck fixer;
+      fixer = FakeCheck(
+        'fixer',
+        phase: CheckPhase.fix,
+        onRun: (_) async => CheckResult(
+          findings: [fixer.finding('a.dart', line: 2)],
+          fixes: [
+            Fix(
+              rule: const RuleId('fixer', 'one'),
+              path: RepoPath('a.dart'),
+              content: 'fixed\n',
+            ),
+          ],
+        ),
+      );
+      final git = FakeGitRepository(
+        index: {
+          'stagelatch.yaml': _config(['fixer']),
+          'a.dart': '// stagelatch:ignore fixer/one\nx\n',
+        },
+        changes: ChangeSet([
+          FileChange(path: RepoPath('a.dart'), kind: ChangeKind.modified),
+        ]),
+      );
+
+      final report = await _run(git, [fixer]);
+
+      expect(report.findings, isEmpty);
+      expect(report.suppressed, 1);
+      expect(git.appliedFixes, isEmpty);
     });
   });
 

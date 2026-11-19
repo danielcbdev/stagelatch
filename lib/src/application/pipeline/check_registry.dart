@@ -2,6 +2,7 @@
 library;
 
 import 'package:stagelatch/src/application/config/check_catalog.dart';
+import 'package:stagelatch/src/application/pipeline/inline_ignore.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
 
@@ -45,7 +46,8 @@ final class CheckRegistry implements CheckCatalog {
   Set<String> get checkIds => {for (final check in checks) check.id};
 
   @override
-  bool hasRule(RuleId id) => _descriptors.containsKey(id);
+  bool hasRule(RuleId id) =>
+      id == invalidIgnoreRule || _descriptors.containsKey(id);
 
   @override
   bool hasDynamicRules(String check) => checks.any(

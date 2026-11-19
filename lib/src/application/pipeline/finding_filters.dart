@@ -2,8 +2,8 @@
 ///
 /// They are pure functions, applied in a fixed order
 /// (docs/specs/baseline-and-suppression.md, section 1): selection, levels,
-/// exclude. Inline ignores and the baseline join the chain in later
-/// versions, after these.
+/// exclude. Inline ignores (`inline_ignore.dart`) come next; the baseline
+/// joins the chain in 0.2.0, after them.
 library;
 
 import 'package:glob/glob.dart';
