@@ -132,6 +132,8 @@ Line format: the status padded with spaces to six characters, the probe ID, one 
 
 `<path>` in D9 is the repository-relative location of `.dart_tool/package_config.json` for that package. A probe that throws unexpectedly becomes `fail` with the message `Probe failed: <first line of the error>`, and the remaining probes still run. No environment variable value is printed.
 
+With `--reporter json`, one JSON object instead of the lines, keys in this order: `{"schemaVersion": 1, "probes": [{"id": "D1", "status": "ok", "message": "git 2.56.0"}, ...], "exitCode": 0}`, indented by two spaces, followed by a newline. Messages are not sanitized there; the encoder escapes them. Another `--reporter` value is a usage error: `Unknown reporter "<value>". Expected console or json.`
+
 Exit 1 when any probe fails, else 0.
 
 ### 3.7 `baseline create [--force]`, `baseline prune`

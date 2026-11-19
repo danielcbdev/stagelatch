@@ -611,7 +611,7 @@ test('an unknown reporter is a usage error naming the accepted values', () async
 - Consumes: `SdkLocator` (Task 4), `GitRepository.layout`, `HookStore`, `ConfigLoader`, `buildPackageMap` (Task 5), `Environment`.
 - Produces: `enum ProbeStatus { ok, warn, fail }`; `ProbeResult { String id; ProbeStatus status; String message }`; `Doctor({required GitRepository git, required HookStore hooks, required ConfigLoader loader, required SdkLocator sdk, required Environment environment, required DoctorProbes probes})` with `Future<List<ProbeResult>> run()` returning D1–D9 in order; `DoctorProbes`, a port in `lib/src/application/ports/doctor_probes.dart` for what only infrastructure can see (`Future<String?> gitVersion()`, `Future<String?> resolveOnPath(String name)`, `Future<bool> exists(String repoRelativePath)`), with `LocalDoctorProbes` in `lib/src/infrastructure/io/local_doctor_probes.dart`.
 
-- [ ] **Step 1: Write the failing tests,** one per cell of the message table in `specs/cli.md` section 3.6, with fakes, asserting id, status and the exact message. Plus:
+- [x] **Step 1: Write the failing tests,** one per cell of the message table in `specs/cli.md` section 3.6, with fakes, asserting id, status and the exact message. Plus:
 
 ```dart
 test('exit code is 1 when any probe fails, else 0', () async { /* ... */ });
@@ -620,10 +620,10 @@ test('a probe that throws becomes a fail result and the others still run', () as
 test('no environment variable value is printed', () async { /* S5 */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.** Each probe is one small function returning a `ProbeResult`.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(cli): add doctor command`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.** Each probe is one small function returning a `ProbeResult`.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(cli): add doctor command`
 
 ### Task 15: Wiring the toolchain into the pipeline
 

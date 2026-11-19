@@ -6,16 +6,21 @@ import 'package:stagelatch/src/application/config/config_loader.dart';
 import 'package:stagelatch/src/application/hooks/hook_installer.dart';
 import 'package:stagelatch/src/application/pipeline/check_registry.dart';
 import 'package:stagelatch/src/application/pipeline/pipeline.dart';
+import 'package:stagelatch/src/application/ports/doctor_probes.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
+import 'package:stagelatch/src/application/ports/hook_store.dart';
+import 'package:stagelatch/src/application/ports/sdk_locator.dart';
 import 'package:stagelatch/src/application/ports/working_tree.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
 import 'package:stagelatch/src/checks/sensitive_files/sensitive_files_check.dart';
 import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/domain/documents.dart';
+import 'package:stagelatch/src/infrastructure/dart/file_sdk_locator.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
 import 'package:stagelatch/src/infrastructure/git/git_cli_repository.dart';
 import 'package:stagelatch/src/infrastructure/git/git_process.dart';
 import 'package:stagelatch/src/infrastructure/io/file_hook_store.dart';
+import 'package:stagelatch/src/infrastructure/io/local_doctor_probes.dart';
 import 'package:stagelatch/src/infrastructure/io/local_working_tree.dart';
 import 'package:stagelatch/src/infrastructure/io/system_clock.dart';
 import 'package:stagelatch/src/version.dart';
@@ -36,6 +41,9 @@ final class Composition {
     required this.loader,
     required this.worktree,
     required this.trackedHooks,
+    this.hookStore,
+    this.sdkLocator,
+    this.doctorProbes,
   });
 
   /// Builds the real adapters for [io] and reads the repository layout.
@@ -77,6 +85,15 @@ final class Composition {
         loader: loader,
         worktree: worktree,
         trackedHooks: () => store.directoryIsTracked,
+        hookStore: store,
+        sdkLocator: FileSdkLocator(
+          repoRoot: layout.root,
+          environment: io.environment,
+        ),
+        doctorProbes: LocalDoctorProbes(
+          repoRoot: layout.root,
+          environment: io.environment,
+        ),
       );
     } on Exception {
       await git.close();
@@ -107,6 +124,16 @@ final class Composition {
 
   /// Whether the hooks directory is tracked by git.
   final Future<bool> Function() trackedHooks;
+
+  /// The hook scripts, for `doctor`. Null in tests that need no doctor.
+  final HookStore? hookStore;
+
+  /// Finds the project's SDK. Null in tests that need no doctor.
+  final SdkLocator? sdkLocator;
+
+  /// The machine-facing questions of `doctor`. Null in tests that need no
+  /// doctor.
+  final DoctorProbes? doctorProbes;
 
   /// Ends the persistent git processes.
   Future<void> close() => git.close();
