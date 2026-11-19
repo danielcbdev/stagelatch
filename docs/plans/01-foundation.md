@@ -671,4 +671,4 @@ test('-C runs in another directory', () async { /* ... */ });
 - [x] **Step 3: Write the README** for this version: what it is, install, `init`, what the two rules catch, the exit codes, and a "Status: pre-release" note. No benchmark yet.
 - [x] **Step 4: Verify** `dart pub publish --dry-run` reports no errors and no warnings.
 - [x] **Step 5: Commit.** `ci(release): add release-please and OIDC publishing`
-- [ ] **Step 6: Release.** Open `develop` -> `main` as `release: 0.1.0-dev.1` (workflow section 8). **Stop here for the owner:** the first publish of the package name is manual (`dart pub publish` by the owner), followed by enabling automated publishing on pub.dev.
+- [x] **Step 6: Release.** Open `develop` -> `main` as `release: 0.1.0-dev.1` (workflow section 8). **Stop here for the owner:** the first publish of the package name is manual (`dart pub publish` by the owner), followed by enabling automated publishing on pub.dev.
