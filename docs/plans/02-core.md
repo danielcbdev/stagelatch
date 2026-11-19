@@ -409,7 +409,7 @@ The pipeline already applies a fix only for a finding that survived the filters,
 - Consumes: `DartToolchain.format`, `FormatSettings` (`lib/src/application/config/settings.dart`, plan 01), `FakeDartToolchain` (Task 7), `FakeCheckContext`.
 - Produces: `FormatCheck implements Check` (`id: 'format'`, `phase: CheckPhase.fix`, rule `format/unformatted`, `fixable: true`); `Position firstDifference(String a, String b)`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('firstDifference returns the 1-based line and column', () {
@@ -426,10 +426,10 @@ test('the fix is returned whatever the entry; the pipeline decides whether to ap
 test('format.fix false returns the finding without a fix', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/rules.md` `format`. Files are formatted concurrently and results consumed in path order. Only changed `.dart` files that are regular or executable and readable as text are formatted.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add format check with index autofix`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/rules.md` `format`. Files are formatted concurrently and results consumed in path order. Only changed `.dart` files that are regular or executable and readable as text are formatted.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add format check with index autofix`
 
 ### Task 10: The `analyze` check
 

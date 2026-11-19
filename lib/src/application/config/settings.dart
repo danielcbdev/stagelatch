@@ -5,14 +5,7 @@ import 'package:glob/glob.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 
-/// Parameters of the `format` check.
-final class FormatSettings {
-  /// Creates the settings.
-  const new({this.fix = true});
-
-  /// Whether formatting is written to the index on pre-commit.
-  final bool fix;
-}
+export 'package:stagelatch/src/checks/format/format_settings.dart';
 
 /// Which files `analyze` looks at.
 enum AnalyzeScope {
