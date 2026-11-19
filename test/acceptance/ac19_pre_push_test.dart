@@ -29,7 +29,12 @@ void main() {
     remote = await Directory.systemTemp.createTemp('stagelatch_remote_');
     await repo.git(['init', '-q', '--bare', remote.path]);
     await repo.git(['remote', 'add', 'origin', remote.path]);
-    await commitFile('stagelatch.yaml', 'hooks:\n  pre-push: [pubspec]\n');
+    // pre-commit stays empty, so the commits these tests make never depend
+    // on whether a stagelatch is installed on the machine.
+    await commitFile(
+      'stagelatch.yaml',
+      'hooks:\n  pre-commit: []\n  pre-push: [pubspec]\n',
+    );
     await repo.git(['push', '-q', 'origin', 'main']);
   });
 

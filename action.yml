@@ -1,0 +1,46 @@
+name: stagelatch
+description: >-
+  Run stagelatch ci on a pull request: the same checks as the git hooks,
+  over the pull request's diff, reported as annotations.
+author: danielcbdev
+branding:
+  icon: check-square
+  color: blue
+
+inputs:
+  base:
+    description: >-
+      The ref the pull request merges into, for example
+      origin/${{ github.base_ref }}. The checkout needs fetch-depth: 0.
+    required: true
+  version:
+    description: The stagelatch version to activate. Empty means the latest.
+    required: false
+    default: ''
+  reporter:
+    description: console, json or github.
+    required: false
+    default: github
+
+runs:
+  using: composite
+  steps:
+    # Inputs reach the scripts as environment variables, never as text
+    # interpolated into the script, so no input can inject a command.
+    - name: Activate stagelatch
+      shell: bash
+      env:
+        STAGELATCH_VERSION: ${{ inputs.version }}
+      run: |
+        if [ -n "$STAGELATCH_VERSION" ]; then
+          dart pub global activate stagelatch "$STAGELATCH_VERSION"
+        else
+          dart pub global activate stagelatch
+        fi
+
+    - name: Run stagelatch ci
+      shell: bash
+      env:
+        STAGELATCH_BASE: ${{ inputs.base }}
+        STAGELATCH_REPORTER: ${{ inputs.reporter }}
+      run: dart pub global run stagelatch ci --base "$STAGELATCH_BASE" --reporter "$STAGELATCH_REPORTER"

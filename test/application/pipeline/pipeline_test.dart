@@ -267,7 +267,10 @@ void main() {
       final git = FakeGitRepository(
         index: {
           'stagelatch.yaml': _config(['fixer']),
-          'a.dart': '// stagelatch:ignore fixer/one\nx\n',
+          // Split so that this source line holds no marker of its own.
+          'a.dart':
+              '// '
+              'stagelatch:ignore fixer/one\nx\n',
         },
         changes: ChangeSet([
           FileChange(path: RepoPath('a.dart'), kind: ChangeKind.modified),
