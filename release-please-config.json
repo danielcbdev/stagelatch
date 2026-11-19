@@ -11,7 +11,8 @@
           "type": "generic",
           "path": "lib/src/version.dart"
         }
-      ]
+      ],
+      "release-as": "0.1.0"
     }
   }
 }
