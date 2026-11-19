@@ -93,12 +93,12 @@ abstract interface class Probe { String get name; Future<ProbeResult> run(ProbeI
 - Consumes: `Probe`, `ProbeInput`, `ProbeResult`.
 - Produces: `DelegatedProbe implements Probe`; `ServerClient` with `start(String sdkRoot, {required String cacheDir})`, `request(String method, Map<String, Object?> params)`, `close()`.
 
-- [ ] **Step 1: Implement `ServerClient`:** spawn `<sdk>/bin/dart language-server --protocol=analyzer --cache=<cacheDir>`; newline-delimited JSON requests with incrementing string ids; match responses by id; collect notifications.
-- [ ] **Step 2: Implement `DelegatedProbe`:** `analysis.setAnalysisRoots` with the package root; `analysis.updateContent` with one `add` overlay per entry; `analysis.getErrors` per file; `edit.format` per file to format with `selectionOffset: 0, selectionLength: 0`, applying the returned edits. Shut the server down with `server.shutdown` in a `finally`. Confirm method and field names against the protocol specification shipped with the SDK in use.
-- [ ] **Step 3: Prove the overlay**, exactly as in Task 2 step 2.
-- [ ] **Step 4: Decide the wait strategy and record it:** whether `analysis.getErrors` may be sent immediately after `updateContent`, or must wait for a status notification. Measure both if both are correct.
-- [ ] **Step 5: Record phase timings** for `s3` and `s10`.
-- [ ] **Step 6: Commit.** `chore(spike): add delegated analysis server probe`
+- [x] **Step 1: Implement `ServerClient`:** spawn `<sdk>/bin/dart language-server --protocol=analyzer --cache=<cacheDir>`; newline-delimited JSON requests with incrementing string ids; match responses by id; collect notifications.
+- [x] **Step 2: Implement `DelegatedProbe`:** `analysis.setAnalysisRoots` with the package root; `analysis.updateContent` with one `add` overlay per entry; `analysis.getErrors` per file; `edit.format` per file to format with `selectionOffset: 0, selectionLength: 0`, applying the returned edits. Shut the server down with `server.shutdown` in a `finally`. Confirm method and field names against the protocol specification shipped with the SDK in use.
+- [x] **Step 3: Prove the overlay**, exactly as in Task 2 step 2.
+- [x] **Step 4: Decide the wait strategy and record it:** whether `analysis.getErrors` may be sent immediately after `updateContent`, or must wait for a status notification. Measure both if both are correct.
+- [x] **Step 5: Record phase timings** for `s3` and `s10`.
+- [x] **Step 6: Commit.** `chore(spike): add delegated analysis server probe`
 
 ### Task 4: Parity oracle
 
