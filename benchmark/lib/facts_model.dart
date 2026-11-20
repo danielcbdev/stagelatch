@@ -112,10 +112,11 @@ final class FactsResult {
   /// Every word token of the file, sorted.
   final List<String> identifiers;
 
-  /// The lines to compare, one fact per line.
-  List<String> get canonical => [
+  /// The lines to compare, one fact per line. The shipped extractor does
+  /// not fill identifiers yet (plan 04), so they are optional.
+  List<String> canonical({bool withIdentifiers = true}) => [
     for (final d in declarations) d.canonical,
     for (final c in calls) c.canonical,
-    'ids|${identifiers.join(',')}',
+    if (withIdentifiers) 'ids|${identifiers.join(',')}',
   ];
 }

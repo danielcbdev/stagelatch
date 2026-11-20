@@ -312,7 +312,7 @@ test('no base (first commit) treats the file as new', () async { /* ... */ });
 - `tests/new-skip`: for each key, the snapshot's skipped calls minus the base's skipped calls (multiset). If the snapshot has more skipped calls of a key than the base, the **later** ones in source order are reported. The base is `change.previousPath ?? change.path`; no base or an unreadable base file means every skip is new. A file that is not well formed is skipped.
 - A **test file** is a `.dart` file under `test/` of its package, at any depth, whose name ends with `_test.dart`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // test_calls_test.dart
@@ -344,10 +344,10 @@ test('a file that is not well formed is left to analyze', () async { /* ... */ }
 
 The determinism scenario gains a staged test file with a `solo: true`, so the byte-identical comparison exercises a new check.
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.** New skips are found by multiset difference of skipped keys, snapshot minus base. Re-point `benchmark/` at the shipped code: add `stagelatch: {path: ..}` to `benchmark/pubspec.yaml`, change `bin/facts.dart` to import the extractor from `package:stagelatch`, delete `benchmark/lib/facts_scanner.dart`, and run `dart run bin/facts.dart compare` and `edges` against the corpus; record the result in the PR. If the path dependency cannot be resolved, say so under "Deviations" and keep the prototype.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add tests/solo and tests/new-skip`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.** New skips are found by multiset difference of skipped keys, snapshot minus base. Re-point `benchmark/` at the shipped code: add `stagelatch: {path: ..}` to `benchmark/pubspec.yaml`, change `bin/facts.dart` to import the extractor from `package:stagelatch`, delete `benchmark/lib/facts_scanner.dart`, and run `dart run bin/facts.dart compare` and `edges` against the corpus; record the result in the PR. If the path dependency cannot be resolved, say so under "Deviations" and keep the prototype.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add tests/solo and tests/new-skip`
 
 ### Task 8: `--all`
 

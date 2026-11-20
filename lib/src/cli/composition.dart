@@ -18,6 +18,7 @@ import 'package:stagelatch/src/checks/format/format_check.dart';
 import 'package:stagelatch/src/checks/l10n/l10n_check.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
 import 'package:stagelatch/src/checks/sensitive_files/sensitive_files_check.dart';
+import 'package:stagelatch/src/checks/tests/tests_check.dart';
 import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/documents.dart';
@@ -81,6 +82,7 @@ final class Composition {
               AssetsCheck(),
               L10nCheck(),
               CodegenCheck(),
+              TestsCheck(),
             ],
       );
       final sdkLocator = FileSdkLocator(
