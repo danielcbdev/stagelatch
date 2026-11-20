@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: dart pub get
 
+      # The spike package (plan 00) is analyzed and format-checked with the
+      # root; without its own resolution its imports would not resolve.
+      - name: Install benchmark dependencies
+        run: dart pub get --directory benchmark
+
       # Formatter output is specific to an SDK release (ADR-0008), so the
       # check is authoritative on stable only.
       - name: Check formatting
@@ -59,3 +64,31 @@ jobs:
       - name: Check coverage floor
         if: matrix.os == 'ubuntu-latest' && matrix.sdk == 'stable'
         run: dart run tool/check_coverage.dart
+
+  # stagelatch judges its own pull requests with the code under review.
+  # Making this job a required check is branch protection, set by the owner.
+  dogfood:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: `ci` needs the merge base with the base branch.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: dart-lang/setup-dart@2286a0c042b44434fe26d292bbce8d34f7ec662b # v1.8.2
+        with:
+          sdk: stable
+
+      # Every package `analyze` may touch needs its package config.
+      - name: Install dependencies
+        run: |
+          dart pub get
+          dart pub get --directory benchmark
+          dart pub get --directory test/fixtures/dart_app
+
+      - name: Run stagelatch ci
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: dart run bin/stagelatch.dart ci --base "origin/$BASE_REF" --reporter github
+

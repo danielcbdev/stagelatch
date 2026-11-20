@@ -58,7 +58,7 @@ Output: one line per action, e.g. `Created stagelatch.yaml.`, then the lines of 
 
 ### 3.2 `install [--force]`
 
-Since `0.1.0-dev.1`. Installs one script per key under `hooks` that is a git hook name (`pre-commit`, `pre-push`). Behavior per hook is the matrix in [`git.md`](git.md#hook-installer). Output per hook, one of:
+Since `0.1.0-dev.1`. Installs one script per git hook name, `pre-commit` and `pre-push`: once defaults are applied, `hooks` always has a list for both, even when the file names only one. Behavior per hook is the matrix in [`git.md`](git.md#hook-installer). Output per hook, one of:
 
 - `Installed <hook> hook at <path>.`
 - `Updated <hook> hook at <path>.`
@@ -81,11 +81,13 @@ Since `0.1.0-dev.1`. For each git hook name: remove the script if it carries the
 
 `pre-commit` since `0.1.0-dev.1`; `pre-push` and `--reporter json` since `0.1.0`; `--all` since `0.2.0`.
 
-- `<hook>` is `pre-commit` or `pre-push`; anything else is a usage error.
+- `<hook>` is `pre-commit` or `pre-push`; anything else is a usage error: `Unknown hook "<hook>". Expected pre-commit or pre-push.`
+- **Hook arguments.** Git calls the `pre-push` hook with two arguments, the remote name and its URL, and the hook script passes them on after the hook name: `run pre-push <remote> <url>`. `run pre-push` accepts zero or two such arguments, with or without a `--` before them; `run pre-commit` accepts none. Any other count is the usage error above, with all the words after `run` as `<hook>`.
+- `--reporter` accepts `console` and `json`. Another value is a usage error: `Unknown reporter "<value>". Expected console or json.`
 - Runs the pipeline for that entry point ([`architecture.md`](../architecture.md#53-the-pipeline)).
 - `--no-fix` disables fix application for this run regardless of config.
 - `--all` ignores the changeset and treats every file of the snapshot as changed.
-- **`pre-push` input.** Git passes the remote name and URL as arguments and one line per ref on stdin: `<local ref> <local sha> <remote ref> <remote sha>`. When stdin is a terminal or empty, one ref is synthesized from the current branch and its upstream (remote sha all zeros when there is no upstream).
+- **`pre-push` input.** Git passes the remote name and URL as arguments and one line per ref on stdin: `<local ref> <local sha> <remote ref> <remote sha>`. When stdin is a terminal or empty, one ref is synthesized from the current branch and its upstream, and the remote is the upstream's remote (remote sha all zeros when there is no upstream). With no upstream and no remote argument, the remote is `origin`.
 - Exit: 0 or 1 by verdict; 64/70/78 as in section 2.
 
 ### 3.5 `ci --base <ref> [--head <ref>] [--all] [--reporter <console|json|github|junit|sarif>]`
@@ -93,6 +95,7 @@ Since `0.1.0-dev.1`. For each git hook name: remove the script if it carries the
 Since `0.1.0` (`junit`, `sarif` since `0.3.0`).
 
 - `--base` is required. `--head` defaults to `HEAD`.
+- `--reporter` accepts `console`, `json` and `github` (default `console`). Another value is a usage error: `Unknown reporter "<value>". Expected console, json or github.`
 - Selectors come from `hooks.ci`, or the union of `hooks.pre-commit` and `hooks.pre-push`.
 - Fixes are never applied.
 - No merge base (typically a shallow clone), exit 64: `Cannot find a merge base between <base> and <head>. If this is a shallow clone, fetch full history (actions/checkout: fetch-depth: 0).`
@@ -112,6 +115,24 @@ Since `0.1.0`. Runs these probes in order and prints one line each, prefixed `ok
 | D7 | `stagelatch.yaml` is valid | invalid |
 | D8 | resolved SDK: path, version, source | no SDK found, or SDK inside the repository |
 | D9 | `.dart_tool/package_config.json` per package | never (`warn` when missing) |
+
+Line format: the status padded with spaces to six characters, the probe ID, one space, the message. D4 prints one line per configured git hook and D9 one line per package, each with the same ID. Messages, `<x>` substituted and sanitized (S5):
+
+| ID | `ok` | `warn` | `fail` |
+|---|---|---|---|
+| D1 | `git <version>` | | `git not found on PATH.` / `git <version> is older than 2.30.` |
+| D2 | `Work tree: <root>` | | `Not inside a git work tree: <path>.` |
+| D3 | `Hooks directory: <path>` | `Hooks directory: <path> (core.hooksPath is set)` | |
+| D4 | `<hook> hook is managed by stagelatch.` | `<hook> hook is missing. Run: stagelatch install` / `<hook> hook is not managed by stagelatch.` | |
+| D5 | `stagelatch on PATH: <path>` | `stagelatch is not on PATH; hooks fall back to dart pub global run.` / `stagelatch is not installed; hooks skip without blocking.` | |
+| D6 | `stagelatch <version> satisfies min_version <min>.` / `stagelatch <version>; no min_version.` | | `stagelatch <version> is older than min_version <min>.` |
+| D7 | `stagelatch.yaml is valid.` / `No stagelatch.yaml; defaults apply.` | | `stagelatch.yaml: <message of the ConfigException>` |
+| D8 | `Dart SDK <version> at <root> (<source>)`, where `<source>` is `sdk_path`, `fvm` or `PATH` | | the `ConfigException` message of [`dart-toolchain.md`](dart-toolchain.md#1-sdk-resolution) section 1 |
+| D9 | `<path> found.` | `Missing <path>. Run: dart pub get` | |
+
+`<path>` in D9 is the repository-relative location of `.dart_tool/package_config.json` for that package. A probe that throws unexpectedly becomes `fail` with the message `Probe failed: <first line of the error>`, and the remaining probes still run. No environment variable value is printed.
+
+With `--reporter json`, one JSON object instead of the lines, keys in this order: `{"schemaVersion": 1, "probes": [{"id": "D1", "status": "ok", "message": "git 2.56.0"}, ...], "exitCode": 0}`, indented by two spaces, followed by a newline. Messages are not sanitized there; the encoder escapes them. Another `--reporter` value is a usage error: `Unknown reporter "<value>". Expected console or json.`
 
 Exit 1 when any probe fails, else 0.
 

@@ -6,6 +6,7 @@ import 'package:stagelatch/src/application/config/settings.dart';
 import 'package:stagelatch/src/application/entry_point.dart';
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/application/pipeline/check_registry.dart';
+import 'package:stagelatch/src/application/pipeline/inline_ignore.dart';
 import 'package:stagelatch/src/application/pipeline/pipeline.dart';
 import 'package:stagelatch/src/application/pipeline/run_report.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
@@ -20,7 +21,9 @@ import 'package:test/test.dart';
 
 import '../../support/fake_check.dart';
 import '../../support/fake_clock.dart';
+import '../../support/fake_dart_toolchain_factory.dart';
 import '../../support/fake_git_repository.dart';
+import '../../support/fake_sdk_locator.dart';
 import '../../support/fake_working_tree.dart';
 
 const _preCommit = RunRequest(entry: PreCommitEntry());
@@ -29,6 +32,7 @@ Pipeline _pipeline(
   FakeGitRepository git,
   List<Check> checks, {
   FakeClock? clock,
+  FakeDartToolchainFactory? toolchains,
 }) => Pipeline(
   git: git,
   configLoader: ConfigLoader(const StructuredDocuments(), FakeWorkingTree()),
@@ -36,6 +40,8 @@ Pipeline _pipeline(
   documents: const StructuredDocuments(),
   clock: clock ?? FakeClock(),
   toolVersion: Version.parse('0.1.0'),
+  sdkLocator: FakeSdkLocator(),
+  toolchains: toolchains ?? FakeDartToolchainFactory(),
 );
 
 /// A staged config whose pre-commit hook runs [selectors].
@@ -176,6 +182,107 @@ void main() {
 
       expect(report.findings.single.location.path, RepoPath('lib/b.dart'));
     });
+
+    test('the pipeline drops covered findings and reports how many', () async {
+      late final FakeCheck alpha;
+      alpha = FakeCheck(
+        'alpha',
+        onRun: (_) async =>
+            CheckResult(findings: [alpha.finding('a.yaml', line: 2)]),
+      );
+      final git = FakeGitRepository(
+        index: {
+          'stagelatch.yaml': _config(['alpha']),
+          'a.yaml': 'x: 1 # stagelatch:ignore alpha/one\ny: 2\n',
+        },
+        changes: ChangeSet([
+          FileChange(path: RepoPath('a.yaml'), kind: ChangeKind.modified),
+        ]),
+      );
+
+      final report = await _run(git, [alpha]);
+
+      expect(report.suppressed, 1);
+      expect(report.findings, isEmpty);
+      expect(report.verdict, Verdict.pass);
+    });
+
+    test(
+      'an unknown id is reported, and its level comes from the rules map',
+      () async {
+        final git = FakeGitRepository(
+          index: {
+            'stagelatch.yaml': _config([
+              'alpha',
+            ], more: 'rules:\n  stagelatch/invalid-ignore: error\n'),
+            'a.yaml': 'x: 1 # stagelatch:ignore alpha/nope\n',
+          },
+          changes: ChangeSet([
+            FileChange(path: RepoPath('a.yaml'), kind: ChangeKind.modified),
+          ]),
+        );
+
+        final report = await _run(git, [FakeCheck('alpha')]);
+
+        expect(report.findings.single.rule, invalidIgnoreRule);
+        expect(report.findings.single.severity, Severity.error);
+        expect(report.verdict, Verdict.fail);
+        expect(report.timings.single.errors, 0);
+      },
+    );
+
+    test('an unknown id on an excluded path is not reported', () async {
+      final git = FakeGitRepository(
+        index: {
+          'stagelatch.yaml': _config(['alpha'], more: 'exclude: [a.yaml]\n'),
+          'a.yaml': 'x: 1 # stagelatch:ignore alpha/nope\n',
+        },
+        changes: ChangeSet([
+          FileChange(path: RepoPath('a.yaml'), kind: ChangeKind.modified),
+        ]),
+      );
+
+      final report = await _run(git, [FakeCheck('alpha')]);
+
+      expect(report.findings, isEmpty);
+    });
+
+    test('a fix-phase finding covered by a comment is neither reported nor '
+        'fixed', () async {
+      late final FakeCheck fixer;
+      fixer = FakeCheck(
+        'fixer',
+        phase: CheckPhase.fix,
+        onRun: (_) async => CheckResult(
+          findings: [fixer.finding('a.dart', line: 2)],
+          fixes: [
+            Fix(
+              rule: const RuleId('fixer', 'one'),
+              path: RepoPath('a.dart'),
+              content: 'fixed\n',
+            ),
+          ],
+        ),
+      );
+      final git = FakeGitRepository(
+        index: {
+          'stagelatch.yaml': _config(['fixer']),
+          // Split so that this source line holds no marker of its own.
+          'a.dart':
+              '// '
+              'stagelatch:ignore fixer/one\nx\n',
+        },
+        changes: ChangeSet([
+          FileChange(path: RepoPath('a.dart'), kind: ChangeKind.modified),
+        ]),
+      );
+
+      final report = await _run(git, [fixer]);
+
+      expect(report.findings, isEmpty);
+      expect(report.suppressed, 1);
+      expect(git.appliedFixes, isEmpty);
+    });
   });
 
   group('verdict', () {
@@ -311,12 +418,14 @@ void main() {
       expect(alpha.lastContext!.base, isNull);
     });
 
-    test('has no Dart toolchain before 0.1.0', () async {
-      final alpha = FakeCheck('alpha');
+    test('creates no toolchain when no check asks for it', () async {
+      final toolchains = FakeDartToolchainFactory();
 
-      await _run(_git(['alpha']), [alpha]);
+      await _pipeline(_git(['alpha']), [
+        FakeCheck('alpha'),
+      ], toolchains: toolchains).run(_preCommit);
 
-      expect(() => alpha.lastContext!.dart, throwsUnsupportedError);
+      expect(toolchains.createCount, 0);
     });
   });
 
@@ -628,6 +737,8 @@ void main() {
         documents: const StructuredDocuments(),
         clock: FakeClock(),
         toolVersion: Version.parse('0.1.0'),
+        sdkLocator: FakeSdkLocator(),
+        toolchains: FakeDartToolchainFactory(),
       );
 
       final report = (await pipeline.run(_preCommit)).single;

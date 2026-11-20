@@ -1,6 +1,6 @@
 # Dart toolchain specification
 
-Status: **Approved (2026-11-12).** Sections 4 and 5 describe a contract; which mechanism fulfils it is decided by the spike (ADR-0008). Sections 1–3, 6 and 7 do not depend on that decision.
+Status: **Approved (2026-11-12); mechanism selected 2026-11-19 (ADR-0008).** Sections 4 and 5 describe a contract; section 8 records the mechanism that fulfils it. Sections 1–3, 6 and 7 do not depend on the mechanism.
 
 ## 1. SDK resolution
 
@@ -10,7 +10,7 @@ Status: **Approved (2026-11-12).** Sections 4 and 5 describe a contract; which m
 |---|---|---|
 | 1 | `sdk_path` | Relative paths resolve against the repository root |
 | 2 | `fvm` | The directory `.fvm/flutter_sdk` when present; else `.fvmrc` (JSON, key `flutter`) resolved under `$FVM_CACHE_PATH/versions/<v>`, defaulting to `~/fvm/versions/<v>` |
-| 3 | `path` | The first `dart` executable on `PATH` |
+| 3 | `path` | The first `dart` executable on `PATH`; on Windows `dart.exe` or `dart.bat`, the name a Flutter SDK puts on `PATH` |
 
 - A directory is a **Flutter SDK root** when it contains `bin/cache/dart-sdk/version`; the Dart SDK is then `bin/cache/dart-sdk`. It is a **Dart SDK root** when it contains `version` and `bin/dart` (`bin/dart.exe` on Windows).
 - For source `path`, symlinks are resolved and the SDK root is found by walking up from the executable until one of the two shapes matches.
@@ -24,6 +24,7 @@ Status: **Approved (2026-11-12).** Sections 4 and 5 describe a contract; which m
 
 - A file belongs to the package with the deepest root that contains it. Files outside every package belong to none and are skipped by Dart rules.
 - `DartPackage { root, name, usesFlutter }`; `usesFlutter` is true when the pubspec has a dependency with `sdk: flutter`.
+- A `pubspec.yaml` that does not parse, or has no string `name`, still defines a package. Its name is the empty string, so no `package:` URI resolves to it. The directory name is not used: it depends on where the repository was cloned (ADR-0003).
 - Pub workspaces (a root pubspec with `workspace:` and members with `resolution: workspace`) are recognized from `0.3.0`: members share the root's `pubspec.lock` and `.dart_tool/package_config.json`.
 
 **Package config.** Dart analysis needs `.dart_tool/package_config.json` in the working tree for each package that has files to analyze (for workspace members, the root's). When it is missing: usage error `Missing <path>. Run: dart pub get`, where `<path>` is the repository-relative location of the file, for example `.dart_tool/package_config.json` or `packages/ui/.dart_tool/package_config.json`. Checks that do not use diagnostics are unaffected.
@@ -44,10 +45,12 @@ Built in `0.1.0` for `analyze.scope: affected`, reused by `tests/affected` and `
 
 `DartToolchain.diagnose(Set<RepoPath> files) -> Future<List<DartDiagnostic>>`
 
-- The toolchain analyzes the working tree **with overlays**: every path in `GitRepository.divergingFromWorktree(snapshot)` is shown with its snapshot content; a path that is absent from the snapshot is shown as deleted.
+- The toolchain analyzes a **materialized snapshot** (ADR-0001): a directory created with `Directory.systemTemp.createTemp('stagelatch-')` (security S10) that holds every regular or executable file of the snapshot whose extension is `.dart`, `.yaml` or `.yml`, written byte for byte from its blob, at its repository-relative path. Symlinks and gitlinks are not written. A path that is absent from the snapshot is absent from the directory, whatever the working tree holds.
+- For each package that owns a requested file, the working tree's `.dart_tool/package_config.json` is copied to the same relative place in the directory, with every `rootUri` rewritten: a relative URI whose target is inside the repository stays relative, so it points into the directory; any other becomes the absolute `file:` URI of its original target. Missing file: the usage error of section 2.
 - The result contains the diagnostics of exactly the requested files, as the resolved SDK's `dart analyze` would report them on a working tree identical to the snapshot: same codes, messages, severities and ranges, with `analysis_options.yaml` and `// ignore:` applied.
 - `DartDiagnostic { location, code, severity (error | warning | info), message, correction? }`, sorted by path, then position, then code.
-- Overlays are installed once, before the first request, and never change during a run.
+- The directory is written once, on the first `diagnose`, from the snapshot the toolchain was created with, and removed by `close()`.
+- Paths in the result are repository-relative. In a message, every occurrence of the directory's absolute path is replaced by the repository root's, so the message reads as `dart analyze` in the working tree would print it.
 
 ## 5. Formatting
 
@@ -59,7 +62,9 @@ Built in `0.1.0` for `analyze.scope: affected`, reused by `tests/affected` and `
 
 ## 6. Facts
 
-`DartToolchain.facts(SnapshotFiles files, RepoPath path) -> Future<DartFileFacts?>`, purely syntactic (ADR-0013). Null when the file is absent or has syntax errors.
+`DartToolchain.facts(SnapshotFiles files, RepoPath path) -> Future<DartFileFacts?>`, purely syntactic (ADR-0013). Null when the file is absent or is not text (`SnapshotFiles.readText` is null).
+
+**Directives in `0.1.0`.** Only `directives` is filled, by the directive scanner of section 8. It reads from the top of the file, skipping whitespace, comments, a `#!` line, `library` directives and annotations, and stops at the first token that does not start a directive. Inside a directive, string literals outside parentheses are the URI, and adjacent literals are concatenated; literals inside a configuration's parentheses are not URIs, but the literal after each `if (...)` is a branch. `part of` followed by a library name instead of a string produces nothing. The scanner does not detect syntax errors: a broken file still yields the directives before the point where it stops. The location of a `Directive` is its URI literal, from the opening quote to just after the closing quote (for adjacent literals, from the first opening quote to just after the last closing quote). Whether facts are null for a file with syntax errors is decided with the extractor of `annotatedDeclarations` and `testCalls` (plan 03).
 
 ```dart
 enum DirectiveKind { import, export, part, partOf }
@@ -101,20 +106,22 @@ final class DartFileFacts {
 
 ## 7. Lifecycle and cost
 
-- `DartToolchainFactory.create(ResolvedSdk, overlays) -> DartToolchain` is called by the pipeline the first time a check touches `context.dart`. A run that needs no Dart knowledge never pays for it.
+- `DartToolchainFactory.create(ResolvedSdk, SnapshotFiles, ...) -> DartToolchain` is called by the pipeline the first time a check touches `context.dart`. A run that needs no Dart knowledge never pays for it. Creating starts no process and writes no file.
+- A toolchain is bound to one snapshot view. The fix phase and the verify phase each get their own, created on first access, because fixes change the index between them; the pipeline closes both.
 - `facts` must not require the expensive part of the toolchain to start: syntactic extraction runs in-process.
 - `DartToolchain.close()` is called in a `finally` by the pipeline.
 
-## 8. The two candidate mechanisms
+## 8. Mechanism
 
-Both implement sections 4 and 5 behind the same port. The spike measures both; see [`plans/00-spike.md`](../plans/00-spike.md).
+Selected by the spike ([`spike/report.md`](../spike/report.md)) and recorded in ADR-0008: the resolved SDK does the work, one shot per run.
 
-| | A, embedded | B, delegated |
-|---|---|---|
-| Diagnostics | `package:analyzer`: `AnalysisContextCollection` with an `OverlayResourceProvider`, `sdkPath` set to the resolved SDK | The resolved SDK's `dart language-server --protocol=analyzer`: `analysis.setAnalysisRoots`, `analysis.updateContent`, `analysis.getErrors` |
-| Formatting | `package:dart_style` | The same server: `edit.format` |
-| Parity | Depends on how close the embedded versions are to the project's SDK | By construction |
-| Cost | No spawn; analyzer warm-up inside the tool's JIT | One process spawn; the server's own startup |
-| Coupling | Tool's SDK floor follows `analyzer` (14.7.0 needs Dart 3.13) | Protocol only |
+| | How |
+|---|---|
+| Diagnostics (section 4) | On the first `diagnose`, write the materialized snapshot (section 4), then start one `dart language-server --protocol=analyzer` of the resolved SDK: `server.setSubscriptions` with `STATUS`; `analysis.setAnalysisRoots` with the materialized roots of the packages that own the requested files; then `analysis.getErrors` for each requested file. No `analysis.updateContent`. `close()` sends `server.shutdown`, kills the process if it has not exited after 5 s, then removes the directory. Writing the corpus's 2,472 Dart and YAML files took about 0.25 s. |
+| Formatting (section 5) | `dart format --output=show --stdin-name=<path>` of the resolved SDK, the source on stdin. `<path>` is the file's place inside a settings directory written on the first `format`: the snapshot's `pubspec.yaml` and `analysis_options.yaml` files and the package configs (rewritten as in section 4), no Dart files. So `page_width`, `trailing_commas` and the language version come from the snapshot, never from the working tree. `close()` removes it. Exit 0: stdout is the formatted text. Exit 65 (the source does not parse): `Unparseable()`. Any other exit is an internal error naming the exit code. No server. |
+| Facts (section 6) | A hand-written directive scanner, in-process. It skips comments and strings and yields `import`, `export`, `part` and `part of` with their URIs, conditional branches included. |
+| Parity | By construction: the project's own SDK produces every diagnostic and every formatted text. |
+| Cost | Formatting: about 20 ms per file. Diagnostics: one server start, about 1 s on a Dart-only package, about 5 s on a small Flutter package, about 13 s on a 2,400-file Flutter app, cache or not. |
+| Coupling | The analysis server's legacy protocol, tested on Flutter 3.47.8 and 3.44.9. No `analyzer` or `dart_style` dependency. |
 
-Whichever is chosen, syntactic facts need a Dart parser in-process. The spike also decides between `package:analyzer`'s `parseString` (stable API, wide version range) and a hand-written directive scanner for the import graph alone.
+The candidates that were measured and rejected (embedded `analyzer` with `OverlayResourceProvider`, and a long-lived server) are described in the spike report.

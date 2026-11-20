@@ -163,11 +163,18 @@ abstract interface class GitRepository {
   /// counts as changed.
   Future<List<ResolvedRun>> resolve(EntryPoint entry, {required bool all});
 
+  /// The push `run pre-push` judges when git gave it no standard input:
+  /// the current branch towards its upstream (docs/specs/cli.md, section
+  /// 3.4). The remote is [remote] when given, else the upstream's, else
+  /// `origin`. A detached HEAD pushes nothing.
+  Future<PrePushEntry> synthesizePrePush({String? remote});
+
   /// A read-only view of the snapshot [ref].
   SnapshotFiles files(SnapshotRef ref);
 
   /// The paths whose content in [ref] differs from the working tree,
-  /// deletions included, sorted. This is the overlay set of ADR-0001.
+  /// deletions included, sorted. `tests/affected` (0.3.0) uses it: the
+  /// test runner reads the working tree, not the snapshot.
   Future<Set<RepoPath>> divergingFromWorktree(SnapshotRef ref);
 
   /// Writes [fixes] to the index and returns what was applied. Only valid

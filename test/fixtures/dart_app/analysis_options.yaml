@@ -1,0 +1,7 @@
+formatter:
+  page_width: 100
+
+linter:
+  rules:
+    - avoid_print
+    - prefer_single_quotes

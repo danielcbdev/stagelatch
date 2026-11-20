@@ -102,7 +102,7 @@ Do not ask about things a spec already decides, and do not work around a gate.
 
 1. All tasks of the plan are merged into `develop` and CI is green.
 2. Open a pull request `develop` -> `main` titled `release: <version>`. Merge with a **merge commit**.
-3. `release-please` opens its release pull request on `main` with the version bump and CHANGELOG. The owner merges it; the tag triggers the publish workflow (OIDC).
+3. `release-please` opens its release pull request on `main` with the version bump and CHANGELOG. The owner merges it. release-please then creates the tag, and its workflow dispatches `publish.yaml` on that tag, which publishes through OIDC (see "How the tag reaches the publish workflow" below).
 4. Merge `main` back into `develop` through a pull request titled `chore(release): sync main into develop`.
 
 The first publish of the package name to pub.dev is done manually by the owner; automated publishing can be enabled only for a package that already exists.
@@ -113,6 +113,16 @@ The first publish of the package name to pub.dev is done manually by the owner; 
 - `bootstrap-sha`. `0.1.0-dev.1` is published by hand, so it has no tag and no GitHub release. Without a release to anchor on, release-please would read the whole history and propose `0.2.0-dev.1` (it keeps the pre-release suffix and bumps the minor for `feat`). With the bootstrap SHA, release-please stops reading history at that commit and starts from the version in `.release-please-manifest.json`. The commits after it that ship in `0.1.0-dev.1` are `ci` and `docs` only, which are not user facing, so the run triggered by the release merge opens no pull request. It is ignored once release-please finds a release of its own, and can be removed after that.
 
 From `0.1.0-dev.1`, a `feat` bumps to `0.2.0-dev.1` and a `fix` to `0.1.1-dev.1`. When a plan targets another version (plan 02 releases `0.1.0`), set `"release-as": "<version>"` on the `.` package before the release pull request into `main`, and remove it after release-please's pull request is merged.
+
+### How the tag reaches the publish workflow
+
+release-please pushes the tag with the workflow's default `GITHUB_TOKEN`, and GitHub does not start workflow runs for events caused by that token, except `workflow_dispatch` and `repository_dispatch` ([Triggering a workflow from a workflow](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)). A `push: tags` trigger alone would therefore never publish a release made by release-please.
+
+So `release-please.yaml` has a second job: when `release_created` is true, it runs `gh workflow run publish.yaml --ref <tag>` with `actions: write` and nothing else. `publish.yaml` accepts `workflow_dispatch`. The dispatched run's OIDC token carries the tag as its ref (`refType: tag`), which is what pub.dev checks; pub.dev accepts `push` and `workflow_dispatch` events, each only when enabled on the package's admin page ([automated publishing](https://dart.dev/tools/pub/automated-publishing); the check is in `app/lib/package/backend.dart` of dart-lang/pub-dev). No secret is stored.
+
+**Owner step on pub.dev, once, before the first automated release:** on the stagelatch admin page, under automated publishing, also tick **Enable publishing from `workflow_dispatch` events**, keeping the push event and the tag pattern `v{{version}}`. Without it pub.dev refuses the dispatched run.
+
+A tag pushed by a person still publishes through the `push` trigger.
 
 ## 9. One-time repository setup (owner)
 

@@ -7,3 +7,6 @@ coverage/
 
 # Scratch space of the plan executor
 .superpowers/
+
+# Spike corpus and scratch space (benchmark/, plan 00)
+.benchmark/

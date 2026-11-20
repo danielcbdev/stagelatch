@@ -4,15 +4,41 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-  pull-requests: write
+# Each job declares exactly what it needs.
+permissions: {}
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # The tag release-please creates is pushed with the default GITHUB_TOKEN,
+  # and events caused by that token start no workflow run, so the tag push
+  # alone never reaches publish.yaml. workflow_dispatch is the documented
+  # exception: dispatching publish.yaml on the tag ref starts it, and its
+  # OIDC token still names the tag (refType "tag"), which pub.dev requires.
+  # docs/engineering/workflow.md, section 8.
+  publish:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the publish workflow on the release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh workflow run publish.yaml --repo "$REPOSITORY" --ref "$TAG"

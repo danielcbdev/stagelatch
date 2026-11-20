@@ -6,15 +6,25 @@ import 'package:stagelatch/src/application/config/config_loader.dart';
 import 'package:stagelatch/src/application/hooks/hook_installer.dart';
 import 'package:stagelatch/src/application/pipeline/check_registry.dart';
 import 'package:stagelatch/src/application/pipeline/pipeline.dart';
+import 'package:stagelatch/src/application/ports/doctor_probes.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
+import 'package:stagelatch/src/application/ports/hook_store.dart';
+import 'package:stagelatch/src/application/ports/sdk_locator.dart';
 import 'package:stagelatch/src/application/ports/working_tree.dart';
+import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
+import 'package:stagelatch/src/checks/format/format_check.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
+import 'package:stagelatch/src/checks/sensitive_files/sensitive_files_check.dart';
 import 'package:stagelatch/src/cli/io.dart';
+import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/documents.dart';
+import 'package:stagelatch/src/infrastructure/dart/file_sdk_locator.dart';
+import 'package:stagelatch/src/infrastructure/dart/sdk_dart_toolchain.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
 import 'package:stagelatch/src/infrastructure/git/git_cli_repository.dart';
 import 'package:stagelatch/src/infrastructure/git/git_process.dart';
 import 'package:stagelatch/src/infrastructure/io/file_hook_store.dart';
+import 'package:stagelatch/src/infrastructure/io/local_doctor_probes.dart';
 import 'package:stagelatch/src/infrastructure/io/local_working_tree.dart';
 import 'package:stagelatch/src/infrastructure/io/system_clock.dart';
 import 'package:stagelatch/src/version.dart';
@@ -35,13 +45,19 @@ final class Composition {
     required this.loader,
     required this.worktree,
     required this.trackedHooks,
+    this.hookStore,
+    this.sdkLocator,
+    this.doctorProbes,
   });
 
   /// Builds the real adapters for [io] and reads the repository layout.
   ///
   /// Throws when [io] is not inside a git work tree.
   /// The git processes are closed by [close], including when layout fails.
-  static Future<Composition> create(Io io) async {
+  ///
+  /// [checks] replaces the production registry, in tests that need a
+  /// different order (the determinism test of testing.md section 5).
+  static Future<Composition> create(Io io, {List<Check>? checks}) async {
     final process = GitProcess(
       workingDirectory: io.environment.workingDirectory,
       environment: io.environment.variables,
@@ -51,7 +67,20 @@ final class Composition {
       final layout = await git.layout();
       const documents = StructuredDocuments();
       final worktree = LocalWorkingTree(layout.root);
-      final registry = CheckRegistry(const [PubspecCheck()]);
+      // Registry order is the order of the documented hook lists.
+      final registry = CheckRegistry(
+        checks ??
+            const [
+              FormatCheck(),
+              AnalyzeCheck(),
+              PubspecCheck(),
+              SensitiveFilesCheck(),
+            ],
+      );
+      final sdkLocator = FileSdkLocator(
+        repoRoot: layout.root,
+        environment: io.environment,
+      );
       final loader = ConfigLoader(documents, worktree);
       final store = FileHookStore(
         hooksDirectory: layout.hooksDir,
@@ -65,6 +94,8 @@ final class Composition {
           documents: documents,
           clock: SystemClock(),
           toolVersion: Version.parse(packageVersion),
+          sdkLocator: sdkLocator,
+          toolchains: const SdkDartToolchainFactory(),
         ),
         hookInstaller: HookInstaller(store),
         git: git,
@@ -73,6 +104,12 @@ final class Composition {
         loader: loader,
         worktree: worktree,
         trackedHooks: () => store.directoryIsTracked,
+        hookStore: store,
+        sdkLocator: sdkLocator,
+        doctorProbes: LocalDoctorProbes(
+          repoRoot: layout.root,
+          environment: io.environment,
+        ),
       );
     } on Exception {
       await git.close();
@@ -103,6 +140,16 @@ final class Composition {
 
   /// Whether the hooks directory is tracked by git.
   final Future<bool> Function() trackedHooks;
+
+  /// The hook scripts, for `doctor`. Null in tests that need no doctor.
+  final HookStore? hookStore;
+
+  /// Finds the project's SDK. Null in tests that need no doctor.
+  final SdkLocator? sdkLocator;
+
+  /// The machine-facing questions of `doctor`. Null in tests that need no
+  /// doctor.
+  final DoctorProbes? doctorProbes;
 
   /// Ends the persistent git processes.
   Future<void> close() => git.close();

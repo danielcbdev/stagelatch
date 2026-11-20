@@ -5,17 +5,30 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:stagelatch/src/application/config/config_loader.dart';
 import 'package:stagelatch/src/application/config/default_hooks.dart';
 import 'package:stagelatch/src/application/errors.dart';
+import 'package:stagelatch/src/application/packages/package_map_builder.dart';
 import 'package:stagelatch/src/application/pipeline/check_registry.dart';
 import 'package:stagelatch/src/application/pipeline/finding_filters.dart';
+import 'package:stagelatch/src/application/pipeline/inline_ignore.dart';
+import 'package:stagelatch/src/application/pipeline/lazy_toolchain.dart';
 import 'package:stagelatch/src/application/pipeline/pipeline_check_context.dart';
 import 'package:stagelatch/src/application/pipeline/run_report.dart';
 import 'package:stagelatch/src/application/pipeline/selection.dart';
 import 'package:stagelatch/src/application/ports/clock.dart';
+import 'package:stagelatch/src/application/ports/dart_toolchain_factory.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
+import 'package:stagelatch/src/application/ports/sdk_locator.dart';
+import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/check.dart';
+import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/finding.dart';
+import 'package:stagelatch/src/domain/package_map.dart';
 import 'package:stagelatch/src/domain/severity.dart';
+import 'package:stagelatch/src/domain/snapshot.dart';
+
+/// Per-check filtering looks for covering comments only; unknown ids are
+/// reported once per run, against the real changeset.
+final ChangeSet _noChanges = ChangeSet(const []);
 
 /// Judges what an entry point publishes (docs/architecture.md, 5.3).
 ///
@@ -30,6 +43,8 @@ final class Pipeline {
     required this._documents,
     required this._clock,
     required this._toolVersion,
+    required this._sdkLocator,
+    required this._toolchains,
   });
 
   final GitRepository _git;
@@ -38,6 +53,8 @@ final class Pipeline {
   final Documents _documents;
   final Clock _clock;
   final Version _toolVersion;
+  final SdkLocator _sdkLocator;
+  final DartToolchainFactory _toolchains;
 
   /// Resolves [request] to the snapshots it concerns and judges each one.
   ///
@@ -65,9 +82,59 @@ final class Pipeline {
     final config = loaded.config;
     final selection = Selection.of(config.hooks[_hookOf(entry)] ?? const []);
 
+    final packages = await buildPackageMap(
+      _git.files(run.snapshot),
+      _documents,
+    );
+    // One toolchain per phase, bound to that phase's view of the snapshot
+    // (docs/architecture.md, 5.3.1). Each starts nothing until a check asks
+    // it something, and every one is closed when the run ends.
+    final toolchains = <LazyToolchain>[];
+    LazyToolchain toolchain() {
+      final created = LazyToolchain(
+        locator: _sdkLocator,
+        factory: _toolchains,
+        config: config,
+        repoRoot: () async => (await _git.layout()).root,
+        snapshot: _git.files(run.snapshot),
+        packages: packages,
+      );
+      toolchains.add(created);
+      return created;
+    }
+
+    try {
+      return await _judgeWith(
+        request,
+        run,
+        started: started,
+        loaded: loaded,
+        selection: selection,
+        packages: packages,
+        toolchain: toolchain,
+      );
+    } finally {
+      for (final created in toolchains) {
+        await created.close();
+      }
+    }
+  }
+
+  Future<RunReport> _judgeWith(
+    RunRequest request,
+    ResolvedRun run, {
+    required Duration started,
+    required LoadedConfig loaded,
+    required Selection selection,
+    required PackageMap packages,
+    required LazyToolchain Function() toolchain,
+  }) async {
+    final entry = request.entry.kind;
+    final config = loaded.config;
+
     // Built on demand, because the fix phase changes what the snapshot
     // holds: `files` then returns a view of the updated index.
-    CheckContext context() => PipelineCheckContext(
+    CheckContext context(DartToolchain dart) => PipelineCheckContext(
       entry: entry,
       changes: run.changes,
       snapshot: _git.files(run.snapshot),
@@ -77,14 +144,32 @@ final class Pipeline {
       },
       documents: _documents,
       targetBranch: run.targetBranch,
+      packages: packages,
+      dart: dart,
       selection: selection,
       config: config,
     );
 
-    List<Finding> filtered(List<Finding> findings) => applyExclude(
-      applyLevels(applySelection(findings, selection), config.rules),
-      config.exclude,
-    );
+    // The fixed chain of docs/specs/baseline-and-suppression.md, section 1.
+    // Inline comments are read from [snapshot]: the fix phase sees the text
+    // it is about to fix, the verify phase the text that will be published.
+    var suppressed = 0;
+    Future<List<Finding>> filtered(
+      List<Finding> findings,
+      SnapshotFiles snapshot,
+    ) async {
+      final outcome = await applyInlineIgnores(
+        applyExclude(
+          applyLevels(applySelection(findings, selection), config.rules),
+          config.exclude,
+        ),
+        snapshot: snapshot,
+        changes: _noChanges,
+        catalog: _registry,
+      );
+      suppressed += outcome.suppressed;
+      return outcome.kept;
+    }
 
     final outcomes = <String, _Outcome>{};
 
@@ -92,10 +177,12 @@ final class Pipeline {
     // fixers can never race on one file. A commit snapshot is immutable,
     // so there the same checks only report.
     final mayFix = request.allowFixes && run.snapshot is IndexSnapshot;
+    final fixDart = toolchain();
     for (final check in _registry.checks) {
       if (check.phase != CheckPhase.fix || !selection.runs(check)) continue;
-      final (result, duration) = await _timed(check, context());
-      var findings = filtered(result.findings);
+      final fixContext = context(fixDart);
+      final (result, duration) = await _timed(check, fixContext);
+      var findings = await filtered(result.findings, fixContext.snapshot);
       var applied = const <AppliedFix>[];
       if (mayFix) {
         // A fix is applied only for a finding that survived the filters:
@@ -130,7 +217,7 @@ final class Pipeline {
       for (final check in _registry.checks)
         if (check.phase == CheckPhase.verify && selection.runs(check)) check,
     ];
-    final verifyContext = context();
+    final verifyContext = context(toolchain());
     final results = await Future.wait([
       for (final check in verifying) _timed(check, verifyContext),
     ]);
@@ -139,18 +226,33 @@ final class Pipeline {
     for (final (index, check) in verifying.indexed) {
       final (result, duration) = results[index];
       outcomes[check.id] = _Outcome(
-        filtered(result.findings),
+        await filtered(result.findings, verifyContext.snapshot),
         const [],
         duration,
       );
     }
 
+    // Unknown ids in ignore comments of changed files. They belong to no
+    // check and bypass selection, but `rules:` and `exclude` still apply.
+    final ignores = await applyInlineIgnores(
+      const [],
+      snapshot: verifyContext.snapshot,
+      changes: run.changes,
+      catalog: _registry,
+    );
+    final invalidIgnores = applyExclude(
+      applyLevels(ignores.invalid, config.rules),
+      config.exclude,
+    );
+
     final ran = [
       for (final check in _registry.checks)
         if (outcomes[check.id] case final outcome?) (check.id, outcome),
     ];
-    final findings = [for (final (_, outcome) in ran) ...outcome.findings]
-      ..sort(Finding.compare);
+    final findings = [
+      for (final (_, outcome) in ran) ...outcome.findings,
+      ...invalidIgnores,
+    ]..sort(Finding.compare);
     final total = _clock.elapsed - started;
 
     return RunReport(
@@ -179,7 +281,7 @@ final class Pipeline {
       // The budget is only ever reported. Skipping or shortening a check
       // would make the verdict depend on the machine (ADR-0003).
       budgetExceeded: total > config.timeBudget,
-      suppressed: 0,
+      suppressed: suppressed,
       baselined: 0,
       notices: loaded.notices,
     );

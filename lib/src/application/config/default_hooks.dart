@@ -18,9 +18,10 @@ const List<String> hookNames = [preCommitHook, prePushHook, ciHook];
 
 /// The documented pre-commit default. `tests` is listed rule by rule
 /// because `tests/affected` runs the test suite and belongs on push.
+/// `analyze` starts the SDK's analysis server, seconds on a Flutter app,
+/// so it runs on push and in CI by default (ADR-0008).
 const _preCommit = [
   HookSelector('format'),
-  HookSelector('analyze'),
   HookSelector('codegen'),
   HookSelector('pubspec'),
   HookSelector('l10n'),

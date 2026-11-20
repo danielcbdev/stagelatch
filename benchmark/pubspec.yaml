@@ -1,0 +1,22 @@
+name: stagelatch_bench
+description: >-
+  Throwaway spike that measures two ways of diagnosing and formatting a git
+  snapshot of a Flutter project (plan 00, ADR-0008). Never published.
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+executables:
+  stagelatch_bench: stagelatch_bench
+
+dependencies:
+  analyzer: 14.7.0
+  args: ^2.7.0
+  dart_style: 3.1.14
+  path: ^1.9.1
+  pub_semver: ^2.2.1
+  yaml: ^3.1.4
+
+dev_dependencies:
+  very_good_analysis: ^11.0.0

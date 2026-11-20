@@ -19,7 +19,11 @@ const badPubspec =
 ///
 /// Durations are the only part of a report that depends on the machine
 /// (ADR-0003).
+///
+/// A check-table row ends with its duration, right-aligned to the widest
+/// one, so the spaces before it vary with the timings too: they become two.
 String stabilize(String text) => text
+    .replaceAll(RegExp(r' +(\d+ms|\d+\.\ds)$', multiLine: true), '  Nms')
     .replaceAll(RegExp(r'\b\d+ms\b'), 'Nms')
     .replaceAll(RegExp(r'\b\d+\.\ds\b'), 'N.Ns');
 
@@ -28,7 +32,9 @@ String cleanReport(int files) {
   final counted = files == 1 ? '1 file' : '$files files';
   return 'stagelatch pre-commit: $counted\n'
       '\n'
-      '  pubspec  ok  Nms\n'
+      '  format           ok  Nms\n'
+      '  pubspec          ok  Nms\n'
+      '  sensitive-files  ok  Nms\n'
       '\n'
       '0 errors, 0 warnings. Commit allowed. (N.Ns)\n';
 }
@@ -38,7 +44,9 @@ String blockedReport(int files) {
   final counted = files == 1 ? '1 file' : '$files files';
   return 'stagelatch pre-commit: $counted\n'
       '\n'
-      '  pubspec  1 error  Nms\n'
+      '  format           ok  Nms\n'
+      '  pubspec          1 error  Nms\n'
+      '  sensitive-files  ok  Nms\n'
       '\n'
       'pubspec.yaml:4:11  error  pubspec/path-dependency\n'
       '  Dependency "design_system" uses a path that is not a package in '
@@ -77,4 +85,36 @@ Future<({int code, String stdout, String stderr})> runGit(
   final stderr = process.stderr.transform(utf8.decoder).join();
   final code = await process.exitCode;
   return (code: code, stdout: await stdout, stderr: await stderr);
+}
+
+/// Makes [dir] (the repository root when empty) a dependency-free Dart
+/// package with [analysisOptions], committed, and runs the SDK's
+/// `dart pub get --offline` there. `.dart_tool/` is ignored by git.
+Future<void> addDartPackage(
+  TempRepo repo, {
+  String dir = '',
+  String name = 'app',
+  String analysisOptions = '',
+}) async {
+  String at(String path) => dir.isEmpty ? path : '$dir/$path';
+  await repo.write(
+    at('pubspec.yaml'),
+    'name: $name\nenvironment:\n  sdk: ^3.0.0\n',
+  );
+  await repo.write(at('analysis_options.yaml'), analysisOptions);
+  await repo.write(at('.gitignore'), '.dart_tool/\npubspec.lock\n');
+  for (final path in ['pubspec.yaml', 'analysis_options.yaml', '.gitignore']) {
+    await repo.stage(at(path));
+  }
+  await repo.commit('add package ${dir.isEmpty ? name : dir}');
+  final result = await Process.run(
+    'dart',
+    ['--suppress-analytics', 'pub', 'get', '--offline'],
+    workingDirectory: dir.isEmpty ? repo.root : '${repo.root}/$dir',
+    environment: repo.environment,
+    includeParentEnvironment: false,
+  );
+  if (result.exitCode != 0) {
+    throw StateError('dart pub get failed: ${result.stderr}');
+  }
 }

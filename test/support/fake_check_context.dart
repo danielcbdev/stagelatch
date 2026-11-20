@@ -1,6 +1,7 @@
 import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
+import 'package:stagelatch/src/domain/dart/import_graph.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/package_map.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
@@ -22,13 +23,25 @@ final class FakeCheckContext implements CheckContext {
     PackageMap? packages,
     Documents? documents,
     this._dart,
+    ImportGraph? importGraph,
     this.targetBranch,
     this._enabled,
     this._settings = const [],
   }) : changes = changes ?? ChangeSet(const []),
        snapshot = snapshot ?? FakeSnapshotFiles(const {}),
        packages = packages ?? PackageMap(const []),
-       documents = documents ?? const StructuredDocuments();
+       documents = documents ?? const StructuredDocuments(),
+       _importGraph =
+           importGraph ??
+           ImportGraph.build(
+             directives: const {},
+             packages: PackageMap(const []),
+           );
+
+  final ImportGraph _importGraph;
+
+  @override
+  Future<ImportGraph> get importGraph async => _importGraph;
 
   final DartToolchain? _dart;
   final Set<RuleId>? _enabled;

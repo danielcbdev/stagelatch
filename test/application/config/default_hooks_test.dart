@@ -14,7 +14,6 @@ void main() {
 
     expect(defaults(preCommitHook, catalog), [
       'format',
-      'analyze',
       'codegen',
       'pubspec',
       'l10n',
@@ -24,6 +23,14 @@ void main() {
       'tests/new-skip',
     ]);
     expect(defaults(prePushHook, catalog), ['analyze', 'tests/affected']);
+  });
+
+  test('analyze is on pre-push and ci by default, not on pre-commit', () {
+    final catalog = FakeCheckCatalog.full();
+
+    expect(defaults(preCommitHook, catalog), isNot(contains('analyze')));
+    expect(defaults(prePushHook, catalog), ['analyze', 'tests/affected']);
+    expect(defaults(ciHook, catalog), contains('analyze'));
   });
 
   test('checks the running version does not have are left out', () {
@@ -46,7 +53,6 @@ void main() {
 
     expect(defaults(ciHook, catalog), [
       'format',
-      'analyze',
       'codegen',
       'pubspec',
       'l10n',
@@ -54,6 +60,7 @@ void main() {
       'sensitive-files',
       'tests/solo',
       'tests/new-skip',
+      'analyze',
       'tests/affected',
     ]);
   });
