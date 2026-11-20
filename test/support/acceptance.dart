@@ -35,6 +35,7 @@ String cleanReport(int files) {
       '  format           ok  Nms\n'
       '  pubspec          ok  Nms\n'
       '  sensitive-files  ok  Nms\n'
+      '  assets           ok  Nms\n'
       '\n'
       '0 errors, 0 warnings. Commit allowed. (N.Ns)\n';
 }
@@ -47,6 +48,7 @@ String blockedReport(int files) {
       '  format           ok  Nms\n'
       '  pubspec          1 error  Nms\n'
       '  sensitive-files  ok  Nms\n'
+      '  assets           ok  Nms\n'
       '\n'
       'pubspec.yaml:4:11  error  pubspec/path-dependency\n'
       '  Dependency "design_system" uses a path that is not a package in '

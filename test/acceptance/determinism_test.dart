@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:stagelatch/src/application/environment.dart';
 import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
+import 'package:stagelatch/src/checks/assets/assets_check.dart';
 import 'package:stagelatch/src/checks/format/format_check.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
 import 'package:stagelatch/src/checks/sensitive_files/sensitive_files_check.dart';
@@ -78,6 +79,7 @@ void main() {
       open: (io) => Composition.create(
         io,
         checks: const [
+          AssetsCheck(),
           SensitiveFilesCheck(),
           PubspecCheck(),
           AnalyzeCheck(),
