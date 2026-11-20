@@ -63,7 +63,7 @@ Tasks run in this order: **1, 2, 3, 4, 5, 6, 8, 7, 9, 10.** Task 4 needs Task 1.
 **Interfaces:**
 - Produces: `Set<String> icuArguments(String message)`. Never throws.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('simple, plural and select arguments, including nested ones', () {
@@ -84,10 +84,10 @@ test('unbalanced input returns what was found and never throws', () {
 test('deep nesting and a very long message complete', () { /* 10,000 nested braces; 1 MiB message; 1 MiB of "{" and of "{a, plural, " */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** as a single left-to-right scan with an explicit stack (no recursion, so depth cannot overflow the call stack).
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add ICU argument scanner`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** as a single left-to-right scan with an explicit stack (no recursion, so depth cannot overflow the call stack).
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add ICU argument scanner`
 
 ### Task 2: Remaining `pubspec` rules
 
@@ -102,7 +102,7 @@ test('deep nesting and a very long message complete', () { /* 10,000 nested brac
 - Consumes: `PubspecDocument`, `PubspecSettings`, `CheckContext.targetBranch`, `CheckContext.base`.
 - Produces: `unpinnedGitFindings(PubspecDocument, RepoPath, {required bool requireSha})`; `buildNumberRegressionFindings({required PubspecDocument snapshot, required PubspecDocument? base, required RepoPath path})`; `lockfileFindings({required PubspecDocument pubspec, required LockfileDocument lock, required RepoPath pubspecPath})`; `LockfileDocument` exposing `Map<String, LockedPackage>` with `version`, `source` (`hosted`, `git`, `path`, `sdk`) and `dependencyKind`.
 
-- [ ] **Step 1: Write the failing tests.** Messages are asserted exactly as in `specs/rules.md`.
+- [x] **Step 1: Write the failing tests.** Messages are asserted exactly as in `specs/rules.md`.
 
 ```dart
 test('git dependency without ref', () { expect(f.single.message, 'Git dependency "ui" has no ref.'); });
@@ -131,10 +131,10 @@ test('"any" and an omitted constraint accept every version', () { /* ... */ });
 test('no sibling pubspec.lock in the snapshot means the rule is silent', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.** Version and constraint parsing use `package:pub_semver`; an unparseable constraint is skipped, not an error.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add unpinned-git, build-number-regression and lockfile-out-of-sync`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.** Version and constraint parsing use `package:pub_semver`; an unparseable constraint is skipped, not an error.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add unpinned-git, build-number-regression and lockfile-out-of-sync`
 
 ### Task 3: The `assets` check
 
@@ -148,7 +148,7 @@ test('no sibling pubspec.lock in the snapshot means the rule is silent', () asyn
 **Interfaces:**
 - Produces: `AssetsCheck implements Check` (`id: 'assets'`; rules `missing`, `undeclared`, `max-file-size`); `AssetDeclarations.fromPubspec(PubspecDocument, RepoPath pubspecPath)` with `bool declares(RepoPath file)` and `Iterable<DeclaredAsset> get entries`; `String formatSize(int bytes, {required int limit})`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('a file is declared by exact path or by its directory, not recursively', () {
@@ -175,10 +175,10 @@ test('paths are resolved relative to the package of the pubspec', () async { /* 
 test('deleting an asset triggers the missing rule for its declaration', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.** A variant directory name matches a digit run, an optional `.digits`, then `x`. Sizes come from `SnapshotFiles.size`, never from reading content. Register `AssetsCheck` and update the check table in `cleanReport`, `blockedReport` and the goldens that spell it.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add assets check`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.** A variant directory name matches a digit run, an optional `.digits`, then `x`. Sizes come from `SnapshotFiles.size`, never from reading content. Register `AssetsCheck` and update the check table in `cleanReport`, `blockedReport` and the goldens that spell it.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add assets check`
 
 ### Task 4: The `l10n` check
 
@@ -193,7 +193,7 @@ test('deleting an asset triggers the missing rule for its declaration', () async
 - Consumes: `icuArguments`, `Documents.json`, `Documents.yaml`.
 - Produces: `L10nCheck implements Check` (`id: 'l10n'`; rules `missing-key`, `placeholder-mismatch`, `unparseable`; `unused-key` is registered in plan 04, not before); `L10nSetup { RepoPath arbDir; String templateFile; RepoPath? outputDir }` from `Future<L10nSetup?> readL10nSetup(SnapshotFiles, Documents, DartPackage)`; `ArbDocument` with `Map<String, LocatedEntry> get messages` (keys not starting with `@`).
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('defaults are lib/l10n and app_en.arb; l10n.yaml overrides them', () async { /* ... */ });
@@ -215,10 +215,10 @@ test('the check runs when any ARB of the directory or l10n.yaml changed, and com
 test('extra keys in a translation are not reported', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/rules.md` `l10n`. Register `L10nCheck` and update the check table in `cleanReport`, `blockedReport` and the goldens that spell it.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add l10n missing-key and placeholder-mismatch`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/rules.md` `l10n`. Register `L10nCheck` and update the check table in `cleanReport`, `blockedReport` and the goldens that spell it.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add l10n missing-key and placeholder-mismatch`
 
 ### Task 5: Annotated-declaration facts and `codegen/stale`
 
