@@ -49,17 +49,26 @@ jobs:
       - name: Analyze
         run: dart analyze --fatal-infos
 
-      # Windows drops the compiler connection while loading a suite
-      # ("Connection closed before full header was received"), before any
-      # assertion runs. One worker keeps that job on the tests.
+      # Two flags, each with a reason (docs/engineering/testing.md, section 9):
+      #
+      # - `--coverage-path` makes the runner open a WebSocket to the VM
+      #   service of every suite. That connection has dropped before any
+      #   assertion ran ("Connection closed before full header was received").
+      #   Only the job that runs the coverage floor reads the report, so only
+      #   that job asks for it.
+      # - `--concurrency=1` on Windows, where the same error appeared with the
+      #   default and with two workers.
       - name: Test
         shell: bash
         run: |
+          args=()
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            dart test --coverage-path=coverage/lcov.info --concurrency=1
-          else
-            dart test --coverage-path=coverage/lcov.info
+            args+=(--concurrency=1)
           fi
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ] && [ "${{ matrix.sdk }}" = "stable" ]; then
+            args+=(--coverage-path=coverage/lcov.info)
+          fi
+          dart test "${args[@]}"
 
       - name: Check coverage floor
         if: matrix.os == 'ubuntu-latest' && matrix.sdk == 'stable'

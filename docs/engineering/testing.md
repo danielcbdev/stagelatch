@@ -113,10 +113,29 @@ dart test
 dart test --coverage-path=coverage/lcov.info && dart run tool/check_coverage.dart
 ```
 
-All four run on every pull request, on Dart stable and beta, on Ubuntu, macOS and Windows, with two exceptions: the format check runs on stable only, because formatter output is specific to an SDK release (ADR-0008), and the coverage floor is checked once, on Ubuntu with stable.
+All four run on every pull request, on Dart stable and beta, on Ubuntu, macOS and Windows, with two exceptions: the format check runs on stable only, because formatter output is specific to an SDK release (ADR-0008), and the coverage floor is checked once, on Ubuntu with stable. Only that job passes `--coverage-path` to `dart test` (see section 9 for why); the other five run plain `dart test`.
 
 ## 8. Platform notes
 
 - Never build a path with string concatenation in a test; use `package:path` for OS paths and plain `/` for `RepoPath`.
 - Windows has no executable bit in the file system; assert the mode through `git ls-files -s`, not through file permissions.
 - Windows may hold file locks briefly after a process exits; `TempRepo.dispose` retries deletion a bounded number of times.
+
+## 9. Known CI failure: a suite fails to load
+
+**Symptom.** `dart test` reports `Failed to load "<suite>": Connection closed before full header was received, uri = http://127.0.0.1:<port>/<token>/ws`. It happens before any assertion of that suite counts, and it hits pure suites (`test/domain/rule_id_test.dart`) as well as suites that spawn `git`.
+
+**Where it was seen.** Windows jobs (pull request 12, which is why they run with `--concurrency=1`) and `ubuntu-latest / dart beta` on 2026-11-20 (run 44683972741, two suites, green on rerun). Every other red run in the history was a real failure and did not carry this message.
+
+**What the evidence says.**
+
+- The URI is the VM service WebSocket (`/ws`). With `test_core` 0.6.x the runner opens it only for coverage (`vm/platform.dart` calls `_gatherCoverage` through `package:coverage`'s `collect`), or in `--debug` mode. A plain `dart test` never opens it.
+- Every occurrence had `--coverage-path` on, in jobs that did not read the report.
+- It did not reproduce locally: 0 failures in 160 runs of `test/domain` (macOS, Dart stable), 80 with coverage and 80 without.
+- No upstream issue carries the exact message for this path. `dart-lang/sdk#56474` is the same `HttpException` text in an unrelated caller.
+
+**What is not established.** How the error escapes the `retry` loop of `package:coverage`, which repeats on any exception. This is a hypothesis about contention on the VM service connection, not a confirmed root cause.
+
+**What CI does.** Only the job that checks the coverage floor (Ubuntu, stable) passes `--coverage-path`. The other five jobs no longer open that connection at all. Nothing is retried automatically: a red job is a red job.
+
+**If it happens again** on the coverage job, rerun that job once with `gh run rerun <run-id> --failed`, and add the run id to this section. A suite failing with an assertion, a timeout or a different message is a real failure and is never rerun blindly. Three occurrences on the coverage job mean the coverage step should move to its own job with `--concurrency=1`.
