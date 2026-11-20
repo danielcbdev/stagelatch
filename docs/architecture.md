@@ -68,7 +68,6 @@ lib/
       dart/
         dart_toolchain.dart          # DartToolchain, DartDiagnostic, DiagnosticSeverity, FormatOutcome
         dart_file_facts.dart         # DartFileFacts, Directive, AnnotatedDeclaration, TestCall
-        sha256.dart                  # sha256Hex (ADR-0017): the token hash and the baseline fingerprint
         import_graph.dart            # ImportGraph
     checks/
       pubspec/  format/  analyze/  sensitive_files/

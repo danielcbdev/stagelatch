@@ -43,7 +43,7 @@ Allowed runtime dependencies, all from the Dart team's verified publishers:
 
 Dev dependencies: `test ^1.33.0` and `very_good_analysis ^11.0.0`. No coverage package is needed: `dart test --coverage-path` writes the lcov report itself.
 
-The tool depends on neither `analyzer` nor `dart_style`: diagnostics and formatting come from the project's resolved SDK (ADR-0008). Adding either needs an ADR, and only `infrastructure/dart/` may import them. Declaration and test-call facts come from a hand-written lexer (ADR-0017), and SHA-256 is a pure function in `domain` rather than `package:crypto`.
+The tool depends on neither `analyzer` nor `dart_style`: diagnostics and formatting come from the project's resolved SDK (ADR-0008). Adding either needs an ADR, and only `infrastructure/dart/` may import them. Declaration and test-call facts come from a hand-written lexer (ADR-0017); `crypto` is declared by the first task that hashes (plan 03 Task 5).
 
 Adding any other runtime dependency requires an ADR that states what it replaces, who publishes it and why writing the code ourselves is worse. No mocking library, no code generation, no DI container.
 

@@ -4,8 +4,10 @@
 /// advances, so the cost is linear in the source length (security S6).
 library;
 
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:stagelatch_bench/facts_model.dart';
-import 'package:stagelatch_bench/sha256.dart';
 
 /// The result of the lexing pass.
 final class Lexed {
@@ -569,7 +571,9 @@ final class _Recognizer {
       DeclFact(
         name: name,
         annotations: relevant,
-        tokenHash: sha256Hex(lexemes.join(' ')),
+        tokenHash: crypto.sha256
+            .convert(utf8.encode(lexemes.join(' ')))
+            .toString(),
         line: int.parse(pos[0]),
         column: int.parse(pos[1]),
       ),

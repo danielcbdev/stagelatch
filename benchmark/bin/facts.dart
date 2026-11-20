@@ -11,28 +11,22 @@
 /// - `adversarial`: time the scanner and the parser on hostile inputs.
 /// - `fuzz`: mutate corpus files into broken ones; the scanner must never
 ///   throw, and its lexical check is compared with the parser's errors.
-/// - `sha`: check the hand-written SHA-256 against `package:crypto`.
 library;
 
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart' as crypto;
 import 'package:stagelatch_bench/corpus.dart';
 import 'package:stagelatch_bench/facts_model.dart';
 import 'package:stagelatch_bench/facts_parse.dart';
 import 'package:stagelatch_bench/facts_scanner.dart';
 import 'package:stagelatch_bench/input.dart';
 import 'package:stagelatch_bench/proc.dart';
-import 'package:stagelatch_bench/sha256.dart';
 import 'package:stagelatch_bench/workspace.dart';
 
 Future<void> main(List<String> args) async {
   final mode = args.isEmpty ? 'compare' : args.first;
   switch (mode) {
-    case 'sha':
-      _sha();
     case 'edges':
       _edges();
     case 'adversarial':
@@ -42,7 +36,7 @@ Future<void> main(List<String> args) async {
     case 'parse' || 'scan' || 'compare':
       await _corpus(mode);
     default:
-      stderr.writeln('Usage: facts parse|scan|compare|edges|adversarial|sha');
+      stderr.writeln('Usage: facts parse|scan|compare|edges|adversarial|fuzz');
       exitCode = 64;
   }
 }
@@ -196,30 +190,6 @@ List<String> _s10Files() {
     for (final line in patch)
       if (line.startsWith('+++ b/')) line.substring(6),
   ];
-}
-
-void _sha() {
-  final inputs = [
-    '',
-    'abc',
-    'The quick brown fox jumps over the lazy dog',
-    'a' * 55,
-    'a' * 56,
-    'a' * 63,
-    'a' * 64,
-    'a' * 65,
-    'ação ✓ 日本語',
-    'x' * 100000,
-  ];
-  var bad = 0;
-  for (final input in inputs) {
-    final reference = crypto.sha256.convert(utf8.encode(input)).toString();
-    if (sha256Hex(input) != reference) {
-      bad++;
-      stdout.writeln('MISMATCH for ${input.length} chars');
-    }
-  }
-  stdout.writeln('sha256: ${inputs.length - bad} of ${inputs.length} agree');
 }
 
 const _edgeCases = <String, String>{
