@@ -68,6 +68,7 @@ lib/
       dart/
         dart_toolchain.dart          # DartToolchain, DartDiagnostic, DiagnosticSeverity, FormatOutcome
         dart_file_facts.dart         # DartFileFacts, Directive, AnnotatedDeclaration, TestCall
+        sha256.dart                  # sha256Hex (ADR-0017): the token hash and the baseline fingerprint
         import_graph.dart            # ImportGraph
     checks/
       pubspec/  format/  analyze/  sensitive_files/
@@ -87,7 +88,7 @@ lib/
     infrastructure/
       git/                           # GitProcess, CatFileBatch, GitCliRepository, GitSnapshotFiles
       dart/                          # FileSdkLocator, SdkDartToolchain(+Factory), MaterializedSnapshot,
-                                     # AnalysisServerClient, SyntacticFacts (directive scanner)
+                                     # AnalysisServerClient, SyntacticFacts (lexer and recognizers, ADR-0017)
       documents/                     # YamlDocuments, JsonDocuments
       reporters/                     # ConsoleReporter, ansi, console format, JsonReporter, GithubReporter, ...
       io/                            # LocalWorkingTree, FileHookStore, SystemClock, LocalDoctorProbes
@@ -349,7 +350,7 @@ abstract interface class SdkLocator { Future<ResolvedSdk> locate(Config config);
 
 /// Creating starts no process and writes no file (dart-toolchain.md section 7).
 abstract interface class DartToolchainFactory {
-  DartToolchain create({required ResolvedSdk sdk, required String repoRoot, required SnapshotFiles snapshot, required PackageMap packages});
+  DartToolchain create({required ResolvedSdk sdk, required String repoRoot, required SnapshotFiles snapshot, required PackageMap packages, required Set<String> testFunctions});
 }
 
 abstract interface class DoctorProbes {
@@ -448,9 +449,9 @@ final class InternalException extends StagelatchException {}   // exit 70
 ```dart
 // dart/
 final class FileSdkLocator implements SdkLocator { FileSdkLocator({required String repoRoot, required Environment environment}); }
-final class SyntacticFacts {                             // the directive scanner of dart-toolchain.md section 6
-  const SyntacticFacts();
-  DartFileFacts extract(String source, RepoPath path);
+final class SyntacticFacts {                             // the lexer of dart-toolchain.md section 6, ADR-0017
+  const SyntacticFacts({Set<String> testFunctions = const {'test', 'testWidgets', 'group'}});
+  DartFileFacts extract(String source, RepoPath path);   // never throws; isWellFormed false when the lexer finds an unterminated string or comment, or unpaired brackets
 }
 final class MaterializedSnapshot {                       // ADR-0001; dart-toolchain.md section 4
   static Future<MaterializedSnapshot> write({required SnapshotFiles snapshot, required String repoRoot, required Iterable<DartPackage> packages, bool settingsOnly = false});
