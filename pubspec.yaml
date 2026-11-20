@@ -6,7 +6,7 @@ topics:
   - cli
   - git
   - flutter
-version: 0.1.0-dev.1
+version: 0.1.0
 repository: https://github.com/danielcbdev/stagelatch
 issue_tracker: https://github.com/danielcbdev/stagelatch/issues
 
