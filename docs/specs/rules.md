@@ -159,24 +159,24 @@ Setup, per package with an `l10n.yaml`: `arb-dir` (default `lib/l10n`) and `temp
 
 ## `assets`
 
-Phase: verify. Trigger: a changed `pubspec.yaml`, or a changed or deleted file under a directory of `assets.roots`. Paths matching `assets.ignore` are exempt.
+Phase: verify. Trigger: a changed `pubspec.yaml`, or a changed or deleted file under a directory of `assets.roots`. Paths matching `assets.ignore` are exempt. `assets.roots`, `assets.ignore` and the paths of declarations are all relative to the package that owns the `pubspec.yaml`, so a package at `packages/ui` has its roots at `packages/ui/assets`. The pubspec of a package is examined when it changed or when an asset of its package changed or was deleted; every declaration of an examined pubspec is checked for `missing`, and every changed file under a root is checked for `undeclared` and `max-file-size`.
 
 A file is **declared** when the `flutter: assets:` list of its package's pubspec contains its exact path, or its directory followed by `/`, or the directory one level up when the file sits in a resolution variant directory (a directory named like `2.0x`). Directory entries are not recursive, as in Flutter. Font files listed under `flutter: fonts:` are declared.
 
 ### `assets/missing`
 
-- A declared file path that is not in the snapshot, or a declared directory with no file in the snapshot.
+- A declared file path that is not in the snapshot (a font under `flutter: fonts:` included), or a declared directory with no file in the snapshot. A directory counts as having a file when a file is directly inside it or directly inside one of its resolution variant directories (`2.0x`).
 - Location: the entry in `pubspec.yaml`. Message: `Asset "<entry>" is declared but does not exist.`
 
 ### `assets/undeclared`
 
 - A changed file under an asset root that is not declared.
-- Location: `file:1:1`. Message: `File is under "<root>" but is not declared in pubspec.yaml.`
+- Location: `file:1:1`. Message: `File is under "<root>" but is not declared in pubspec.yaml.` `<root>` is the root as configured, with a trailing slash. Symlinks and submodule entries are not assets.
 
 ### `assets/max-file-size`
 
 - A changed file under an asset root whose blob is larger than `assets.max_file_size`.
-- Location: `file:1:1`. Message: `File is <size>, larger than the limit of <limit>.` Sizes are printed with one decimal and the unit of the limit.
+- Location: `file:1:1`. Message: `File is <size>, larger than the limit of <limit>.` Sizes are printed with one decimal and the unit of the limit (binary: 1KB is 1024 bytes); the limit itself is printed in its own unit without a decimal when it is a whole number of it, as in `500KB`.
 
 ## `tests`
 

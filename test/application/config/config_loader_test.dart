@@ -175,10 +175,10 @@ void main() {
       expect(pubspec.monotonicBuildNumber, hasLength(1));
       expect(pubspec.buildNumberMustGrowOn('release/1.2'), isTrue);
       expect(pubspec.buildNumberMustGrowOn('main'), isFalse);
-      expect(
-        config.settings<AssetsSettings>().ignore.single.pattern,
-        'assets/videos/**',
-      );
+      final ignore = config.settings<AssetsSettings>().ignore;
+      expect(ignore, hasLength(1));
+      expect(ignore.single('assets/videos/demo.mp4'), isTrue);
+      expect(ignore.single('assets/img/a.png'), isFalse);
     });
 
     test('reads every parameter', () async {
