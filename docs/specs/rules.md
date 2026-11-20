@@ -111,6 +111,8 @@ Phase: verify. Trigger: any changed `pubspec.yaml`, `pubspec.lock` or `pubspec_o
   - source kind differs (hosted, git, path, sdk): `pubspec.lock resolves "<name>" from <locked source>, but pubspec.yaml declares <declared source>.`
 - For each lock entry marked `direct main` or `direct dev` that the pubspec does not declare: `pubspec.lock lists "<name>" as a direct dependency, but pubspec.yaml does not declare it.`
 - Location: the dependency's key in `pubspec.yaml`; for the last case, `pubspec.yaml:1:1`.
+- A changed `pubspec.lock` triggers the rule for the `pubspec.yaml` beside it even when that file did not change. A lock that is not readable YAML is left to `pub`.
+- A dependency that is also under `dependency_overrides` is not compared: the override decides what the lock resolves.
 - No version solving is performed and transitive dependencies are not checked.
 
 ## `codegen`
