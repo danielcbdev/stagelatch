@@ -171,10 +171,10 @@ void main() {
         const RuleId('pubspec', 'unpinned-git'): RuleLevel.off,
       });
       expect(config.exclude.single.pattern, 'lib/generated/**');
-      expect(
-        config.settings<PubspecSettings>().monotonicBuildNumber.single.pattern,
-        'release/*',
-      );
+      final pubspec = config.settings<PubspecSettings>();
+      expect(pubspec.monotonicBuildNumber, hasLength(1));
+      expect(pubspec.buildNumberMustGrowOn('release/1.2'), isTrue);
+      expect(pubspec.buildNumberMustGrowOn('main'), isFalse);
       expect(
         config.settings<AssetsSettings>().ignore.single.pattern,
         'assets/videos/**',

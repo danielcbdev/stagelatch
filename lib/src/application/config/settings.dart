@@ -6,6 +6,7 @@ import 'package:stagelatch/src/domain/repo_path.dart';
 
 export 'package:stagelatch/src/checks/analyze/analyze_settings.dart';
 export 'package:stagelatch/src/checks/format/format_settings.dart';
+export 'package:stagelatch/src/checks/pubspec/pubspec_settings.dart';
 
 /// Parameters of the `codegen` check.
 final class CodegenSettings {
@@ -21,18 +22,6 @@ final class CodegenSettings {
 
   /// File name suffixes that mark a generated part file.
   final List<String> generatedSuffixes;
-}
-
-/// Parameters of the `pubspec` check.
-final class PubspecSettings {
-  /// Creates the settings.
-  const new({this.monotonicBuildNumber = const [], this.requireSha = false});
-
-  /// Branches on which `pubspec/build-number-regression` applies.
-  final List<Glob> monotonicBuildNumber;
-
-  /// Whether a git dependency must be pinned to a full commit id.
-  final bool requireSha;
 }
 
 /// Parameters of the `assets` check.

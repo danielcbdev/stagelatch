@@ -20,6 +20,23 @@ const RuleId dependencyOverridesRule = RuleId(
 /// A `pubspec.yaml` that cannot be read as a YAML map.
 const RuleId unparseableRule = RuleId(pubspecCheckId, 'unparseable');
 
+/// A git dependency with no `ref`, or, with `require_sha`, with a `ref`
+/// that is not a full commit id.
+const RuleId unpinnedGitRule = RuleId(pubspecCheckId, 'unpinned-git');
+
+/// A `version` lower than the one in the base, on a branch that must only
+/// grow.
+const RuleId buildNumberRegressionRule = RuleId(
+  pubspecCheckId,
+  'build-number-regression',
+);
+
+/// A `pubspec.lock` that no longer follows its `pubspec.yaml`.
+const RuleId lockfileOutOfSyncRule = RuleId(
+  pubspecCheckId,
+  'lockfile-out-of-sync',
+);
+
 /// What the check declares about its rules, in catalog order.
 const List<RuleDescriptor> pubspecRuleDescriptors = [
   RuleDescriptor(
@@ -38,5 +55,20 @@ const List<RuleDescriptor> pubspecRuleDescriptors = [
     id: unparseableRule,
     defaultSeverity: Severity.error,
     summary: 'A pubspec.yaml is not a valid YAML map.',
+  ),
+  RuleDescriptor(
+    id: unpinnedGitRule,
+    defaultSeverity: Severity.error,
+    summary: 'A git dependency is not pinned to a ref.',
+  ),
+  RuleDescriptor(
+    id: buildNumberRegressionRule,
+    defaultSeverity: Severity.error,
+    summary: 'The version is lower than the one in the base.',
+  ),
+  RuleDescriptor(
+    id: lockfileOutOfSyncRule,
+    defaultSeverity: Severity.error,
+    summary: 'pubspec.lock does not follow pubspec.yaml.',
   ),
 ];
