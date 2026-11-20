@@ -106,6 +106,7 @@ final class DartFileFacts {
     this.annotatedDeclarations = const [],
     this.testCalls = const [],
     this.identifiers = const {},
+    this.isWellFormed = true,
   });
 
   /// Imports, exports and parts, in source order.
@@ -119,4 +120,13 @@ final class DartFileFacts {
 
   /// Every identifier token of the file. Filled from 0.3.0 on.
   final Set<String> identifiers;
+
+  /// Whether the file could be read: false when the extractor found an
+  /// unterminated string or block comment, or brackets that do not pair
+  /// (ADR-0017). Then [annotatedDeclarations] and [testCalls] are empty
+  /// because the extractor does not trust what it read, and a check that
+  /// needs them must leave the file to `analyze` instead of reading the
+  /// empty lists as "there are none". [directives] are read from the top of
+  /// the file and keep their meaning.
+  final bool isWellFormed;
 }
