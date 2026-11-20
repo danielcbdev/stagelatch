@@ -700,11 +700,11 @@ Acceptance:
 **Interfaces:**
 - Consumes: everything above; Task 18 merged before Step 6.
 
-- [ ] **Step 1: Re-run the benchmark** of the spike with the real CLI on scenarios `s3` and `s10`, activated with `dart pub global activate --source path .`, cold (fresh temporary caches) and warm. Record p50 and p95 of `run pre-commit` (default lists: no `analyze`) and of `run pre-push` (`analyze`). **Stop and ask the owner** if `pre-commit` p50 is clearly above 2 s.
-- [ ] **Step 2: Write the README:** problem statement, a 60-second quick start, the rule table for this version, configuration summary, CI snippet, the benchmark table with the exact command to reproduce it, and the limitations (analyzer plugins, hooks are advisory, `analyze` costs one analysis server start per run and runs on push by default).
-- [ ] **Step 3: Record `demo.gif`** from `demo.tape` with VHS: a partially staged commit that is formatted in the index and then blocked by a path dependency.
-- [ ] **Step 4: Verify** `dart pub publish --dry-run` is clean and all four commands pass.
-- [ ] **Step 5: Commit.** `docs: add benchmark, demo and 0.1.0 README`
+- [x] **Step 1: Re-run the benchmark** of the spike with the real CLI on scenarios `s3` and `s10`, activated with `dart pub global activate --source path .`, cold (fresh temporary caches) and warm. Record p50 and p95 of `run pre-commit` (default lists: no `analyze`) and of `run pre-push` (`analyze`). **Stop and ask the owner** if `pre-commit` p50 is clearly above 2 s.
+- [x] **Step 2: Write the README:** problem statement, a 60-second quick start, the rule table for this version, configuration summary, CI snippet, the benchmark table with the exact command to reproduce it, and the limitations (analyzer plugins, hooks are advisory, `analyze` costs one analysis server start per run and runs on push by default).
+- [x] **Step 3: Record `demo.gif`** from `demo.tape` with VHS: a partially staged commit that is formatted in the index and then blocked by a path dependency.
+- [x] **Step 4: Verify** `dart pub publish --dry-run` is clean and all four commands pass.
+- [x] **Step 5: Commit.** `docs: add benchmark, demo and 0.1.0 README`
 - [ ] **Step 6: Open the release pull request** `release: 0.1.0` from `release/0.1.0` to `main` (workflow section 8), with plan 02 marked done. Its body lists the owner's steps: merge it with a merge commit; merge release-please's `chore(main): release 0.1.0` after checking version and CHANGELOG; confirm that tag `v0.1.0` ran `publish.yaml` and the version is on pub.dev (after any pub.dev setting Task 18 names); remove `release-as` and `bootstrap-sha` in a pull request to `develop`; open and merge `chore(release): sync main into develop` with a merge commit. Do not merge it, tag or publish.
 
 ### Task 18: Publish trigger and release version
