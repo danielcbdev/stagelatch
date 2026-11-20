@@ -347,7 +347,8 @@ final class _ConfigParser {
         for (final item in _strings(node, key))
           _parsedText('directory', item.text, key, item.location, _directory),
       ]),
-      'ignore': (node, key) => ignore = _globs(node, key),
+      'ignore': (node, key) =>
+          ignore = [for (final glob in _globs(node, key)) glob.matches],
     });
     _assets = AssetsSettings(
       maxFileSize: maxFileSize,
