@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:stagelatch/src/application/environment.dart';
 import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
 import 'package:stagelatch/src/checks/assets/assets_check.dart';
+import 'package:stagelatch/src/checks/codegen/codegen_check.dart';
 import 'package:stagelatch/src/checks/format/format_check.dart';
 import 'package:stagelatch/src/checks/l10n/l10n_check.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
@@ -80,6 +81,7 @@ void main() {
       open: (io) => Composition.create(
         io,
         checks: const [
+          CodegenCheck(),
           L10nCheck(),
           AssetsCheck(),
           SensitiveFilesCheck(),

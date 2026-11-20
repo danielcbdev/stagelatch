@@ -124,6 +124,7 @@ void main() {
       expect(facts.annotatedDeclarations, isEmpty);
       expect(facts.testCalls, isEmpty);
       expect(facts.identifiers, isEmpty);
+      expect(facts.isWellFormed, isTrue);
     });
 
     test('holds directives, annotated declarations and test calls', () {

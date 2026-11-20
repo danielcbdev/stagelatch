@@ -244,7 +244,7 @@ test('extra keys in a translation are not reported', () async { /* ... */ });
 - `<declaration>` is the first differing annotated declaration (by name; entries compared by annotations and token hash). If a declaration was only removed, its name is used and the location is the first `part` directive; if only the part list differs, `<declaration>` is the source file's name and the location is the `part` directive.
 - Annotation names, the ignored set and the naming of members and enum constants are those of `specs/dart-toolchain.md` section 6.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // dart_lexer_test.dart: tokens and lexemes
@@ -285,10 +285,10 @@ test('custom generated_suffixes are honored', () async { /* .config.dart */ });
 test('no base (first commit) treats the file as new', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL (`dart_lexer.dart` and `CodegenCheck` do not exist; `isWellFormed` is not a getter).
-- [ ] **Step 3: Implement** per `specs/rules.md` `codegen`, `specs/dart-toolchain.md` section 6 and ADR-0017. Start from the prototype in `benchmark/lib/facts_scanner.dart`; replace its throwaway shapes with `AnnotatedDeclaration` and `Location`, and compute the hash with `package:crypto` over the lexemes joined by one space. The lexer uses an explicit bracket stack and no recursion. Add the failing adversarial test before the hostile inputs are handled. Register `CodegenCheck` in `composition.dart` after the checks that exist, and update `cleanReport`, `blockedReport` and the goldens that spell the check table.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): add codegen/stale from annotated-declaration facts`
+- [x] **Step 2: Run.** Expected: FAIL (`dart_lexer.dart` and `CodegenCheck` do not exist; `isWellFormed` is not a getter).
+- [x] **Step 3: Implement** per `specs/rules.md` `codegen`, `specs/dart-toolchain.md` section 6 and ADR-0017. Start from the prototype in `benchmark/lib/facts_scanner.dart`; replace its throwaway shapes with `AnnotatedDeclaration` and `Location`, and compute the hash with `package:crypto` over the lexemes joined by one space. The lexer uses an explicit bracket stack and no recursion. Add the failing adversarial test before the hostile inputs are handled. Register `CodegenCheck` in `composition.dart` after the checks that exist, and update `cleanReport`, `blockedReport` and the goldens that spell the check table.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): add codegen/stale from annotated-declaration facts`
 
 ### Task 6: Test-call facts, `tests/solo` and `tests/new-skip`
 
