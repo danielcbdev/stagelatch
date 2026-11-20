@@ -1,3 +1,4 @@
+import 'package:stagelatch/src/version.dart';
 import 'package:test/test.dart';
 
 import '../support/temp_repo.dart';
@@ -18,6 +19,6 @@ void main() {
       expect(result.stdout, isNot(contains('\u001b')));
       expect(result.stderr, isNot(contains('\u001b')));
     }
-    expect(version.stdout, 'stagelatch 0.1.0-dev.1\n');
+    expect(version.stdout, 'stagelatch $packageVersion\n');
   });
 }

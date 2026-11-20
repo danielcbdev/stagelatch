@@ -11,6 +11,7 @@ import 'package:stagelatch/src/cli/composition.dart';
 import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/cli/runner.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
+import 'package:stagelatch/src/version.dart';
 import 'package:test/test.dart';
 
 import '../support/fake_check.dart';
@@ -41,7 +42,7 @@ void main() {
     );
 
     expect(code, 0);
-    expect(out.toString(), 'stagelatch 0.1.0-dev.1\n');
+    expect(out.toString(), 'stagelatch $packageVersion\n');
   });
 
   test('unknown command and unknown hook are usage errors', () async {
