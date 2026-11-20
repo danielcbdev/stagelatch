@@ -14,6 +14,7 @@ import 'package:stagelatch/src/application/ports/working_tree.dart';
 import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
 import 'package:stagelatch/src/checks/assets/assets_check.dart';
 import 'package:stagelatch/src/checks/format/format_check.dart';
+import 'package:stagelatch/src/checks/l10n/l10n_check.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
 import 'package:stagelatch/src/checks/sensitive_files/sensitive_files_check.dart';
 import 'package:stagelatch/src/cli/io.dart';
@@ -77,6 +78,7 @@ final class Composition {
               PubspecCheck(),
               SensitiveFilesCheck(),
               AssetsCheck(),
+              L10nCheck(),
             ],
       );
       final sdkLocator = FileSdkLocator(

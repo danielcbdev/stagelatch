@@ -139,11 +139,11 @@ Phase: verify. Trigger: any changed `.dart` file. Disabled when `codegen.generat
 
 Phase: verify. Trigger: a changed `l10n.yaml` or `.arb` file; `unused-key` also triggers on any changed `.dart` file.
 
-Setup, per package with an `l10n.yaml`: `arb-dir` (default `lib/l10n`) and `template-arb-file` (default `app_en.arb`). Keys starting with `@` are metadata and are not message keys.
+Setup, per package with an `l10n.yaml`: `arb-dir` (default `lib/l10n`) and `template-arb-file` (default `app_en.arb`), both read relative to the package. A package without `l10n.yaml`, with one that is not a YAML map, or whose `arb-dir` is absolute or leaves the package, is skipped; an empty `l10n.yaml` means the defaults. Keys starting with `@` are metadata and are not message keys. The **ARB files** of a package are the `.arb` files directly inside `arb-dir`. A package is looked at when its `l10n.yaml` changed, or an ARB file of its directory changed or was deleted; every locale is then compared with the template, so adding a key to the template flags every translation that lacks it. A template that is missing or not a JSON object skips every comparison.
 
 ### `l10n/unparseable`
 
-- A changed `.arb` file in the ARB directory is not valid JSON or its root is not an object. Location: where the parser failed. Message: `<file> is not valid JSON: <reason>.`
+- A changed `.arb` file in the ARB directory is not valid JSON or its root is not an object. Location: where the parser failed, or the whole file for a root that is not an object (reason `expected an object at the top level`). Message: `<file> is not valid JSON: <reason>.` `<file>` is the file name. A file that is not valid is left out of the other rules; one that did not change is not reported.
 
 ### `l10n/missing-key`
 
@@ -152,7 +152,7 @@ Setup, per package with an `l10n.yaml`: `arb-dir` (default `lib/l10n`) and `temp
 
 ### `l10n/placeholder-mismatch`
 
-- For a key present in both the template and a translation: the set of ICU argument names in the two messages differs. Argument names are collected from `{name}`, `{name, plural, ...}`, `{name, select, ...}` and nested messages; quoted text (`'{'`) is skipped.
+- For a key present in both the template and a translation, when both values are strings: the set of ICU argument names in the two messages differs. Argument names are collected from `{name}`, `{name, plural, ...}`, `{name, select, ...}` and nested messages; quoted text (`'{'`) is skipped.
 - Location: the key in the translation. Message: `Placeholders of "<key>" differ from the template: expected {<sorted names>}, found {<sorted names>}.`
 
 ### `l10n/unused-key`
