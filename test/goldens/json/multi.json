@@ -9,6 +9,7 @@
       "verdict": "pass",
       "exitCode": 0,
       "files": 1,
+      "all": false,
       "findings": [],
       "fixes": [],
       "checks": [],
@@ -23,6 +24,7 @@
       "verdict": "fail",
       "exitCode": 1,
       "files": 2,
+      "all": false,
       "findings": [
         {
           "rule": "pubspec/dependency-overrides",

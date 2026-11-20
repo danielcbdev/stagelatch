@@ -65,7 +65,8 @@ final class ConsoleReporter implements Reporter {
       EntryKind.prePush => 'pre-push ${sanitizeForTerminal(report.label)}',
       EntryKind.ci => 'ci',
     };
-    return 'stagelatch $entry: ${counted(report.files, 'file')}';
+    final scope = report.all ? 'all ' : '';
+    return 'stagelatch $entry: $scope${counted(report.files, 'file')}';
   }
 
   /// One row per check that ran, in the order the report lists them.

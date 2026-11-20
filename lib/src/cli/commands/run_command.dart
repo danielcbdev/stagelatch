@@ -57,9 +57,6 @@ final class RunCommand extends Command<int> {
         'Unknown reporter "$reporter". Expected console or json.',
       );
     }
-    if (argResults?.flag('all') ?? false) {
-      throw const UsageException('--all arrives in 0.2.0.');
-    }
     final composition = await _open(io);
     try {
       final entry = hook.first == 'pre-push'
@@ -72,6 +69,7 @@ final class RunCommand extends Command<int> {
       final reports = await composition.pipeline.run(
         RunRequest(
           entry: entry,
+          all: argResults?.flag('all') ?? false,
           allowFixes: !(argResults?.flag('no-fix') ?? false),
         ),
       );

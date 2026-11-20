@@ -99,13 +99,35 @@ final class GitCliRepository implements GitRepository {
     EntryPoint entry, {
     required bool all,
   }) async {
-    if (all) throw UnsupportedError('--all arrives in 0.2.0.');
-    return switch (entry) {
+    final runs = switch (entry) {
       PreCommitEntry() => [await _resolvePreCommit()],
       PrePushEntry() => await _resolvePrePush(entry),
       CiEntry() => [await _resolveCi(entry)],
     };
+    if (!all) return runs;
+    // `--all`: the base, the target branch and the label are those of the
+    // run without it, because rules that compare with the base still need
+    // them; only the changeset changes (docs/specs/git.md, section 4.4).
+    return [
+      for (final run in runs)
+        ResolvedRun(
+          snapshot: run.snapshot,
+          base: run.base,
+          changes: await _everyRegularFile(run.snapshot),
+          targetBranch: run.targetBranch,
+          label: run.label,
+        ),
+    ];
   }
+
+  /// Every regular file of [snapshot] as an added file. Symlinks and
+  /// submodule entries are not content a rule can judge, so they are left
+  /// out, as they are from any other changeset.
+  Future<ChangeSet> _everyRegularFile(SnapshotRef snapshot) async => ChangeSet([
+    for (final entry in await files(snapshot).list())
+      if (entry.mode.isFile)
+        FileChange(path: entry.path, kind: ChangeKind.added),
+  ]);
 
   /// The index against `HEAD` (docs/specs/git.md, section 4.1).
   Future<ResolvedRun> _resolvePreCommit() async {

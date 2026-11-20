@@ -49,6 +49,7 @@ RunReport _report({
   EntryKind entry = EntryKind.preCommit,
   String label = 'index',
   int files = 1,
+  bool all = false,
   List<Finding> findings = const [],
   List<AppliedFix> fixes = const [],
   List<CheckTiming> timings = const [],
@@ -61,6 +62,7 @@ RunReport _report({
   entry: entry,
   label: label,
   files: files,
+  all: all,
   verdict: findings.any((finding) => finding.severity == Severity.error)
       ? Verdict.fail
       : Verdict.pass,
@@ -219,6 +221,17 @@ void main() {
       expect(
         _render([_report()]),
         startsWith('stagelatch pre-commit: 1 file\n'),
+      );
+    });
+
+    test('a run on all files says so, with the count', () {
+      expect(
+        _render([_report(files: 3, all: true)]),
+        startsWith('stagelatch pre-commit: all 3 files\n'),
+      );
+      expect(
+        _render([_report(all: true, entry: EntryKind.ci)]),
+        startsWith('stagelatch ci: all 1 file\n'),
       );
     });
 
