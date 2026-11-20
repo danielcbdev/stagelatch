@@ -87,7 +87,11 @@ A failing `merge-base` is the usage error of [`cli.md`](cli.md#35-ci---base-ref-
 
 ### 4.4 `--all`
 
-The changeset lists every regular file of the snapshot as `added`. The base snapshot is still resolved, because rules that compare with the base need it.
+The changeset lists every regular file of the snapshot as `added`; symlinks (mode `120000`) and gitlinks (`160000`) are left out. The base snapshot is still resolved as without `--all`, because rules that compare with the base need it. It applies to every entry point:
+
+- `pre-commit`: the files of the index (`git ls-files -s -z`); the base is `HEAD`, or none on a repository with no commit.
+- `pre-push`: the files of each pushed commit (`git ls-tree -r -z <sha>`); the base as in 4.2.
+- `ci`: the files of the head commit; the base as in 4.3.
 
 ## 5. Files that differ from the working tree
 

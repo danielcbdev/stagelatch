@@ -128,6 +128,10 @@ Phase: verify. Trigger: any changed `.dart` file. Disabled when `codegen.generat
 - A finding also exists when the generated part file is absent from the snapshot.
   - Location: the `part` directive. Message: `<generated file> is declared as a part but is missing.`
 - Whitespace and comment changes do not change a token hash, so they never trigger the rule.
+- The base version is read from the base snapshot at the file's previous path when it was renamed. With no base, no such file in the base, or base facts that are not well formed, the file is treated as new.
+- Facts that are not well formed ([`dart-toolchain.md`](dart-toolchain.md#6-facts)) leave the file to `analyze`: no finding.
+- One finding per generated part that is missing from the changeset. A part that is absent from the snapshot yields only the "missing" finding for that part.
+- `<declaration>` is the first differing declaration by name. When a declaration was only removed, its name is used and the location is the first `part` directive; when only the list of parts differs, `<declaration>` is the file's name and the location is the `part` directive.
 
 ## `l10n`
 
@@ -178,7 +182,7 @@ A file is **declared** when the `flutter: assets:` list of its package's pubspec
 
 ## `tests`
 
-A **test file** is a `.dart` file under a package's `test/` directory whose name ends with `_test.dart`. A **test call** is a call to a function named in `tests.functions`. Its **key** is the list of enclosing group descriptions followed by its own description; calls whose description is not a string literal use the source text of the argument.
+A **test file** is a `.dart` file under a package's `test/` directory, at any depth, whose name ends with `_test.dart`. A **test call** is a call to a function named in `tests.functions`. Its **key** is the list of enclosing group descriptions followed by its own description; calls whose description is not a string literal use the source text of the argument. A group is a call to `group`, and a `group` call is itself a test call, so `group('x', ..., skip: true)` skips "x". A file whose facts are not well formed is left to `analyze`.
 
 ### `tests/solo`
 
@@ -191,7 +195,7 @@ Phase: verify. Trigger: a changed test file.
 
 Phase: verify. Trigger: a changed test file.
 
-- A test call with a `skip` argument that is not the literal `false` or `null`, or carrying a `@Skip` annotation, whose key has no skipped counterpart in the base version of the file. Skips that already existed in the base are not reported.
+- A test call with a `skip` argument that is not the literal `false` or `null`, or carrying a `@Skip` annotation, whose key has no skipped counterpart in the base version of the file. Skips that already existed in the base are not reported: for each key the skipped calls of the snapshot are counted against the skipped calls of the base version (at the file's previous path when renamed; with no base, every skip is new), and when the snapshot has more, the later ones in source order are reported. A `@Skip` annotation on the library or on the enclosing function makes each call under it skipped.
 - Location: the `skip` argument or annotation. Message: `Test "<description>" was skipped in this change.`
 
 ### `tests/affected`

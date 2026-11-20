@@ -377,13 +377,14 @@ Future<PrePushEntry> synthesizePrePush({String? remote});
 8. **Verdict:** `fail` when at least one finding has `Severity.error`, else `pass`.
 
 ```dart
-final class RunRequest { EntryPoint get entry; bool get all; bool get allowFixes; }
+final class RunRequest { EntryPoint get entry; bool get all; bool get allowFixes; String? get hook; bool get useBaseline; }   // hook and useBaseline: plan 03 Task 7 (baseline create and prune)
 enum Verdict { pass, fail }
 
 final class RunReport {
   EntryKind get entry;
   String get label;                      // from ResolvedRun.label
   int get files;                         // size of the changeset
+  bool get all;                          // the run used --all (plan 03 Task 8); the console header and the JSON report show it
   Verdict get verdict;
   List<Finding> get findings;
   List<AppliedFix> get fixes;
@@ -403,6 +404,7 @@ final class RunReport {
 - `context.dart` creates a toolchain on first access through `DartToolchainFactory`, after `SdkLocator.locate`. A run in which no check touches it locates no SDK and starts nothing.
 - The fix phase and the verify phase each have their own context, so each has its own toolchain, bound to the snapshot view of that phase. Concurrent verify checks share one. Every toolchain is closed in a `finally` around the run.
 - `context.packages` is `buildPackageMap(snapshot, documents)`; `context.importGraph` is built once per context from `dart.facts` of every `.dart` file of the snapshot.
+- `dart.facts` takes the snapshot to read, so a check asks for the facts of the base through `context.base`. `LazyToolchain` passes `tests.functions` to `DartToolchainFactory.create` (plan 03 Task 6); there is no facts cache before plan 04.
 
 ### 5.3.2 Other application functions added in plan 02
 
@@ -448,8 +450,8 @@ final class InternalException extends StagelatchException {}   // exit 70
 ```dart
 // dart/
 final class FileSdkLocator implements SdkLocator { FileSdkLocator({required String repoRoot, required Environment environment}); }
-final class SyntacticFacts {                             // the lexer of dart-toolchain.md section 6, ADR-0017
-  const SyntacticFacts({Set<String> testFunctions = const {'test', 'testWidgets', 'group'}});
+final class SyntacticFacts {                             // the lexer of dart-toolchain.md section 6, ADR-0017; from plan 03, directives plus declarations and calls
+  const SyntacticFacts({Set<String> testFunctions = const {'test', 'testWidgets', 'group'}});   // the set is wired in plan 03 Task 6
   DartFileFacts extract(String source, RepoPath path);   // never throws; isWellFormed false when the lexer finds an unterminated string or comment, or unpaired brackets
 }
 final class MaterializedSnapshot {                       // ADR-0001; dart-toolchain.md section 4
@@ -478,6 +480,62 @@ String summaryLine(RunReport report);                    // shared by the consol
 // io/
 final class LocalDoctorProbes implements DoctorProbes {}
 ```
+
+### 5.6 Added in plan 03
+
+```dart
+// domain/dart/dart_file_facts.dart
+//   DartFileFacts gains: bool get isWellFormed;           // ADR-0017; true unless the lexer finds an unterminated string or block comment, or unpaired brackets
+// domain/ports
+abstract interface class DartToolchainFactory {
+  DartToolchain create({required ResolvedSdk sdk, required String repoRoot, required SnapshotFiles snapshot, required PackageMap packages, required Set<String> testFunctions});
+}
+
+// checks/l10n/
+Set<String> icuArguments(String message);                                   // never throws; explicit stack, no recursion
+Future<L10nSetup?> readL10nSetup(SnapshotFiles files, Documents documents, DartPackage package);
+final class L10nSetup { RepoPath get arbDir; String get templateFile; RepoPath? get outputDir; }
+final class L10nCheck implements Check {}                                    // id 'l10n'; rules missing-key, placeholder-mismatch, unparseable
+
+// checks/pubspec/
+List<Finding> unpinnedGitFindings(PubspecDocument document, RepoPath path, {required bool requireSha});
+List<Finding> buildNumberRegressionFindings({required PubspecDocument snapshot, required PubspecDocument? base, required RepoPath path});
+List<Finding> lockfileFindings({required PubspecDocument pubspec, required LockfileDocument lock, required RepoPath pubspecPath});
+final class LockedPackage { String get version; String get source; String get dependencyKind; }   // source: hosted | git | path | sdk
+final class LockfileDocument { Map<String, LockedPackage> get packages; }
+
+// checks/assets/
+final class AssetDeclarations { factory AssetDeclarations.fromPubspec(PubspecDocument document, RepoPath pubspecPath); bool declares(RepoPath file); Iterable<DeclaredAsset> get entries; }
+String formatSize(int bytes, {required int limit});
+final class AssetsCheck implements Check {}                                  // id 'assets'; rules missing, undeclared, max-file-size
+
+// checks/codegen/
+final class CodegenSignature { factory CodegenSignature.of(DartFileFacts facts, List<String> suffixes); List<String> get generatedParts; SignatureDifference? firstDifference(CodegenSignature? base); }
+final class SignatureDifference { String get declaration; Location? get location; }   // null location: use the part directive
+final class CodegenCheck implements Check {}                                 // id 'codegen'; rule stale
+
+// checks/tests/
+String testKey(TestCall call);                                               // groups, then the description
+bool isTestFile(RepoPath path, PackageMap packages);
+final class TestsCheck implements Check {}                                   // id 'tests'; rules solo, new-skip (affected: plan 04)
+
+// infrastructure/dart/
+final class SyntacticFacts { const SyntacticFacts({Set<String> testFunctions}); DartFileFacts extract(String source, RepoPath path); }
+
+// application/baseline/
+String normalizeSnippet(List<String> lines);
+Future<String> fingerprintOf(Finding finding, SnapshotFiles snapshot);       // SHA-256 (package:crypto) of rule, path and normalized snippet
+final class BaselineEntry { RuleId get rule; RepoPath get path; String get fingerprint; int get count; }
+final class Baseline { const Baseline(List<BaselineEntry> entries); static const Baseline empty; List<BaselineEntry> get entries; }
+Baseline decodeBaseline(String json);                                        // ConfigException on malformed input
+String encodeBaseline(Baseline baseline);                                    // sorted by (path, rule, fingerprint)
+final class BaselineOutcome { List<Finding> get kept; int get baselined; }
+Future<BaselineOutcome> applyBaseline(List<Finding> findings, Baseline baseline, SnapshotFiles snapshot);   // findings already globally sorted
+final class BaselineCommands { BaselineCommands(Pipeline pipeline, WorkingTree workingTree); Future<String> create({required bool force}); Future<String> prune(); }
+```
+
+- The baseline filter is not part of the per-check chain: `Pipeline` sorts all findings, applies the baseline, then appends `stagelatch/invalid-ignore` findings and sorts again.
+- `GitRepository.resolve(entry, all: true)` is implemented (plan 03 Task 8); it no longer throws.
 
 ## 6. Infrastructure decisions that shape everything else
 
