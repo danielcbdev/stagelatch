@@ -73,3 +73,14 @@ Read with the spike's numbers in mind ([`docs/spike/report.md`](../docs/spike/re
   investigated; a fresh `HOME` also changes the `dart` tool's own state
   (its settings and analytics files). Every pre-commit run stays under
   1.1 s at p95, cold or warm.
+
+## The fact extractor (plan 03, ADR-0017)
+
+`bin/facts.dart` compares two ways of extracting annotated declarations,
+test calls and identifiers: `lib/facts_scanner.dart` (a hand-written
+lexer, the candidate that was chosen) and `lib/facts_parse.dart`
+(`package:analyzer`, the reference). The measurements are in
+[`docs/spike/facts-report.md`](../docs/spike/facts-report.md), which also
+lists the commands to reproduce them (`compare`, `edges`, `fuzz`,
+`adversarial`, `scan`, `parse`, `sha`). Nothing of stagelatch imports these
+files.

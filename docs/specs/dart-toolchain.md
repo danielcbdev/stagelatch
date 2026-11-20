@@ -64,7 +64,11 @@ Built in `0.1.0` for `analyze.scope: affected`, reused by `tests/affected` and `
 
 `DartToolchain.facts(SnapshotFiles files, RepoPath path) -> Future<DartFileFacts?>`, purely syntactic (ADR-0013). Null when the file is absent or is not text (`SnapshotFiles.readText` is null).
 
-**Directives in `0.1.0`.** Only `directives` is filled, by the directive scanner of section 8. It reads from the top of the file, skipping whitespace, comments, a `#!` line, `library` directives and annotations, and stops at the first token that does not start a directive. Inside a directive, string literals outside parentheses are the URI, and adjacent literals are concatenated; literals inside a configuration's parentheses are not URIs, but the literal after each `if (...)` is a branch. `part of` followed by a library name instead of a string produces nothing. The scanner does not detect syntax errors: a broken file still yields the directives before the point where it stops. The location of a `Directive` is its URI literal, from the opening quote to just after the closing quote (for adjacent literals, from the first opening quote to just after the last closing quote). Whether facts are null for a file with syntax errors is decided with the extractor of `annotatedDeclarations` and `testCalls` (plan 03).
+**Directives in `0.1.0`.** Only `directives` is filled, by the directive scanner of section 8. It reads from the top of the file, skipping whitespace, comments, a `#!` line, `library` directives and annotations, and stops at the first token that does not start a directive. Inside a directive, string literals outside parentheses are the URI, and adjacent literals are concatenated; literals inside a configuration's parentheses are not URIs, but the literal after each `if (...)` is a branch. `part of` followed by a library name instead of a string produces nothing. The scanner does not detect syntax errors: a broken file still yields the directives before the point where it stops. The location of a `Directive` is its URI literal, from the opening quote to just after the closing quote (for adjacent literals, from the first opening quote to just after the last closing quote). Whether a file that does not parse still has facts is decided in the next paragraph.
+
+**The extractor from `0.2.0` (ADR-0017).** `annotatedDeclarations`, `testCalls` and `identifiers` come from one hand-written lexer over the whole file and recognizers over its tokens, in-process, with no `analyzer`. The lexer follows the Dart scanner: strings (raw, multi-line, nested interpolation), nested block comments, numbers with digit separators, longest-match operators, and `[]` and `[]=` as single tokens. It uses no recursion on the input and runs in time linear in its length (security S6).
+
+**Facts of a file that does not lex.** Facts are not null for a text file. `isWellFormed` is false when the lexer finds an unterminated string or block comment, or brackets that do not pair. Then `directives` are what the scanner above reads from the top of the file, `annotatedDeclarations` and `testCalls` are empty, and a check that depends on them skips the file and leaves it to `analyze`. A syntax error the lexer cannot see leaves `isWellFormed` true and the facts best-effort; `analyze` reports the error.
 
 ```dart
 enum DirectiveKind { import, export, part, partOf }
@@ -96,12 +100,13 @@ final class DartFileFacts {
   List<AnnotatedDeclaration> get annotatedDeclarations;
   List<TestCall> get testCalls;
   Set<String> get identifiers;          // every identifier token; used by l10n/unused-key
+  bool get isWellFormed;                // false: unterminated string or block comment, or unpaired brackets
 }
 ```
 
 - `annotatedDeclarations` covers top-level declarations and class members that carry at least one annotation other than `override`, `protected`, `visibleForTesting`, `immutable`, `Deprecated` and `deprecated`.
 - Tokens exclude comments and whitespace, so formatting never changes `tokenHash`.
-- `testCalls` are collected only for calls to functions named in `tests.functions`; the adapter receives that list at construction.
+- `testCalls` are collected only for calls to functions named in `tests.functions`; the adapter receives that list at construction, through `DartToolchainFactory.create`, and no new port exists for it. A call is unqualified (`test(...)`, not `obj.test(...)` or a cascade) and has at least one positional argument. A group is a call to the function named `group`, and `groups` lists the descriptions of the `group` calls that enclose the call.
 - `identifiers` is filled from `0.3.0`; before that it is empty.
 
 ## 7. Lifecycle and cost
@@ -119,7 +124,7 @@ Selected by the spike ([`spike/report.md`](../spike/report.md)) and recorded in 
 |---|---|
 | Diagnostics (section 4) | On the first `diagnose`, write the materialized snapshot (section 4), then start one `dart language-server --protocol=analyzer` of the resolved SDK: `server.setSubscriptions` with `STATUS`; `analysis.setAnalysisRoots` with the materialized roots of the packages that own the requested files; then `analysis.getErrors` for each requested file. No `analysis.updateContent`. `close()` sends `server.shutdown`, kills the process if it has not exited after 5 s, then removes the directory. Writing the corpus's 2,472 Dart and YAML files took about 0.25 s. |
 | Formatting (section 5) | `dart format --output=show --stdin-name=<path>` of the resolved SDK, the source on stdin. `<path>` is the file's place inside a settings directory written on the first `format`: the snapshot's `pubspec.yaml` and `analysis_options.yaml` files and the package configs (rewritten as in section 4), no Dart files. So `page_width`, `trailing_commas` and the language version come from the snapshot, never from the working tree. `close()` removes it. Exit 0: stdout is the formatted text. Exit 65 (the source does not parse): `Unparseable()`. Any other exit is an internal error naming the exit code. No server. |
-| Facts (section 6) | A hand-written directive scanner, in-process. It skips comments and strings and yields `import`, `export`, `part` and `part of` with their URIs, conditional branches included. |
+| Facts (section 6) | A hand-written lexer and recognizers, in-process ([ADR-0017](../adr/0017-hand-written-lexer-for-declaration-and-test-call-facts.md), [`spike/facts-report.md`](../spike/facts-report.md)). The directive scanner of `0.1.0` yields `import`, `export`, `part` and `part of` with their URIs, conditional branches included; from `0.2.0` the lexer also yields annotated declarations and test calls. |
 | Parity | By construction: the project's own SDK produces every diagnostic and every formatted text. |
 | Cost | Formatting: about 20 ms per file. Diagnostics: one server start, about 1 s on a Dart-only package, about 5 s on a small Flutter package, about 13 s on a 2,400-file Flutter app, cache or not. |
 | Coupling | The analysis server's legacy protocol, tested on Flutter 3.47.8 and 3.44.9. No `analyzer` or `dart_style` dependency. |

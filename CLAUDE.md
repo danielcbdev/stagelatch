@@ -89,7 +89,7 @@ Precedência: este arquivo > ADRs > specs > planos. A documentação e os refina
     - Saída sem cor fora de TTY e quando `NO_COLOR` está definido.
     - Motivo: hooks, CI e agentes de IA travam em qualquer pergunta interativa.
 12. **Ports and adapters em cinco módulos.** `domain`, `checks`, `application`, `infrastructure`, `cli`. As dependências apontam para dentro, `dart:io` só existe em `infrastructure` e `cli`, e um teste de arquitetura quebra o build em import proibido.
-13. **Checks consomem fatos, não ASTs.** `DartFileFacts` (diretivas, declarações anotadas, chamadas de teste) é puramente sintático e cacheável por blob id.
+13. **Checks consomem fatos, não ASTs.** `DartFileFacts` (diretivas, declarações anotadas, chamadas de teste) é puramente sintático e cacheável por blob id. Um lexer escrito à mão, sem `analyzer`, extrai os fatos (ADR-0017): com 0 discordâncias contra `parseString` em 2.462 arquivos, 13 vezes mais rápido nos 10 arquivos de um commit e linear em entrada hostil.
 14. **Pipeline em duas fases: fix, depois verify.** Os fixes entram no index antes dos demais checks, então toda location se refere ao conteúdo que será commitado.
 15. **Config e baseline vêm do snapshot,** não do working tree. Config presente só no working tree é usada com aviso.
 16. **Fluxo de branches.** Um branch por tarefa do plano a partir do `develop`, pull request, CI verde, squash-merge. Release por pull request `develop` → `main` com merge commit.
@@ -101,7 +101,7 @@ lib/src/
 ├── domain/          # Check, Finding, Severity, Location, ChangeSet, Fix — sem dependência de git/analyzer/IO
 ├── checks/          # uma pasta por check; só importa o domain
 ├── application/     # Pipeline, seleção de checks por hook, scheduler, orçamento de tempo, Baseline, ConfigLoader
-├── infrastructure/  # GitClient, SdkDartToolchain (servidor de análise + dart format), scanner de diretivas, PubspecReader, SdkLocator, reporters, HookInstaller
+├── infrastructure/  # GitClient, SdkDartToolchain (servidor de análise + dart format), extrator de fatos (lexer), PubspecReader, SdkLocator, reporters, HookInstaller
 └── cli/             # comandos (package:args CommandRunner)
 ```
 

@@ -20,8 +20,9 @@ One file per decision, numbered, never renumbered. A decision is changed by a ne
 | [0014](0014-two-phase-pipeline.md) | Two-phase pipeline: fix, then verify | Accepted |
 | [0015](0015-config-and-baseline-come-from-the-snapshot.md) | Config and baseline come from the snapshot | Accepted |
 | [0016](0016-branching-and-release-flow.md) | Branching and release flow | Accepted |
+| [0017](0017-hand-written-lexer-for-declaration-and-test-call-facts.md) | A hand-written lexer extracts declaration and test-call facts | Accepted |
 
-ADRs 0001–0011 record decisions already fixed in `CLAUDE.md`. ADRs 0012–0016 were added with the implementation documentation and approved by the owner on 2026-11-12.
+ADRs 0001–0011 record decisions already fixed in `CLAUDE.md`. ADRs 0012–0016 were added with the implementation documentation and approved by the owner on 2026-11-12. ADR-0017 was added on 2026-11-20 with the measurements of [`spike/facts-report.md`](../spike/facts-report.md); it refines ADR-0013 and does not supersede it.
 
 ## Template
 
