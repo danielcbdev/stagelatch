@@ -156,11 +156,11 @@ final class ExternalCheck implements Check {
 
 - Resolve `dart`/`flutter` to the resolved SDK before `start`. Bare `run[0]` → explicit PATH walk (skip empty/`.`/relative/in-repo), absolute path to `Process.start` (AC-36). Apply Windows `.bat` argument guard. Divergence before start and after exit → usage error (exit 64). Max 10_000 findings. Stderr cap 64 KiB.
 
-- [ ] **Step 1: Write the failing tests:** handshake and declared rules; `read` from snapshot with `text: null` for unreadable; findings mapped; each Review Focus case; child killed in `finally`; timeout; diverge → no start.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(custom): run custom checks as child processes`
+- [x] **Step 1: Write the failing tests:** handshake and declared rules; `read` from snapshot with `text: null` for unreadable; findings mapped; each Review Focus case; child killed in `finally`; timeout; diverge → no start.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(custom): run custom checks as child processes`
 
 ---
 

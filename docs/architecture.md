@@ -675,8 +675,10 @@ const int maxFindingsPerCustomCheck = 10000;
 abstract interface class CheckProcess {
   Stream<String> get lines;
   void send(String line);
+  Future<void> closeStdin();
   Future<void> kill();
   Future<int> get exitCode;
+  Future<String> get standardError; // first 64 KiB
 }
 abstract interface class CheckProcessFactory {
   Future<CheckProcess> start(List<String> command, {required String workingDirectory});
@@ -688,7 +690,9 @@ final class ExternalCheck implements Check {
     required CheckProcessFactory factory,
     required Duration timeout,
     required Set<RepoPath> sourceClosure,
+    required String workingDirectory,
     Map<String, Object?> settings = const {},
+    bool all = false,
   });
 }
 final class CustomCheckConfig {
@@ -702,8 +706,9 @@ final class CustomCheckConfig {
 ```
 
 - `ExternalCheck.phase` is `CheckPhase.verify`. Rules come from the child's `ready` (`hasDynamicRules` true for the run).
-- Composition resolves `dart`/`flutter` in `run` to the project SDK; other bare `run[0]` names via an explicit PATH walk to an absolute path. Builds the source closure (diverge → exit 64) and registers one `ExternalCheck` per `Config.customChecks` entry when the hook selector includes it.
+- `SpawnedCheckProcessFactory` resolves `dart`/`flutter` to the project SDK and other bare `run[0]` names via an explicit PATH walk to an absolute path (AC-36). Composition builds the source closure (diverge → exit 64) and registers one `ExternalCheck` per `Config.customChecks` entry when the hook selector includes it.
 - Custom checks are concurrent with other verify checks; each has its own process.
+- Deviations from the plan 05 Task 3 sketch: `closeStdin` / `standardError` on `CheckProcess`; `workingDirectory` and `all` on `ExternalCheck` (needed to close stdin after `done`, surface stderr on crash, and encode `--all`).
 
 ## 6. Infrastructure decisions that shape everything else
 

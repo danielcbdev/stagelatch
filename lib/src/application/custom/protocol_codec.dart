@@ -17,6 +17,9 @@ import 'package:stagelatch/src/domain/severity.dart';
 /// A longer line is a protocol error; the host must not keep parsing it.
 const int maxProtocolLineBytes = 1 << 20; // 1 MiB
 
+/// How many findings one custom check may emit per run (custom-checks.md §11).
+const int maxFindingsPerCustomCheck = 10000;
+
 /// How many characters of an offending line appear in [ProtocolException.line]
 /// after S5 sanitization (custom-checks.md §11).
 const int _maxOffendingLineChars = 200;
