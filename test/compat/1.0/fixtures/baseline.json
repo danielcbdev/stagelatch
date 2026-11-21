@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "rule": "pubspec/path-dependency",
+      "path": "pubspec.yaml",
+      "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "count": 1
+    },
+    {
+      "rule": "format/unformatted",
+      "path": "lib/a.dart",
+      "fingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "count": 2
+    }
+  ]
+}

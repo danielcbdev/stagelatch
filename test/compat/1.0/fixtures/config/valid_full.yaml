@@ -1,0 +1,40 @@
+min_version: 0.3.0
+
+hooks:
+  pre-commit: [format, pubspec, sensitive-files]
+  pre-push: [analyze, tests/affected]
+  ci: [format, analyze, pubspec, sensitive-files, tests/affected]
+
+rules:
+  tests/new-skip: warning
+  pubspec/unpinned-git: off
+
+exclude: [lib/generated/**]
+
+time_budget: 2s
+
+format:
+  fix: true
+
+analyze:
+  scope: affected
+  fail_on: [error, warning]
+
+codegen:
+  generated_files_committed: true
+
+pubspec:
+  monotonic_build_number: [release/*]
+
+assets:
+  max_file_size: 500KB
+  ignore: [assets/videos/**]
+
+baseline: .stagelatch/baseline.json
+
+custom_checks:
+  team:
+    run: [dart, run, tool/team_check.dart]
+    timeout: 60s
+    rules:
+      no-print: error

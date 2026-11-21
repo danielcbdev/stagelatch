@@ -2,7 +2,9 @@ name: stagelatch
 description: >-
   Run stagelatch ci on a pull request: the same checks as the git hooks,
   over the pull request's diff. With tests/affected enabled (the default),
-  this executes the pull request's tests and the code they import.
+  this executes the pull request's tests and the code they import. With
+  custom_checks configured, child processes from the branch also run unless
+  no-custom-checks is true (recommended for pull requests from forks).
 author: danielcbdev
 branding:
   icon: check-square
@@ -28,6 +30,14 @@ inputs:
       there and the exit code is preserved. Useful for sarif and junit.
     required: false
     default: ''
+  no-custom-checks:
+    description: >-
+      When true, passes --no-custom-checks so no custom-check child starts.
+      Use for pull requests from forks (or any CI that must not execute
+      untrusted check code from the branch). Same warning class as
+      tests/affected executing PR tests.
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -51,11 +61,16 @@ runs:
         STAGELATCH_BASE: ${{ inputs.base }}
         STAGELATCH_REPORTER: ${{ inputs.reporter }}
         STAGELATCH_OUTPUT: ${{ inputs.output }}
+        STAGELATCH_NO_CUSTOM_CHECKS: ${{ inputs.no-custom-checks }}
       run: |
         set +e
+        extra=()
+        case "$STAGELATCH_NO_CUSTOM_CHECKS" in
+          true|TRUE|True|1|yes|YES) extra+=(--no-custom-checks) ;;
+        esac
         if [ -n "$STAGELATCH_OUTPUT" ]; then
-          dart pub global run stagelatch ci --base "$STAGELATCH_BASE" --reporter "$STAGELATCH_REPORTER" > "$STAGELATCH_OUTPUT"
+          dart pub global run stagelatch ci --base "$STAGELATCH_BASE" --reporter "$STAGELATCH_REPORTER" "${extra[@]}" > "$STAGELATCH_OUTPUT"
           exit $?
         fi
-        dart pub global run stagelatch ci --base "$STAGELATCH_BASE" --reporter "$STAGELATCH_REPORTER"
+        dart pub global run stagelatch ci --base "$STAGELATCH_BASE" --reporter "$STAGELATCH_REPORTER" "${extra[@]}"
         exit $?
