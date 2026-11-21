@@ -170,3 +170,36 @@ activation warm-up. The table is a second, complete measurement (8 cold and
 identifiers of 2,462 files and storing them) and about 0.4 s warm (listing the
 snapshot and reading 2,462 cache entries); these are differences of medians,
 not a profile.
+
+## Default hooks of 0.3.0 (plan 04, Task 10)
+
+The default `pre-commit` list (including `l10n/unused-key` on this corpus,
+which has an `l10n.yaml`) and the default `pre-push` list (`analyze` and
+`tests/affected`) on `s3` and `s10`. Cold deletes the corpus facts cache and
+uses a fresh `HOME`; warm keeps both caches. On these scenarios the unstaged
+edit makes the affected-test closure diverge, so `tests/affected` reports the
+skip warning and starts no test process; the pre-push time is essentially
+`analyze` plus selection and the divergence check.
+
+```bash
+dart pub global activate --source path .
+cd benchmark
+dart run bin/measure_cli.dart --hook pre-commit --hook pre-push \
+  --scenario s3 --scenario s10 --cold 3 --warm 10 --out 19-cli-0.3.0.json
+```
+
+Measured on 2026-11-21 on the same laptop and SDK. Results are in
+`results/19-cli-0.3.0.json`.
+
+| Hook | Scenario | Cold p50 / p95 | Warm p50 / p95 |
+|---|---|---|---|
+| pre-commit | s3 | 1.82 / 2.20 s | 1.26 / 1.31 s |
+| pre-commit | s10 | 3.24 / 3.45 s | 1.59 / 1.65 s |
+| pre-push | s3 | 38.7 / 40.7 s | 30.2 / 47.1 s |
+| pre-push | s10 | 50.4 / 50.5 s | 30.9 / 31.4 s |
+
+The first cold pre-commit run of the session (s3, 2.20 s) is the
+activation warm-up, same disclosure as 0.2.0. Warm facts cache versus cold
+cuts about 0.5 s (s3) to 1.6 s (s10) on the commit hook. Pre-push stays
+near the analyze-only affected numbers of 0.1.0 because `tests/affected`
+skips under the scenario's unstaged edit.

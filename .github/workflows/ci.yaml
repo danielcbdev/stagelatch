@@ -89,7 +89,9 @@ jobs:
         with:
           sdk: stable
 
-      # Every package `analyze` may touch needs its package config.
+      # Packages whose tests `tests/affected` may select, and every package
+      # `analyze` may touch, need a package config (plan 04, Task 10): the
+      # root, benchmark, test/fixtures/dart_app, and the workspace fixture.
       - name: Install dependencies
         run: |
           dart pub get

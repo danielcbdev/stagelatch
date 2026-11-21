@@ -1,7 +1,8 @@
 name: stagelatch
 description: >-
   Run stagelatch ci on a pull request: the same checks as the git hooks,
-  over the pull request's diff, reported as annotations.
+  over the pull request's diff. With tests/affected enabled (the default),
+  this executes the pull request's tests and the code they import.
 author: danielcbdev
 branding:
   icon: check-square
@@ -18,9 +19,15 @@ inputs:
     required: false
     default: ''
   reporter:
-    description: console, json or github.
+    description: console, json, github, junit or sarif.
     required: false
     default: github
+  output:
+    description: >-
+      Optional path to write the report to. When set, stdout is redirected
+      there and the exit code is preserved. Useful for sarif and junit.
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -43,4 +50,12 @@ runs:
       env:
         STAGELATCH_BASE: ${{ inputs.base }}
         STAGELATCH_REPORTER: ${{ inputs.reporter }}
-      run: dart pub global run stagelatch ci --base "$STAGELATCH_BASE" --reporter "$STAGELATCH_REPORTER"
+        STAGELATCH_OUTPUT: ${{ inputs.output }}
+      run: |
+        set +e
+        if [ -n "$STAGELATCH_OUTPUT" ]; then
+          dart pub global run stagelatch ci --base "$STAGELATCH_BASE" --reporter "$STAGELATCH_REPORTER" > "$STAGELATCH_OUTPUT"
+          exit $?
+        fi
+        dart pub global run stagelatch ci --base "$STAGELATCH_BASE" --reporter "$STAGELATCH_REPORTER"
+        exit $?
