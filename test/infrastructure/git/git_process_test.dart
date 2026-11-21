@@ -2,7 +2,9 @@
 library;
 
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:path/path.dart' as p;
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/infrastructure/git/git_process.dart';
 import 'package:test/test.dart';
@@ -112,6 +114,71 @@ void main() {
         ),
       );
     });
+
+    test('skips a planted git on a PATH entry inside the repository', () async {
+      final bin = p.join(repo.root, 'bin');
+      await Directory(bin).create();
+      final marker = p.join(repo.root, 'planted.ran');
+      final plantedName = Platform.isWindows ? 'git.bat' : 'git';
+      final planted = File(p.join(bin, plantedName));
+      if (Platform.isWindows) {
+        await planted.writeAsString(
+          '@echo planted> "$marker"\r\nexit /b 1\r\n',
+        );
+      } else {
+        await planted.writeAsString(
+          '#!/bin/sh\nprintf planted > "$marker"\nexit 1\n',
+        );
+        await Process.run('chmod', ['+x', planted.path]);
+      }
+
+      final separator = Platform.isWindows ? ';' : ':';
+      final poisoned = GitProcess(
+        workingDirectory: repo.root,
+        environment: {
+          ...repo.environment,
+          'PATH': '$bin$separator${repo.environment['PATH'] ?? ''}',
+        },
+      );
+
+      final result = await poisoned.run(['version']);
+
+      expect(result.exitCode, 0);
+      expect(result.text, contains('git version'));
+      expect(File(marker).existsSync(), isFalse);
+    });
+
+    test(
+      'does not execute a git planted at the repository root (cwd attack)',
+      () async {
+        // Windows CreateProcessW searches the process cwd before PATH when
+        // the executable name has no directory separator. Planting at the
+        // repo root (the GitProcess workingDirectory) must not win.
+        final marker = p.join(repo.root, 'cwd-planted.ran');
+        final names = Platform.isWindows
+            ? const ['git.exe', 'git.bat', 'git']
+            : const ['git'];
+        for (final name in names) {
+          final planted = File(p.join(repo.root, name));
+          if (Platform.isWindows) {
+            await planted.writeAsString(
+              '@echo planted> "$marker"\r\nexit /b 1\r\n',
+            );
+          } else {
+            await planted.writeAsString(
+              '#!/bin/sh\nprintf planted > "$marker"\nexit 1\n',
+            );
+            await Process.run('chmod', ['+x', planted.path]);
+          }
+        }
+
+        final result = await git.run(['version']);
+
+        expect(result.exitCode, 0);
+        expect(result.text, contains('git version'));
+        expect(File(marker).existsSync(), isFalse);
+      },
+    );
   });
 
   group('GitProcess.start', () {
