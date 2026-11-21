@@ -9,6 +9,7 @@ import 'package:stagelatch/src/cli/commands/doctor_command.dart';
 import 'package:stagelatch/src/cli/commands/init_command.dart';
 import 'package:stagelatch/src/cli/commands/install_command.dart';
 import 'package:stagelatch/src/cli/commands/run_command.dart';
+import 'package:stagelatch/src/cli/commands/why_command.dart';
 import 'package:stagelatch/src/cli/composition.dart';
 import 'package:stagelatch/src/cli/exit_codes.dart';
 import 'package:stagelatch/src/cli/io.dart';
@@ -51,7 +52,8 @@ Future<int> runStagelatch(
         ..addCommand(RunCommand(io, compose))
         ..addCommand(CiCommand(io, compose))
         ..addCommand(DoctorCommand(io, compose))
-        ..addCommand(BaselineCommand(io, compose));
+        ..addCommand(BaselineCommand(io, compose))
+        ..addCommand(WhyCommand(io, compose));
   try {
     return await runner.run(arguments) ?? ExitCode.pass.code;
   } on StagelatchException catch (error) {

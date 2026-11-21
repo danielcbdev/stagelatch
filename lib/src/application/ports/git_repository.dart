@@ -163,6 +163,12 @@ abstract interface class GitRepository {
   /// counts as changed.
   Future<List<ResolvedRun>> resolve(EntryPoint entry, {required bool all});
 
+  /// The index against a base for `stagelatch why` (docs/specs/git.md,
+  /// section 4.3.1). [baseRef] wins; else the upstream of the current
+  /// branch; else `refs/remotes/origin/HEAD`. Throws a usage error when
+  /// none can be determined or when the merge base is missing.
+  Future<ResolvedRun> resolveAgainstIndex({String? baseRef});
+
   /// The push `run pre-push` judges when git gave it no standard input:
   /// the current branch towards its upstream (docs/specs/cli.md, section
   /// 3.4). The remote is [remote] when given, else the upstream's, else

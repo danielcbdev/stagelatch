@@ -452,7 +452,7 @@ AC-24 to AC-27 use a real repository with `stagelatch.yaml` `hooks: {pre-commit:
 - **Usage errors (64).** The test path is not an `isTestFile` of any package of the index, or is not in the index: `<test-file> is not a test file of any package.` No base: `Cannot determine a base. Pass --base <ref>.`
 - `why` loads the configuration from the index for `tests.functions`, starts no test process and no analysis server, and closes its toolchain in a `finally`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // why_test.dart
@@ -492,10 +492,10 @@ test('prints the rendering and exits 0 whether the test is affected or not', () 
 test('a path that is not a test file exits 64 with the message on stderr', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, the command and the functions do not exist.
-- [ ] **Step 3: Implement** with the decisions above. `PipelineCheckContext.importGraph` and `Why` both call `buildImportGraph`.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(cli): add why command`
+- [x] **Step 2: Run.** Expected: FAIL, the command and the functions do not exist.
+- [x] **Step 3: Implement** with the decisions above. `PipelineCheckContext.importGraph` and `Why` both call `buildImportGraph`.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(cli): add why command`
 
 ### Task 7: SARIF reporter
 
