@@ -211,6 +211,24 @@ void main() {
       expect(await process.exitCode, isNegative);
     });
 
+    test('killAllActive stops leftover children', () async {
+      final child = FakeProcess(hangsUntilKilled: true);
+      final factory = SpawnedCheckProcessFactory(
+        repoRoot: '/repo',
+        sdk: sdk(),
+        starter: fakeStarter([child], []),
+        isWindows: false,
+        killGrace: const Duration(milliseconds: 30),
+      );
+
+      await factory.start(const [
+        'dart',
+        'hang.dart',
+      ], workingDirectory: '/repo');
+      await SpawnedCheckProcess.killAllActive();
+      expect(child.killed, isTrue);
+    });
+
     test('send writes a line and closeStdin closes stdin', () async {
       final child = FakeProcess(stdoutLines: const ['{"type":"done"}']);
       final factory = SpawnedCheckProcessFactory(

@@ -40,6 +40,22 @@ final class SpawnedCheckProcess implements CheckProcess {
         .transform(const Utf8Decoder(allowMalformed: true))
         .transform(const LineSplitter());
     _standardError = _readStandardError(_process.stderr);
+    _active.add(this);
+  }
+
+  /// Children that have been started and not yet [kill]ed.
+  ///
+  /// Acceptance tests call [killAllActive] in tearDown so a timed-out host
+  /// run cannot leave a `dart run` child holding the temp directory on
+  /// Windows.
+  static final Set<SpawnedCheckProcess> _active = {};
+
+  /// Stops every child still tracked in [_active] and waits for each exit.
+  static Future<void> killAllActive() async {
+    final leftover = List<SpawnedCheckProcess>.of(_active);
+    for (final process in leftover) {
+      await process.kill();
+    }
   }
 
   final Process _process;
@@ -72,6 +88,7 @@ final class SpawnedCheckProcess implements CheckProcess {
       return;
     }
     _killed = true;
+    _active.remove(this);
     _process.kill();
     try {
       await _process.exitCode.timeout(_killGrace);

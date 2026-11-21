@@ -1,16 +1,21 @@
 @Tags(['git'])
+@Timeout(Duration(minutes: 2))
 library;
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:stagelatch/src/infrastructure/custom/spawned_check_process.dart';
 import 'package:test/test.dart';
 
 import '../support/temp_repo.dart';
 
 /// AC-34: the reference check under `example/custom_check/` speaks protocol 1
 /// end to end against the real host (init/ready/run/done; optional finding).
+///
+/// Timeout is 2 minutes: Windows CI cold-starts `dart run` of the multi-file
+/// example package, and setUp (copy + pub get) counts toward the same budget.
 void main() {
   TempRepo? repo;
   late Directory exampleSrc;
@@ -50,6 +55,9 @@ custom_checks:
   });
 
   tearDown(() async {
+    // ExternalCheck kills in finally; if the test timed out first, the child
+    // may still hold files under the temp repo (PathAccessException on Windows).
+    await SpawnedCheckProcess.killAllActive();
     await repo?.dispose();
   });
 
