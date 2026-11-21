@@ -21,6 +21,8 @@ import 'package:stagelatch/src/domain/severity.dart';
 /// nearest package is [package], except those under the l10n output
 /// directory and those ending in a `codegen.generated_suffixes` suffix: the
 /// generated localizations declare every key, and would use them all.
+/// When `l10n.yaml` has no `output-dir`, Flutter writes those files into
+/// `arb-dir`, so that directory is excluded the same way.
 ///
 /// A file whose facts are not well formed, or cannot be read, has no
 /// identifiers, and an empty set must not be read as "no uses": the package
@@ -33,14 +35,15 @@ Future<List<Finding>> unusedKeyFindings(
 ) async {
   if (template.messages.isEmpty) return const [];
   final suffixes = context.settings<CodegenSettings>().generatedSuffixes;
-  final outputDir = setup.outputDir;
+  // Flutter gen-l10n writes into arb-dir when output-dir is omitted.
+  final generatedDir = setup.outputDir ?? setup.arbDir;
 
   final paths = [
     for (final entry in await context.snapshot.list())
       if (entry.mode.isFile &&
           entry.path.extension == '.dart' &&
           context.packages.packageOf(entry.path) == package &&
-          (outputDir == null || !entry.path.isWithin(outputDir)) &&
+          !entry.path.isWithin(generatedDir) &&
           !suffixes.any(entry.path.value.endsWith))
         entry.path,
   ];

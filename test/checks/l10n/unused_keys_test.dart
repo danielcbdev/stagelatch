@@ -146,6 +146,21 @@ void main() {
       expect(result.findings, hasLength(2));
     });
 
+    test('when output-dir is omitted, arb-dir is excluded from the '
+        'scan', () async {
+      final result = await _run({
+        'l10n.yaml': _l10n,
+        'lib/l10n/app_en.arb': _template,
+        'lib/l10n/app_localizations.dart':
+            'String get checkoutTitle => "";\nString get legacyBanner => "";',
+        'lib/l10n/app_localizations_en.dart': 'String get checkoutTitle => "";',
+        'lib/real.dart': '',
+      });
+
+      expect(result.findings, hasLength(2));
+      expect(result.dart.factsCalls, [RepoPath('lib/real.dart')]);
+    });
+
     test('a reference in another package does not count', () async {
       final result = await _run(
         _project({
@@ -307,6 +322,19 @@ void main() {
       );
 
       expect(result.findings, isEmpty);
+    });
+
+    test('a package with a file whose facts cannot be read produces no '
+        'finding', () async {
+      final result = await _run(
+        _project({
+          'lib/a.dart': _usesCheckout,
+          'lib/unreadable.dart': [0x00],
+        }),
+      );
+
+      expect(result.findings, isEmpty);
+      expect(result.dart.factsCalls, contains(RepoPath('lib/unreadable.dart')));
     });
 
     test('a template that is missing or not an object produces no '
