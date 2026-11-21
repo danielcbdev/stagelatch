@@ -102,10 +102,32 @@ Do not ask about things a spec already decides, and do not work around a gate.
 
 1. All tasks of the plan are merged into `develop` and CI is green.
 2. Open a pull request `develop` -> `main` titled `release: <version>`. Merge with a **merge commit**, never squash: release-please reads the Conventional Commits that reach `main`, and a squash leaves it a single `release:` commit, which is not user facing, so it opens no release pull request.
-3. `release-please` opens its release pull request on `main` with the version bump and CHANGELOG. A pull request opened with `GITHUB_TOKEN` starts no CI run; close and reopen it (or push a commit to its branch) so the checks run, then the owner reviews the version and CHANGELOG and merges it. release-please then creates the tag and the GitHub release, and its workflow dispatches `publish.yaml` on that tag, which publishes through OIDC (see "How the tag reaches the publish workflow" below).
+3. `release-please` opens its release pull request on `main` with the version bump and CHANGELOG. A pull request opened with `GITHUB_TOKEN` starts no CI run; close and reopen it (or push an empty commit to its branch) so the checks run, then the owner reviews the version and CHANGELOG and merges it (see "Merging the release-please pull request" below). release-please then creates the tag and the GitHub release, and its workflow dispatches `publish.yaml` on that tag, which publishes through OIDC (see "How the tag reaches the publish workflow" below).
 4. Merge `main` back into `develop` through a pull request titled `chore(release): sync main into develop`, with a **merge commit**, so `main` stays an ancestor of `develop`.
 
-If the release pull request into `main` was squashed anyway, add a `BEGIN_COMMIT_OVERRIDE` ... `END_COMMIT_OVERRIDE` block to its description, one Conventional Commit per line, and re-run the `release-please` workflow run of that merge. release-please reads the block in place of the squash commit's message. This is how `0.1.0` was released (#49).
+### CHANGELOG hygiene (do not hand-edit the bot branch)
+
+- **Never edit `CHANGELOG.md` (or the version bump) by hand on the release-please branch.** If generation is wrong, fix the cause on `develop` (commit messages, the develop→main merge method, or a mistaken `BEGIN_COMMIT_OVERRIDE`), then re-run the `release-please` workflow so it regenerates the pull request. Hand-editing hides the bug and races the next bot update.
+- On the `release: <version>` branch, avoid commits that exist only there (for example marking the plan done). Prefer those on `develop` first, so every commit that reaches `main` already has its own associated pull request. Commits whose only associated PR is the release PR inherit that PR's body for changelog parsing ([`preprocessCommitMessage` in release-please](https://github.com/googleapis/release-please/blob/v17.6.0/src/commit.ts)).
+
+### `BEGIN_COMMIT_OVERRIDE` — recovery for a squashed release only
+
+If the release pull request into `main` was squashed anyway, add a `BEGIN_COMMIT_OVERRIDE` ... `END_COMMIT_OVERRIDE` block to its description, one Conventional Commit per line, and re-run the `release-please` workflow run of that merge. release-please reads the block in place of the squash commit's message ([How can I fix release notes?](https://github.com/googleapis/release-please#how-can-i-fix-release-notes)). This is how `0.1.0` was released (#49) and how `0.2.0` was released (#67).
+
+Rules when using the override:
+
+- Use it **only** on a squash-merged release PR. Upstream documents that the feature does not work with plain merges, because release-please cannot tell which commit(s) to apply it to. In practice, with a merge commit it still attaches the associated PR body to every commit whose `associatedPullRequests[0]` is that release PR (the merge commit plus any commits authored only on the release branch), and replaces each of those messages with the override ([`preprocessCommitMessage`](https://github.com/googleapis/release-please/blob/v17.6.0/src/commit.ts); GraphQL association in [`github.ts`](https://github.com/googleapis/release-please/blob/v17.6.0/src/github.ts)). That is what duplicated `feat(cache): … (#73)` four times for `0.3.0` (#83 merge commit + `bd7b311` + `141fe2e` + the real `#73` squash), after a `### END_COMMIT_OVERRIDE` markdown heading left only the first override line parseable.
+- Do **not** put `BEGIN_COMMIT_OVERRIDE` on a correctly merge-committed `release: <version>` PR. The Conventional Commits on the merged history are already enough.
+- Write the markers as plain lines (`BEGIN_COMMIT_OVERRIDE` / `END_COMMIT_OVERRIDE`), never as Markdown headings (`### …`). A leftover `###` after the split breaks expansion of the following conventional lines.
+- Separate override entries with a **blank line** so `splitMessages` can split them ([`commit.ts`](https://github.com/googleapis/release-please/blob/v17.6.0/src/commit.ts)); single newlines alone are fragile.
+
+### Merging the release-please pull request
+
+Upstream accepts both squash-merge and merge commits for the release-please PR itself ([What's a Release PR?](https://github.com/googleapis/release-please#whats-a-release-pr)). For this repository:
+
+- Prefer **squash-merge** of `chore(main): release <version>` so the version bump is one commit on `main`.
+- A merge commit is also fine if the branch tip is a single bot commit with no hand fixes.
+- Do not push fixup commits onto the bot branch. If CI fails or the CHANGELOG is wrong, fix via `develop` (or the develop→main process above), not on `release-please--branches--main--components--stagelatch`.
 
 `include-component-in-tag: false` in `release-please-config.json`: by default release-please prefixes tags with the pubspec name (`stagelatch-v0.1.0`). Tags must be `v<version>`, the pattern `publish.yaml` triggers on and the one pub.dev's automated publishing is configured with.
 
