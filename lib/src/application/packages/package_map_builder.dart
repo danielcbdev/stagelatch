@@ -154,10 +154,12 @@ bool _languageVersionAtLeast(LocatedMap pubspec, int major, int minor) {
   }
 }
 
-/// True when every version the constraint allows is >= [floor], or when it
-/// allows [floor] itself (caret / range with that lower bound).
+/// True when the constraint's effective lower bound is at least [floor].
+///
+/// Language version follows the minimum of `environment.sdk`, not whether the
+/// range happens to allow [floor]. So `>=3.0.0 <4.0.0` is below 3.11 even
+/// though it allows `3.11.0`.
 bool _minAllows(VersionConstraint constraint, Version floor) {
-  if (constraint.allows(floor)) return true;
   if (constraint is VersionRange) {
     final min = constraint.min;
     if (min == null) return false;

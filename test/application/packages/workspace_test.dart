@@ -56,6 +56,22 @@ void main() {
     expect(map.resolutionPackageOf(c), c);
   });
 
+  test('workspace globs are not expanded when the SDK lower bound is below '
+      '3.11', () async {
+    final map = await _build({
+      'pubspec.yaml':
+          'name: root\nenvironment:\n  sdk: ">=3.0.0 <4.0.0"\n'
+          'workspace:\n  - packages/*\n',
+      'packages/a/pubspec.yaml':
+          'name: a\nenvironment:\n  sdk: ">=3.0.0 <4.0.0"\n'
+          'resolution: workspace\n',
+    });
+
+    final a = map.packages.firstWhere((p) => p.name == 'a');
+
+    expect(map.resolutionPackageOf(a), a);
+  });
+
   test('a package that declares resolution: workspace and is listed by nobody '
       'resolves on its own', () async {
     final map = await _build({
