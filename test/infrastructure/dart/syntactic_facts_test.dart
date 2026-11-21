@@ -135,12 +135,13 @@ void main() {
     ]);
   });
 
-  test('the other facts stay empty in this version', () {
+  test('test calls and identifiers stay empty in this version', () {
     final facts = _extract(
       "import 'a.dart';\n@JsonSerializable() class A {}\n",
     );
 
-    expect(facts.annotatedDeclarations, isEmpty);
+    expect(facts.annotatedDeclarations.single.name, 'A');
+    expect(facts.isWellFormed, isTrue);
     expect(facts.testCalls, isEmpty);
     expect(facts.identifiers, isEmpty);
   });

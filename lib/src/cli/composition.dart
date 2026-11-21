@@ -12,9 +12,13 @@ import 'package:stagelatch/src/application/ports/hook_store.dart';
 import 'package:stagelatch/src/application/ports/sdk_locator.dart';
 import 'package:stagelatch/src/application/ports/working_tree.dart';
 import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
+import 'package:stagelatch/src/checks/assets/assets_check.dart';
+import 'package:stagelatch/src/checks/codegen/codegen_check.dart';
 import 'package:stagelatch/src/checks/format/format_check.dart';
+import 'package:stagelatch/src/checks/l10n/l10n_check.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
 import 'package:stagelatch/src/checks/sensitive_files/sensitive_files_check.dart';
+import 'package:stagelatch/src/checks/tests/tests_check.dart';
 import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/documents.dart';
@@ -28,6 +32,20 @@ import 'package:stagelatch/src/infrastructure/io/local_doctor_probes.dart';
 import 'package:stagelatch/src/infrastructure/io/local_working_tree.dart';
 import 'package:stagelatch/src/infrastructure/io/system_clock.dart';
 import 'package:stagelatch/src/version.dart';
+
+/// The checks of the tool, in the order of the documented hook lists.
+///
+/// The rule reference `docs/rules.md` is generated from this list.
+const List<Check> productionChecks = [
+  FormatCheck(),
+  AnalyzeCheck(),
+  PubspecCheck(),
+  SensitiveFilesCheck(),
+  AssetsCheck(),
+  L10nCheck(),
+  CodegenCheck(),
+  TestsCheck(),
+];
 
 /// The wired tool: pipeline, hooks and the git processes behind them.
 ///
@@ -68,15 +86,7 @@ final class Composition {
       const documents = StructuredDocuments();
       final worktree = LocalWorkingTree(layout.root);
       // Registry order is the order of the documented hook lists.
-      final registry = CheckRegistry(
-        checks ??
-            const [
-              FormatCheck(),
-              AnalyzeCheck(),
-              PubspecCheck(),
-              SensitiveFilesCheck(),
-            ],
-      );
+      final registry = CheckRegistry(checks ?? productionChecks);
       final sdkLocator = FileSdkLocator(
         repoRoot: layout.root,
         environment: io.environment,

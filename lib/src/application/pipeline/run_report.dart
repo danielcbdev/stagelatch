@@ -9,7 +9,13 @@ import 'package:stagelatch/src/domain/finding.dart';
 /// One invocation of the pipeline.
 final class RunRequest {
   /// Creates a request for [entry].
-  const new({required this.entry, this.all = false, this.allowFixes = true});
+  const new({
+    required this.entry,
+    this.all = false,
+    this.allowFixes = true,
+    this.hook,
+    this.useBaseline = true,
+  });
 
   /// What started the run.
   final EntryPoint entry;
@@ -20,6 +26,15 @@ final class RunRequest {
   /// Whether fixes may be written to the index. False for `--no-fix`; fixes
   /// are never written to a commit snapshot, whatever this says.
   final bool allowFixes;
+
+  /// The key under `hooks` whose selectors decide which checks run, or null
+  /// for the one that belongs to [entry]. `baseline create` and `prune` ask
+  /// for `ci`, whatever hook they were started from.
+  final String? hook;
+
+  /// Whether the baseline absorbs findings. False when the baseline is
+  /// being written.
+  final bool useBaseline;
 }
 
 /// The outcome of a run.
@@ -78,6 +93,7 @@ final class RunReport {
     required this.suppressed,
     required this.baselined,
     required this.notices,
+    this.all = false,
   });
 
   /// Which entry point started the run.
@@ -86,8 +102,13 @@ final class RunReport {
   /// A short name for what was judged: `index`, or the pushed branch.
   final String label;
 
-  /// The number of changed paths.
+  /// The number of changed paths. With [all], the number of files judged.
   final int files;
+
+  /// Whether the run used `--all`, so every regular file of the snapshot
+  /// counted as changed. The reporters say so, because the count alone
+  /// would read as a very large change.
+  final bool all;
 
   /// Whether the change may proceed.
   final Verdict verdict;

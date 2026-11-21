@@ -5,6 +5,7 @@
   "verdict": "fail",
   "exitCode": 1,
   "files": 4,
+  "all": false,
   "findings": [
     {
       "rule": "pubspec/path-dependency",

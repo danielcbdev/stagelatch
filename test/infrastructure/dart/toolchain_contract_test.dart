@@ -19,6 +19,7 @@ import 'package:stagelatch/src/domain/package_map.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/infrastructure/dart/file_sdk_locator.dart';
 import 'package:stagelatch/src/infrastructure/dart/sdk_dart_toolchain.dart';
+import 'package:stagelatch/src/infrastructure/dart/syntactic_facts.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
 import 'package:test/test.dart';
 
@@ -106,6 +107,7 @@ void main() {
       repoRoot: root,
       snapshot: files,
       packages: PackageMap(const [DartPackage(root: null, name: 'dart_app')]),
+      testFunctions: defaultTestFunctions,
     );
     addTearDown(created.close);
     return created;

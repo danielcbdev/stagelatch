@@ -3,6 +3,7 @@ library;
 
 import 'package:args/command_runner.dart' as args;
 import 'package:stagelatch/src/application/errors.dart';
+import 'package:stagelatch/src/cli/commands/baseline_command.dart';
 import 'package:stagelatch/src/cli/commands/ci_command.dart';
 import 'package:stagelatch/src/cli/commands/doctor_command.dart';
 import 'package:stagelatch/src/cli/commands/init_command.dart';
@@ -49,7 +50,8 @@ Future<int> runStagelatch(
         ..addCommand(UninstallCommand(io, compose))
         ..addCommand(RunCommand(io, compose))
         ..addCommand(CiCommand(io, compose))
-        ..addCommand(DoctorCommand(io, compose));
+        ..addCommand(DoctorCommand(io, compose))
+        ..addCommand(BaselineCommand(io, compose));
   try {
     return await runner.run(arguments) ?? ExitCode.pass.code;
   } on StagelatchException catch (error) {

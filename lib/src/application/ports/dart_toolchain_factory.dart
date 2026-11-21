@@ -14,10 +14,14 @@ abstract interface class DartToolchainFactory {
   ///
   /// Creating starts no process and writes no file: that happens on the
   /// first request that needs it.
+  ///
+  /// [testFunctions] are the functions whose calls the toolchain reports as
+  /// `testCalls` in its facts (`tests.functions`).
   DartToolchain create({
     required ResolvedSdk sdk,
     required String repoRoot,
     required SnapshotFiles snapshot,
     required PackageMap packages,
+    required Set<String> testFunctions,
   });
 }

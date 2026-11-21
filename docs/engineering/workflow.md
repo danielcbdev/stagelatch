@@ -101,18 +101,19 @@ Do not ask about things a spec already decides, and do not work around a gate.
 ## 8. Releases
 
 1. All tasks of the plan are merged into `develop` and CI is green.
-2. Open a pull request `develop` -> `main` titled `release: <version>`. Merge with a **merge commit**.
-3. `release-please` opens its release pull request on `main` with the version bump and CHANGELOG. The owner merges it. release-please then creates the tag, and its workflow dispatches `publish.yaml` on that tag, which publishes through OIDC (see "How the tag reaches the publish workflow" below).
-4. Merge `main` back into `develop` through a pull request titled `chore(release): sync main into develop`.
+2. Open a pull request `develop` -> `main` titled `release: <version>`. Merge with a **merge commit**, never squash: release-please reads the Conventional Commits that reach `main`, and a squash leaves it a single `release:` commit, which is not user facing, so it opens no release pull request.
+3. `release-please` opens its release pull request on `main` with the version bump and CHANGELOG. A pull request opened with `GITHUB_TOKEN` starts no CI run; close and reopen it (or push a commit to its branch) so the checks run, then the owner reviews the version and CHANGELOG and merges it. release-please then creates the tag and the GitHub release, and its workflow dispatches `publish.yaml` on that tag, which publishes through OIDC (see "How the tag reaches the publish workflow" below).
+4. Merge `main` back into `develop` through a pull request titled `chore(release): sync main into develop`, with a **merge commit**, so `main` stays an ancestor of `develop`.
 
-The first publish of the package name to pub.dev is done manually by the owner; automated publishing can be enabled only for a package that already exists.
+If the release pull request into `main` was squashed anyway, add a `BEGIN_COMMIT_OVERRIDE` ... `END_COMMIT_OVERRIDE` block to its description, one Conventional Commit per line, and re-run the `release-please` workflow run of that merge. release-please reads the block in place of the squash commit's message. This is how `0.1.0` was released (#49).
 
-`release-please-config.json` carries two settings that exist because of that manual first release:
+`include-component-in-tag: false` in `release-please-config.json`: by default release-please prefixes tags with the pubspec name (`stagelatch-v0.1.0`). Tags must be `v<version>`, the pattern `publish.yaml` triggers on and the one pub.dev's automated publishing is configured with.
 
-- `include-component-in-tag: false`. By default release-please prefixes tags with the pubspec name (`stagelatch-v0.1.0`). Tags must be `v<version>`, the pattern `publish.yaml` triggers on and the one pub.dev's automated publishing is configured with.
-- `bootstrap-sha`. `0.1.0-dev.1` is published by hand, so it has no tag and no GitHub release. Without a release to anchor on, release-please would read the whole history and propose `0.2.0-dev.1` (it keeps the pre-release suffix and bumps the minor for `feat`). With the bootstrap SHA, release-please stops reading history at that commit and starts from the version in `.release-please-manifest.json`. The commits after it that ship in `0.1.0-dev.1` are `ci` and `docs` only, which are not user facing, so the run triggered by the release merge opens no pull request. It is ignored once release-please finds a release of its own, and can be removed after that.
+From `0.1.0`, a `feat` bumps to `0.2.0` and a `fix` to `0.1.1`. When a plan targets another version, set `"release-as": "<version>"` on the `.` package before the release pull request into `main`, and remove it after release-please's pull request is merged.
 
-From `0.1.0-dev.1`, a `feat` bumps to `0.2.0-dev.1` and a `fix` to `0.1.1-dev.1`. When a plan targets another version (plan 02 releases `0.1.0`), set `"release-as": "<version>"` on the `.` package before the release pull request into `main`, and remove it after release-please's pull request is merged.
+When the current version is a pre-release (`0.1.0-dev.1`), release-please's Dart updater writes the new pubspec version with the old suffix as build metadata (`0.1.0+-dev.1`). Check the `version:` line of the release pull request and fix it on its branch before merging; `test/version_test.dart` fails while it differs from `lib/src/version.dart`.
+
+The first publish of the package name to pub.dev was done manually by the owner (`0.1.0-dev.1`), because automated publishing can be enabled only for a package that already exists. That release has no tag; release-please anchors on `v0.1.0` and later tags.
 
 ### How the tag reaches the publish workflow
 
@@ -129,4 +130,5 @@ A tag pushed by a person still publishes through the `push` trigger.
 - Protect `main` and `develop`: require the CI checks, require pull requests, forbid force pushes.
 - Enable "Allow squash merging" and "Allow merge commits"; disable rebase merging.
 - Enable private vulnerability reporting.
-- After the first manual publish: enable automated publishing on pub.dev for the repository and the tag pattern `v{{version}}`.
+- Under Settings > Actions > General > Workflow permissions, tick "Allow GitHub Actions to create and approve pull requests"; release-please cannot open its release pull request without it.
+- After the first manual publish: enable automated publishing on pub.dev for the repository and the tag pattern `v{{version}}`, with both the push and the `workflow_dispatch` events.

@@ -49,14 +49,12 @@ final class CiCommand extends Command<int> {
         'Unknown reporter "$reporter". Expected console, json or github.',
       );
     }
-    if (argResults?.flag('all') ?? false) {
-      throw const UsageException('--all arrives in 0.2.0.');
-    }
     final composition = await _open(io);
     try {
       final reports = await composition.pipeline.run(
         RunRequest(
           entry: CiEntry(baseRef: base, headRef: head),
+          all: argResults?.flag('all') ?? false,
           // CI judges a commit and never writes to the index.
           allowFixes: false,
         ),

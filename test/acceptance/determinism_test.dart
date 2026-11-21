@@ -2,9 +2,13 @@ import 'dart:convert';
 
 import 'package:stagelatch/src/application/environment.dart';
 import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
+import 'package:stagelatch/src/checks/assets/assets_check.dart';
+import 'package:stagelatch/src/checks/codegen/codegen_check.dart';
 import 'package:stagelatch/src/checks/format/format_check.dart';
+import 'package:stagelatch/src/checks/l10n/l10n_check.dart';
 import 'package:stagelatch/src/checks/pubspec/pubspec_check.dart';
 import 'package:stagelatch/src/checks/sensitive_files/sensitive_files_check.dart';
+import 'package:stagelatch/src/checks/tests/tests_check.dart';
 import 'package:stagelatch/src/cli/composition.dart';
 import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/cli/runner.dart';
@@ -58,6 +62,11 @@ void main() {
     );
     await repo.stageContent('.env', 'TOKEN=1\n');
     await repo.stageContent('lib/a.dart', 'void main( ) {\n}\n');
+    // A check added in 0.2.0 takes part in the comparison too.
+    await repo.stageContent(
+      'test/a_test.dart',
+      "void main() {\n  test('a', () {}, solo: true);\n}\n",
+    );
     const args = ['run', 'pre-commit', '--no-fix', '--reporter', 'json'];
 
     final forward = await repo.stagelatch(args);
@@ -78,6 +87,10 @@ void main() {
       open: (io) => Composition.create(
         io,
         checks: const [
+          TestsCheck(),
+          CodegenCheck(),
+          L10nCheck(),
+          AssetsCheck(),
           SensitiveFilesCheck(),
           PubspecCheck(),
           AnalyzeCheck(),
@@ -91,7 +104,7 @@ void main() {
     expect(_normalized(out.toString()), _normalized(forward.stdout));
     expect(
       (jsonDecode(forward.stdout) as Map<String, Object?>)['findings'],
-      hasLength(3),
+      hasLength(4),
     );
   });
 }

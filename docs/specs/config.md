@@ -69,8 +69,8 @@ baseline: .stagelatch/baseline.json
 | `pubspec.monotonic_build_number` | list of branch globs | `[]` | Branches where `pubspec/build-number-regression` applies |
 | `pubspec.require_sha` | bool | `false` | `pubspec/unpinned-git` also rejects refs that are not a 40-character SHA |
 | `assets.max_file_size` | size | `500KB` | Limit for `assets/max-file-size` |
-| `assets.roots` | list of directories | `[assets/]` | Where `assets/undeclared` and `assets/max-file-size` look |
-| `assets.ignore` | list of globs | `[]` | Asset paths exempt from all `assets` rules |
+| `assets.roots` | list of directories | `[assets/]` | Where `assets/undeclared` and `assets/max-file-size` look, relative to each package |
+| `assets.ignore` | list of globs | `[]` | Asset paths exempt from all `assets` rules, matched against the path relative to the package (a directory is also exempt when `<dir>/x` would match) |
 | `tests.functions` | list of identifiers | `[test, testWidgets, group]` | Calls inspected by `tests/solo` and `tests/new-skip` |
 | `baseline` | path | `.stagelatch/baseline.json` | Baseline file; a missing file is an empty baseline |
 

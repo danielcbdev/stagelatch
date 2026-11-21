@@ -111,6 +111,8 @@ Phase: verify. Trigger: any changed `pubspec.yaml`, `pubspec.lock` or `pubspec_o
   - source kind differs (hosted, git, path, sdk): `pubspec.lock resolves "<name>" from <locked source>, but pubspec.yaml declares <declared source>.`
 - For each lock entry marked `direct main` or `direct dev` that the pubspec does not declare: `pubspec.lock lists "<name>" as a direct dependency, but pubspec.yaml does not declare it.`
 - Location: the dependency's key in `pubspec.yaml`; for the last case, `pubspec.yaml:1:1`.
+- A changed `pubspec.lock` triggers the rule for the `pubspec.yaml` beside it even when that file did not change. A lock that is not readable YAML is left to `pub`.
+- A dependency that is also under `dependency_overrides` is not compared: the override decides what the lock resolves.
 - No version solving is performed and transitive dependencies are not checked.
 
 ## `codegen`
@@ -128,16 +130,20 @@ Phase: verify. Trigger: any changed `.dart` file. Disabled when `codegen.generat
 - A finding also exists when the generated part file is absent from the snapshot.
   - Location: the `part` directive. Message: `<generated file> is declared as a part but is missing.`
 - Whitespace and comment changes do not change a token hash, so they never trigger the rule.
+- The base version is read from the base snapshot at the file's previous path when it was renamed. With no base, no such file in the base, or base facts that are not well formed, the file is treated as new.
+- Facts that are not well formed ([`dart-toolchain.md`](dart-toolchain.md#6-facts)) leave the file to `analyze`: no finding.
+- One finding per generated part that is missing from the changeset. A part that is absent from the snapshot yields only the "missing" finding for that part.
+- `<declaration>` is the first differing declaration by name. When a declaration was only removed, its name is used and the location is the first `part` directive; when only the list of parts differs, `<declaration>` is the file's name and the location is the `part` directive.
 
 ## `l10n`
 
 Phase: verify. Trigger: a changed `l10n.yaml` or `.arb` file; `unused-key` also triggers on any changed `.dart` file.
 
-Setup, per package with an `l10n.yaml`: `arb-dir` (default `lib/l10n`) and `template-arb-file` (default `app_en.arb`). Keys starting with `@` are metadata and are not message keys.
+Setup, per package with an `l10n.yaml`: `arb-dir` (default `lib/l10n`) and `template-arb-file` (default `app_en.arb`), both read relative to the package. A package without `l10n.yaml`, with one that is not a YAML map, or whose `arb-dir` is absolute or leaves the package, is skipped; an empty `l10n.yaml` means the defaults. Keys starting with `@` are metadata and are not message keys. The **ARB files** of a package are the `.arb` files directly inside `arb-dir`. A package is looked at when its `l10n.yaml` changed, or an ARB file of its directory changed or was deleted; every locale is then compared with the template, so adding a key to the template flags every translation that lacks it. A template that is missing or not a JSON object skips every comparison.
 
 ### `l10n/unparseable`
 
-- A changed `.arb` file in the ARB directory is not valid JSON or its root is not an object. Location: where the parser failed. Message: `<file> is not valid JSON: <reason>.`
+- A changed `.arb` file in the ARB directory is not valid JSON or its root is not an object. Location: where the parser failed, or the whole file for a root that is not an object (reason `expected an object at the top level`). Message: `<file> is not valid JSON: <reason>.` `<file>` is the file name. A file that is not valid is left out of the other rules; one that did not change is not reported.
 
 ### `l10n/missing-key`
 
@@ -146,7 +152,7 @@ Setup, per package with an `l10n.yaml`: `arb-dir` (default `lib/l10n`) and `temp
 
 ### `l10n/placeholder-mismatch`
 
-- For a key present in both the template and a translation: the set of ICU argument names in the two messages differs. Argument names are collected from `{name}`, `{name, plural, ...}`, `{name, select, ...}` and nested messages; quoted text (`'{'`) is skipped.
+- For a key present in both the template and a translation, when both values are strings: the set of ICU argument names in the two messages differs. Argument names are collected from `{name}`, `{name, plural, ...}`, `{name, select, ...}` and nested messages; quoted text (`'{'`) is skipped.
 - Location: the key in the translation. Message: `Placeholders of "<key>" differ from the template: expected {<sorted names>}, found {<sorted names>}.`
 
 ### `l10n/unused-key`
@@ -157,28 +163,28 @@ Setup, per package with an `l10n.yaml`: `arb-dir` (default `lib/l10n`) and `temp
 
 ## `assets`
 
-Phase: verify. Trigger: a changed `pubspec.yaml`, or a changed or deleted file under a directory of `assets.roots`. Paths matching `assets.ignore` are exempt.
+Phase: verify. Trigger: a changed `pubspec.yaml`, or a changed or deleted file under a directory of `assets.roots`. Paths matching `assets.ignore` are exempt. `assets.roots`, `assets.ignore` and the paths of declarations are all relative to the package that owns the `pubspec.yaml`, so a package at `packages/ui` has its roots at `packages/ui/assets`. The pubspec of a package is examined when it changed or when an asset of its package changed or was deleted; every declaration of an examined pubspec is checked for `missing`, and every changed file under a root is checked for `undeclared` and `max-file-size`.
 
 A file is **declared** when the `flutter: assets:` list of its package's pubspec contains its exact path, or its directory followed by `/`, or the directory one level up when the file sits in a resolution variant directory (a directory named like `2.0x`). Directory entries are not recursive, as in Flutter. Font files listed under `flutter: fonts:` are declared.
 
 ### `assets/missing`
 
-- A declared file path that is not in the snapshot, or a declared directory with no file in the snapshot.
+- A declared file path that is not in the snapshot (a font under `flutter: fonts:` included), or a declared directory with no file in the snapshot. A directory counts as having a file when a file is directly inside it or directly inside one of its resolution variant directories (`2.0x`).
 - Location: the entry in `pubspec.yaml`. Message: `Asset "<entry>" is declared but does not exist.`
 
 ### `assets/undeclared`
 
 - A changed file under an asset root that is not declared.
-- Location: `file:1:1`. Message: `File is under "<root>" but is not declared in pubspec.yaml.`
+- Location: `file:1:1`. Message: `File is under "<root>" but is not declared in pubspec.yaml.` `<root>` is the root as configured, with a trailing slash. Symlinks and submodule entries are not assets.
 
 ### `assets/max-file-size`
 
 - A changed file under an asset root whose blob is larger than `assets.max_file_size`.
-- Location: `file:1:1`. Message: `File is <size>, larger than the limit of <limit>.` Sizes are printed with one decimal and the unit of the limit.
+- Location: `file:1:1`. Message: `File is <size>, larger than the limit of <limit>.` Sizes are printed with one decimal and the unit of the limit (binary: 1KB is 1024 bytes); the limit itself is printed in its own unit without a decimal when it is a whole number of it, as in `500KB`.
 
 ## `tests`
 
-A **test file** is a `.dart` file under a package's `test/` directory whose name ends with `_test.dart`. A **test call** is a call to a function named in `tests.functions`. Its **key** is the list of enclosing group descriptions followed by its own description; calls whose description is not a string literal use the source text of the argument.
+A **test file** is a `.dart` file under a package's `test/` directory, at any depth, whose name ends with `_test.dart`. A **test call** is a call to a function named in `tests.functions`. Its **key** is the list of enclosing group descriptions followed by its own description; calls whose description is not a string literal use the source text of the argument. A group is a call to `group`, and a `group` call is itself a test call, so `group('x', ..., skip: true)` skips "x". A file whose facts are not well formed is left to `analyze`.
 
 ### `tests/solo`
 
@@ -191,7 +197,7 @@ Phase: verify. Trigger: a changed test file.
 
 Phase: verify. Trigger: a changed test file.
 
-- A test call with a `skip` argument that is not the literal `false` or `null`, or carrying a `@Skip` annotation, whose key has no skipped counterpart in the base version of the file. Skips that already existed in the base are not reported.
+- A test call with a `skip` argument that is not the literal `false` or `null`, or carrying a `@Skip` annotation, whose key has no skipped counterpart in the base version of the file. Skips that already existed in the base are not reported: for each key the skipped calls of the snapshot are counted against the skipped calls of the base version (at the file's previous path when renamed; with no base, every skip is new), and when the snapshot has more, the later ones in source order are reported. A `@Skip` annotation on the library or on the enclosing function makes each call under it skipped.
 - Location: the `skip` argument or annotation. Message: `Test "<description>" was skipped in this change.`
 
 ### `tests/affected`

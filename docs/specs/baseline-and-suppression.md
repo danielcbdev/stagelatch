@@ -87,7 +87,7 @@ fingerprint = SHA-256 hex of UTF-8( rule + "\n" + path + "\n" + normalizedSnippe
 
 ### 4.3 Matching
 
-Entries are consumed in the pipeline's sorted finding order. A finding is baselined when an entry with the same rule, path and fingerprint has remaining count; the count then decreases by one. Three identical findings against an entry with `count: 2` leave one finding reported.
+The baseline is applied after every check's findings have passed selection, levels, exclude and inline ignores and have been sorted together with `Finding.compare`. Entries are consumed in that global sorted order, not check by check; `stagelatch/invalid-ignore` findings are added afterwards. A finding is baselined when an entry with the same rule, path and fingerprint has remaining count; the count then decreases by one. Three identical findings against an entry with `count: 2` leave one finding reported.
 
 Findings of `stagelatch/invalid-ignore` are never baselined.
 
@@ -95,7 +95,7 @@ Findings of `stagelatch/invalid-ignore` are never baselined.
 
 **`baseline create [--force]`**
 
-1. Run the pipeline with `--all` on the index, with the selectors of `hooks.ci`, fixes disabled, and an empty baseline.
+1. Run the pipeline with `--all` on the index, with the selectors of `hooks.ci`, fixes disabled, and no baseline applied. (`create` checks the working-tree file for existence; `prune` reads the working-tree file, because it is the one being edited.)
 2. Write every remaining finding (errors and warnings) as entries to the baseline path in the working tree, creating directories.
 3. Refuse to overwrite an existing file without `--force` (exit 64): `<path> already exists. Use --force to overwrite, or run: stagelatch baseline prune`.
 4. Print `Wrote <n> entr(y|ies) to <path>. Stage it to take effect.` Exit 0.
@@ -104,6 +104,6 @@ Findings of `stagelatch/invalid-ignore` are never baselined.
 
 1. Run the same pipeline as `create`.
 2. For each entry, lower `count` to the number of current findings that match it; remove entries that reach zero. Never add entries or raise counts.
-3. Write the file back to the working tree. Print `Removed <n> stale entr(y|ies); <m> remain.` Exit 0. With no baseline file: `No baseline at <path>.`, exit 0.
+3. Write the file back to the working tree. Print `Removed <n> stale entr(y|ies); <m> remain.` Exit 0. `<n>` is the number of entries removed because no finding matches them any more, and `<m>` the number of entries left; an entry whose count only went down is counted in `<m>`, not in `<n>`. With no baseline file: `No baseline at <path>.`, exit 0.
 
 Both commands leave staging to the developer, consistent with security rule S4.

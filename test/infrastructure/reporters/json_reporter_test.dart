@@ -17,6 +17,7 @@ Duration _ms(int milliseconds) => Duration(milliseconds: milliseconds);
 RunReport _report({
   EntryKind entry = EntryKind.preCommit,
   int files = 1,
+  bool all = false,
   List<Finding> findings = const [],
   List<AppliedFix> fixes = const [],
   List<CheckTiming> timings = const [],
@@ -28,6 +29,7 @@ RunReport _report({
   entry: entry,
   label: 'index',
   files: files,
+  all: all,
   verdict: findings.any((finding) => finding.severity == Severity.error)
       ? Verdict.fail
       : Verdict.pass,
@@ -126,6 +128,14 @@ void main() {
   test('one run renders the object of specs/cli.md section 5, keys in '
       'order', () {
     expect(_render([_single()]), _golden('single'));
+  });
+
+  test('"all" follows "files" and says whether the run used --all', () {
+    final plain = _render([_report()]);
+    final all = _render([_report(all: true)]);
+
+    expect(plain, contains('"files": 1,\n  "all": false,\n'));
+    expect(all, contains('"files": 1,\n  "all": true,\n'));
   });
 
   test('several runs render a "runs" array with a top-level verdict and '

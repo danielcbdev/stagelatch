@@ -326,7 +326,8 @@ final class _ConfigParser {
     var branches = _pubspec.monotonicBuildNumber;
     var requireSha = _pubspec.requireSha;
     _section(entry, 'pubspec', {
-      'monotonic_build_number': (node, key) => branches = _globs(node, key),
+      'monotonic_build_number': (node, key) =>
+          branches = [for (final glob in _globs(node, key)) glob.matches],
       'require_sha': (node, key) => requireSha = _bool(node, key),
     });
     _pubspec = PubspecSettings(
@@ -346,7 +347,8 @@ final class _ConfigParser {
         for (final item in _strings(node, key))
           _parsedText('directory', item.text, key, item.location, _directory),
       ]),
-      'ignore': (node, key) => ignore = _globs(node, key),
+      'ignore': (node, key) =>
+          ignore = [for (final glob in _globs(node, key)) glob.matches],
     });
     _assets = AssetsSettings(
       maxFileSize: maxFileSize,

@@ -11,11 +11,19 @@ executables:
   stagelatch_bench: stagelatch_bench
 
 dependencies:
+  # The lexical token stream the reference token hash is defined on
+  # (benchmark/lib/facts_parse.dart). Pinned with `analyzer`.
+  _fe_analyzer_shared: 111.0.0
   analyzer: 14.7.0
   args: ^2.7.0
+  # The reference SHA-256 the hand-written one is checked against.
+  crypto: ^3.0.6
   dart_style: 3.1.14
   path: ^1.9.1
   pub_semver: ^2.2.1
+  # The shipped fact extractor, compared with the parser (ADR-0017).
+  stagelatch:
+    path: ..
   yaml: ^3.1.4
 
 dev_dependencies:

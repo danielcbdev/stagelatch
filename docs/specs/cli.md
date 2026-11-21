@@ -86,7 +86,7 @@ Since `0.1.0-dev.1`. For each git hook name: remove the script if it carries the
 - `--reporter` accepts `console` and `json`. Another value is a usage error: `Unknown reporter "<value>". Expected console or json.`
 - Runs the pipeline for that entry point ([`architecture.md`](../architecture.md#53-the-pipeline)).
 - `--no-fix` disables fix application for this run regardless of config.
-- `--all` ignores the changeset and treats every file of the snapshot as changed.
+- `--all` ignores the changeset and treats every regular file of the snapshot as changed: the index for `pre-commit`, each pushed commit for `pre-push`. The base is resolved as without it.
 - **`pre-push` input.** Git passes the remote name and URL as arguments and one line per ref on stdin: `<local ref> <local sha> <remote ref> <remote sha>`. When stdin is a terminal or empty, one ref is synthesized from the current branch and its upstream, and the remote is the upstream's remote (remote sha all zeros when there is no upstream). With no upstream and no remote argument, the remote is `origin`.
 - Exit: 0 or 1 by verdict; 64/70/78 as in section 2.
 
@@ -172,7 +172,7 @@ pubspec.yaml:14:5  error  pubspec/path-dependency
 1 error, 0 warnings. Commit blocked. (0.9s)
 ```
 
-- **Header:** `stagelatch <entry>: <n> file(s)`. `<entry>` is `pre-commit`, `pre-push <branch>` or `ci`.
+- **Header:** `stagelatch <entry>: <n> file(s)`, and `stagelatch <entry>: all <n> file(s)` when the run used `--all`. `<entry>` is `pre-commit`, `pre-push <branch>` or `ci`.
 - **Check table:** one row per check that ran, in registry order, indented two spaces. Three columns, separated by two spaces: id and status aligned left, duration aligned right. Each column is as wide as its widest cell. Status is `<e> error(s)`, `<w> warning(s)`, or both joined by `, ` when the check still has findings; otherwise `fixed <n> file(s)` when it fixed something; otherwise `ok`. Duration is `<n>ms` below one second, else `<n.n>s` (nearest tenth, integer arithmetic).
 - **Details:** fixes first, then findings, with no blank line between them. One line per applied fix: `<path>  fixed  <rule>`. When the working tree was not updated, the next line is `  Fixed in the index only: the working tree copy has unstaged changes.` Findings are printed in the order the pipeline sorted them. Two lines each: `<path>:<line>:<column>  <severity>  <rule>` and the message indented two spaces.
 - **Notes:** `note: <text>`, one per line. The budget note, when the budget was exceeded, comes after the other notices: `note: Time budget of <budget> exceeded (<total>).` `<budget>` is whole seconds as `<n>s` and anything else as `<n>ms`. `<total>` is seconds with one decimal.
@@ -193,6 +193,7 @@ One JSON object, UTF-8, followed by a newline. Keys appear in this order. `schem
   "verdict": "fail",
   "exitCode": 1,
   "files": 4,
+  "all": false,
   "findings": [
     {
       "rule": "pubspec/path-dependency",
@@ -219,7 +220,7 @@ One JSON object, UTF-8, followed by a newline. Keys appear in this order. `schem
 }
 ```
 
-- Lines and columns are 1-based. `path` is repository-relative with forward slashes.
+- Lines and columns are 1-based. `path` is repository-relative with forward slashes. `all` is true when the run used `--all`; it was added in `0.2.0` without changing `schemaVersion`, because adding a key is not a breaking change.
 - With several pre-push refs, the object has `"runs": [ ... ]`, each element shaped as above without `schemaVersion` and `stagelatchVersion`, plus top-level `verdict` and `exitCode`.
 - Everything except `durationMs` fields is deterministic (ADR-0003).
 - On exit 64, 70 or 78 the JSON reporter prints `{"schemaVersion":1,"error":{"kind":"usage|internal|config","message":"..."},"exitCode":N}` to stdout, and the human message to stderr.

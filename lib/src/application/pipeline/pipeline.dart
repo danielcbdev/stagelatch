@@ -2,6 +2,10 @@
 library;
 
 import 'package:pub_semver/pub_semver.dart';
+import 'package:stagelatch/src/application/baseline/baseline.dart';
+import 'package:stagelatch/src/application/baseline/baseline_codec.dart';
+import 'package:stagelatch/src/application/baseline/baseline_filter.dart';
+import 'package:stagelatch/src/application/baseline/fingerprint.dart';
 import 'package:stagelatch/src/application/config/config_loader.dart';
 import 'package:stagelatch/src/application/config/default_hooks.dart';
 import 'package:stagelatch/src/application/errors.dart';
@@ -23,6 +27,8 @@ import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/finding.dart';
 import 'package:stagelatch/src/domain/package_map.dart';
+import 'package:stagelatch/src/domain/repo_path.dart';
+import 'package:stagelatch/src/domain/rule_id.dart';
 import 'package:stagelatch/src/domain/severity.dart';
 import 'package:stagelatch/src/domain/snapshot.dart';
 
@@ -80,7 +86,9 @@ final class Pipeline {
       catalog: _registry,
     );
     final config = loaded.config;
-    final selection = Selection.of(config.hooks[_hookOf(entry)] ?? const []);
+    final selection = Selection.of(
+      config.hooks[request.hook ?? _hookOf(entry)] ?? const [],
+    );
 
     final packages = await buildPackageMap(
       _git.files(run.snapshot),
@@ -249,16 +257,29 @@ final class Pipeline {
       for (final check in _registry.checks)
         if (outcomes[check.id] case final outcome?) (check.id, outcome),
     ];
-    final findings = [
-      for (final (_, outcome) in ran) ...outcome.findings,
-      ...invalidIgnores,
-    ]..sort(Finding.compare);
+    // The baseline is the last filter and acts on the globally sorted list,
+    // so which of several identical findings it absorbs never depends on
+    // the order checks ran in. Invalid-ignore findings join afterwards.
+    final sorted = [for (final (_, outcome) in ran) ...outcome.findings]
+      ..sort(Finding.compare);
+    var accepted = BaselineOutcome(kept: sorted, baselined: 0);
+    if (request.useBaseline) {
+      accepted = await applyBaseline(
+        sorted,
+        await _readBaseline(config.baselinePath, verifyContext.snapshot),
+        verifyContext.snapshot,
+      );
+    }
+    final kept = Set<Finding>.identity()..addAll(accepted.kept);
+    final findings = [...accepted.kept, ...invalidIgnores]
+      ..sort(Finding.compare);
     final total = _clock.elapsed - started;
 
     return RunReport(
       entry: entry,
       label: run.label,
       files: run.changes.length,
+      all: request.all,
       verdict: findings.any((finding) => finding.severity == Severity.error)
           ? Verdict.fail
           : Verdict.pass,
@@ -271,8 +292,8 @@ final class Pipeline {
           CheckTiming(
             id: id,
             duration: outcome.duration,
-            errors: outcome.count(Severity.error),
-            warnings: outcome.count(Severity.warning),
+            errors: outcome.count(Severity.error, kept),
+            warnings: outcome.count(Severity.warning, kept),
             fixed: outcome.applied.length,
           ),
       ]),
@@ -282,9 +303,55 @@ final class Pipeline {
       // would make the verdict depend on the machine (ADR-0003).
       budgetExceeded: total > config.timeBudget,
       suppressed: suppressed,
-      baselined: 0,
+      baselined: accepted.baselined,
       notices: loaded.notices,
     );
+  }
+
+  /// What a run of [request] would write to a baseline: its findings,
+  /// counted by rule, path and fingerprint.
+  ///
+  /// `stagelatch/invalid-ignore` findings never belong to a baseline.
+  Future<CurrentBaseline> currentBaseline(RunRequest request) async {
+    final counts = <(RuleId, RepoPath, String), int>{};
+    RepoPath? path;
+    for (final run in await _git.resolve(request.entry, all: request.all)) {
+      final report = await _judge(request, run);
+      final files = _git.files(run.snapshot);
+      path ??= (await _configLoader.load(
+        files,
+        toolVersion: _toolVersion,
+        catalog: _registry,
+      )).config.baselinePath;
+      for (final finding in report.findings) {
+        if (finding.rule == invalidIgnoreRule) continue;
+        final key = (
+          finding.rule,
+          finding.location.path,
+          await fingerprintOf(finding, files),
+        );
+        counts[key] = (counts[key] ?? 0) + 1;
+      }
+    }
+    return CurrentBaseline(
+      baseline: Baseline([
+        for (final MapEntry(:key, :value) in counts.entries)
+          BaselineEntry(
+            rule: key.$1,
+            path: key.$2,
+            fingerprint: key.$3,
+            count: value,
+          ),
+      ]),
+      path: path ?? RepoPath('.stagelatch/baseline.json'),
+    );
+  }
+
+  /// The baseline stored in [snapshot] (ADR-0015); none when it has no
+  /// such file.
+  Future<Baseline> _readBaseline(RepoPath path, SnapshotFiles snapshot) async {
+    final text = await snapshot.readText(path);
+    return text == null ? Baseline.empty : decodeBaseline(text, path: path);
   }
 
   /// Runs [check] and measures it.
@@ -333,6 +400,11 @@ final class _Outcome {
 
   final Duration duration;
 
-  int count(Severity severity) =>
-      findings.where((finding) => finding.severity == severity).length;
+  /// How many of its findings with [severity] survived the baseline, which
+  /// [kept] holds by identity.
+  int count(Severity severity, Set<Finding> kept) => findings
+      .where(
+        (finding) => finding.severity == severity && kept.contains(finding),
+      )
+      .length;
 }

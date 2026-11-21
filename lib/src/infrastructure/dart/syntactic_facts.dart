@@ -5,24 +5,57 @@ library;
 import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
 import 'package:stagelatch/src/domain/location.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
+import 'package:stagelatch/src/infrastructure/dart/dart_lexer.dart';
+import 'package:stagelatch/src/infrastructure/dart/declaration_facts.dart';
+import 'package:stagelatch/src/infrastructure/dart/line_index.dart';
+import 'package:stagelatch/src/infrastructure/dart/test_call_facts.dart';
 
-/// Extracts the facts of one Dart file with a hand-written scanner.
+/// Extracts the facts of one Dart file with hand-written scanners, without a
+/// parser (ADR-0017).
 ///
-/// In this version only directives are filled. The spike measured the
-/// scanner at about 170 times the speed of `parseString` on a 2,462-file
-/// app, with the same directives on every file. It reads from the top of
-/// the file and stops at the first token that does not start a directive,
-/// so it never fails: a broken file yields the directives before the point
-/// where it stops. Every loop advances through the source, so the cost is
-/// linear in its length (security S6).
+/// Directives come from a scanner that reads from the top of the file and
+/// stops at the first token that does not start a directive, so a broken
+/// file yields the directives before the point where it stops. The spike
+/// measured it at about 170 times the speed of `parseString`, with the same
+/// directives on every file of a 2,462-file app.
+///
+/// Annotated declarations come from a lexer over the whole file
+/// (`dart_lexer.dart`) and the recognizers of `declaration_facts.dart`. When
+/// the lexer finds an unterminated string or block comment, or brackets
+/// that do not pair, the file is not well formed and has no declarations:
+/// what a recognizer would say about it means nothing, and `analyze` reports
+/// the error.
+///
+/// It never throws, and every loop advances through the source, so the cost
+/// is linear in its length (security S6).
 final class SyntacticFacts {
-  /// Creates the extractor.
-  const new();
+  /// Creates the extractor. [testFunctions] are the functions whose calls
+  /// become `testCalls` (`tests.functions` of the configuration).
+  const new({this.testFunctions = defaultTestFunctions});
+
+  /// The functions `testCalls` are collected for.
+  final Set<String> testFunctions;
 
   /// The facts of [source], the content of [path].
-  DartFileFacts extract(String source, RepoPath path) =>
-      DartFileFacts(directives: _Scanner(source, path).directives());
+  DartFileFacts extract(String source, RepoPath path) {
+    final directives = _Scanner(source, path).directives();
+    final lexed = lex(source);
+    if (!lexed.balanced) {
+      return DartFileFacts(directives: directives, isWellFormed: false);
+    }
+    final lines = LineIndex(source);
+    final scan = scanDeclarations(lexed, path, lines);
+    return DartFileFacts(
+      directives: directives,
+      annotatedDeclarations: scan.declarations,
+      testCalls: extractTestCalls(lexed, path, testFunctions, scan, lines),
+    );
+  }
 }
+
+/// The functions inspected when `tests.functions` is not configured
+/// (docs/specs/config.md, section 3).
+const Set<String> defaultTestFunctions = {'test', 'testWidgets', 'group'};
 
 final class _Scanner {
   new(this._s, this._path);
