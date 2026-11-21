@@ -218,4 +218,104 @@ void main() {
       isNull,
     );
   });
+
+  group('forward edges', () {
+    test('dependenciesOf follows import, export and part edges forward, '
+        'inputs included, sorted', () {
+      final g = graph({
+        'test/t_test.dart': ['../lib/z.dart', '../lib/a.dart'],
+        'lib/a.dart': ['b.dart'],
+        'lib/b.dart': ['part b.g.dart'],
+        'lib/b.g.dart': ['part of b.dart'],
+        'lib/z.dart': [],
+        'lib/unrelated.dart': ['../test/t_test.dart'],
+      });
+
+      expect(values(g.dependenciesOf(paths(['test/t_test.dart']))), [
+        'lib/a.dart',
+        'lib/b.dart',
+        'lib/b.g.dart',
+        'lib/z.dart',
+        'test/t_test.dart',
+      ]);
+    });
+
+    test('edges to targets absent from the snapshot are followed and the '
+        'targets are in the result', () {
+      final g = graph({
+        'test/t_test.dart': ['../lib/a.dart'],
+        'lib/a.dart': ['gone.dart'],
+      });
+
+      expect(values(g.dependenciesOf(paths(['test/t_test.dart']))), [
+        'lib/a.dart',
+        'lib/gone.dart',
+        'test/t_test.dart',
+      ]);
+    });
+
+    test('a cycle of imports terminates', () {
+      final g = graph({
+        'lib/a.dart': ['b.dart'],
+        'lib/b.dart': ['a.dart'],
+      });
+
+      expect(values(g.dependenciesOf(paths(['lib/a.dart']))), [
+        'lib/a.dart',
+        'lib/b.dart',
+      ]);
+    });
+
+    test('a file the graph has never seen is its own closure', () {
+      final g = graph({'lib/a.dart': []});
+
+      expect(values(g.dependenciesOf(paths(['lib/other.dart']))), [
+        'lib/other.dart',
+      ]);
+    });
+
+    test('directiveOf is the first directive of the importer that resolves '
+        'to the target', () {
+      Location at(int line) => Location(
+        RepoPath('lib/a.dart'),
+        Position(line, 1),
+        Position(line, 20),
+      );
+      final g = ImportGraph.build(
+        directives: {
+          RepoPath('lib/a.dart'): [
+            Directive(
+              kind: DirectiveKind.import,
+              uri: 'dart:io',
+              location: at(1),
+            ),
+            Directive(
+              kind: DirectiveKind.import,
+              uri: 'b.dart',
+              location: at(2),
+            ),
+            Directive(
+              kind: DirectiveKind.export,
+              uri: 'src/../b.dart',
+              location: at(3),
+            ),
+          ],
+        },
+        packages: PackageMap([const DartPackage(root: null, name: 'app')]),
+      );
+
+      expect(
+        g.directiveOf(RepoPath('lib/a.dart'), RepoPath('lib/b.dart')),
+        at(2),
+      );
+      expect(
+        g.directiveOf(RepoPath('lib/a.dart'), RepoPath('lib/c.dart')),
+        isNull,
+      );
+      expect(
+        g.directiveOf(RepoPath('lib/b.dart'), RepoPath('lib/a.dart')),
+        isNull,
+      );
+    });
+  });
 }
