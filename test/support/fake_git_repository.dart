@@ -97,6 +97,18 @@ final class FakeGitRepository implements GitRepository {
   Future<Set<RepoPath>> divergingFromWorktree(SnapshotRef ref) async =>
       _diverging.map(RepoPath.new).toSet();
 
+  /// Every set `divergentAmong` was asked about, in order.
+  final List<Set<RepoPath>> divergentCalls = [];
+
+  @override
+  Future<Set<RepoPath>> divergentAmong(
+    SnapshotRef ref,
+    Set<RepoPath> paths,
+  ) async {
+    divergentCalls.add({...paths});
+    return paths.intersection(_diverging.map(RepoPath.new).toSet());
+  }
+
   @override
   Future<List<AppliedFix>> applyFixes(List<Fix> fixes) async {
     appliedFixes.addAll(fixes);

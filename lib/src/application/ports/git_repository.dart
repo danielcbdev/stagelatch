@@ -177,6 +177,12 @@ abstract interface class GitRepository {
   /// test runner reads the working tree, not the snapshot.
   Future<Set<RepoPath>> divergingFromWorktree(SnapshotRef ref);
 
+  /// The paths among [paths] whose working tree copy is not what [ref]
+  /// holds (ADR-0018): those [divergingFromWorktree] lists, plus those
+  /// that [ref] lacks, that exist on disk as a regular file and that git
+  /// would track, that is, that are not ignored.
+  Future<Set<RepoPath>> divergentAmong(SnapshotRef ref, Set<RepoPath> paths);
+
   /// Writes [fixes] to the index and returns what was applied. Only valid
   /// when the snapshot being judged is the index.
   ///

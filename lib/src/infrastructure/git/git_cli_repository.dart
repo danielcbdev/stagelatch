@@ -408,6 +408,74 @@ final class GitCliRepository implements GitRepository {
     return paths.toSet();
   }
 
+  @override
+  Future<Set<RepoPath>> divergentAmong(
+    SnapshotRef ref,
+    Set<RepoPath> paths,
+  ) async {
+    final diverging = await divergingFromWorktree(ref);
+    final result = {
+      for (final path in paths)
+        if (diverging.contains(path)) path,
+    };
+
+    // The rest cannot differ from a snapshot file, so the only ones left to
+    // look at are the paths the snapshot lacks (ADR-0018, rule 2): those
+    // that exist on disk as a regular file, and not through a link.
+    final snapshot = files(ref);
+    final root = (await layout()).root;
+    final present = <RepoPath>[];
+    for (final path in [...paths]..sort()) {
+      if (result.contains(path) || await snapshot.entry(path) != null) {
+        continue;
+      }
+      final onDisk = p.joinAll([root, ...path.value.split('/')]);
+      if (FileSystemEntity.typeSync(onDisk, followLinks: false) ==
+          FileSystemEntityType.file) {
+        present.add(path);
+      }
+    }
+    if (present.isEmpty) return result;
+
+    // Git would track the ones that are not ignored: untracked files that a
+    // commit would pick up. One process answers for all of them.
+    final ignored = await _ignored(present);
+    return result..addAll(present.where((path) => !ignored.contains(path)));
+  }
+
+  /// Which of [paths] `git check-ignore` reports as ignored.
+  Future<Set<RepoPath>> _ignored(List<RepoPath> paths) async {
+    // check-ignore reads paths relative to the directory git runs in, which
+    // is not always the top of the work tree.
+    // --show-prefix: where that directory is under the top, with a final
+    //   slash, or empty at the top.
+    final prefix = (await _git.run(['rev-parse', '--show-prefix'])).text.trim();
+    final up =
+        '../' *
+        (prefix.isEmpty
+            ? 0
+            : prefix.split('/').where((s) => s.isNotEmpty).length);
+    final input = BytesBuilder(copy: false);
+    for (final path in paths) {
+      input
+        ..add(utf8.encode('$up${path.value}'))
+        ..addByte(0);
+    }
+    // --stdin: the paths come from us, so that their number is not bounded
+    //   by the length of a command line.
+    // -z: NUL-separated input and output.
+    // Exit code 0: something is ignored. 1: nothing is. Both are answers.
+    final result = await _git.run(
+      ['check-ignore', '--stdin', '-z'],
+      stdin: input.takeBytes(),
+      okExitCodes: {0, 1},
+    );
+    return {
+      for (final line in result.nulSeparated)
+        if (line.startsWith(up)) RepoPath(line.substring(up.length)),
+    };
+  }
+
   /// Writes [fixes] to the index without losing unstaged work
   /// (ADR-0002, docs/specs/git.md section 6). Only the mutations of
   /// security rule S4 are used: `hash-object -w`, `update-index

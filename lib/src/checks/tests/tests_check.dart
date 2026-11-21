@@ -1,6 +1,7 @@
 /// The `tests` check.
 library;
 
+import 'package:stagelatch/src/checks/tests/affected_rule.dart';
 import 'package:stagelatch/src/checks/tests/test_key.dart';
 import 'package:stagelatch/src/checks/tests/tests_rules.dart';
 import 'package:stagelatch/src/domain/check.dart';
@@ -17,6 +18,10 @@ import 'package:stagelatch/src/domain/severity.dart';
 /// the file are counted against the skipped calls of its base version, and
 /// when there are more, the later ones in source order are reported. A file
 /// that did not change is not looked at, so an old skip never blocks anyone.
+///
+/// `tests/affected` runs the tests the change affects, on pre-push and in
+/// `ci` only, and only when the working tree equals the snapshot for
+/// everything those tests execute (ADR-0018; see `affectedFindings`).
 ///
 /// A file whose facts are not well formed is left to `analyze`. A base that
 /// is absent, or cannot be read, makes every skip new.
@@ -40,7 +45,8 @@ final class TestsCheck implements Check {
   Future<CheckResult> run(CheckContext context) async {
     final wantSolo = context.isEnabled(soloRule);
     final wantSkip = context.isEnabled(newSkipRule);
-    if (!wantSolo && !wantSkip) return const CheckResult();
+    final wantAffected = context.isEnabled(affectedRule);
+    if (!wantSolo && !wantSkip && !wantAffected) return const CheckResult();
 
     final findings = <Finding>[];
     for (final change in context.changes.present) {
@@ -94,6 +100,8 @@ final class TestsCheck implements Check {
         }
       }
     }
+    // Last: it may run the project's tests, and only on pre-push and ci.
+    findings.addAll(await affectedFindings(context));
     return CheckResult(findings: findings);
   }
 

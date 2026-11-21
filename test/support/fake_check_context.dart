@@ -2,8 +2,10 @@ import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
 import 'package:stagelatch/src/domain/dart/import_graph.dart';
+import 'package:stagelatch/src/domain/dart/test_runner.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/package_map.dart';
+import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
 import 'package:stagelatch/src/domain/snapshot.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
@@ -27,6 +29,9 @@ final class FakeCheckContext implements CheckContext {
     this.targetBranch,
     this._enabled,
     this._settings = const [],
+    this._tests,
+    this.dirty = const {},
+    this.divergentAnswers = const [],
   }) : changes = changes ?? ChangeSet(const []),
        snapshot = snapshot ?? FakeSnapshotFiles(const {}),
        packages = packages ?? PackageMap(const []),
@@ -39,6 +44,32 @@ final class FakeCheckContext implements CheckContext {
            );
 
   final ImportGraph _importGraph;
+
+  final TestRunner? _tests;
+
+  /// The paths whose working tree copy differs. [divergentAmong] answers
+  /// with those of them that were asked about, unless [divergentAnswers]
+  /// has an answer for that call.
+  final Set<RepoPath> dirty;
+
+  /// The raw answer of the n-th [divergentAmong] call; a call beyond the
+  /// list is answered from [dirty].
+  final List<Set<RepoPath>> divergentAnswers;
+
+  /// The argument of every [divergentAmong] call, in order.
+  final List<Set<RepoPath>> divergentCalls = [];
+
+  @override
+  TestRunner get tests =>
+      _tests ?? (throw StateError('No TestRunner was given.'));
+
+  @override
+  Future<Set<RepoPath>> divergentAmong(Set<RepoPath> paths) async {
+    final index = divergentCalls.length;
+    divergentCalls.add({...paths});
+    if (index < divergentAnswers.length) return divergentAnswers[index];
+    return paths.intersection(dirty);
+  }
 
   @override
   Future<ImportGraph> get importGraph async => _importGraph;

@@ -24,6 +24,7 @@ import '../../support/fake_clock.dart';
 import '../../support/fake_dart_toolchain_factory.dart';
 import '../../support/fake_git_repository.dart';
 import '../../support/fake_sdk_locator.dart';
+import '../../support/fake_test_runner.dart';
 import '../../support/fake_working_tree.dart';
 
 const _preCommit = RunRequest(entry: PreCommitEntry());
@@ -33,6 +34,7 @@ Pipeline _pipeline(
   List<Check> checks, {
   FakeClock? clock,
   FakeDartToolchainFactory? toolchains,
+  FakeTestRunnerFactory? testRunners,
 }) => Pipeline(
   git: git,
   configLoader: ConfigLoader(const StructuredDocuments(), FakeWorkingTree()),
@@ -42,6 +44,7 @@ Pipeline _pipeline(
   toolVersion: Version.parse('0.1.0'),
   sdkLocator: FakeSdkLocator(),
   toolchains: toolchains ?? FakeDartToolchainFactory(),
+  testRunners: testRunners ?? FakeTestRunnerFactory(FakeTestRunner()),
 );
 
 /// A staged config whose pre-commit hook runs [selectors].
@@ -739,6 +742,7 @@ void main() {
         toolVersion: Version.parse('0.1.0'),
         sdkLocator: FakeSdkLocator(),
         toolchains: FakeDartToolchainFactory(),
+        testRunners: FakeTestRunnerFactory(FakeTestRunner()),
       );
 
       final report = (await pipeline.run(_preCommit)).single;

@@ -54,6 +54,43 @@ void main() {
       expect(result.location, original.location);
       expect(result.rule, original.rule);
     });
+
+    test('a severity-locked finding keeps its severity at any level', () {
+      final locked = Finding(
+        rule: const RuleId('alpha', 'one'),
+        severity: Severity.warning,
+        message: 'skipped',
+        location: check.finding('a.dart').location,
+        severityLocked: true,
+      );
+
+      expect(
+        applyLevels([locked], {const RuleId('alpha', 'one'): RuleLevel.error}),
+        [locked],
+      );
+      expect(
+        applyLevels(
+          [locked],
+          {const RuleId('alpha', 'one'): RuleLevel.warning},
+        ),
+        [locked],
+      );
+    });
+
+    test('off still drops a severity-locked finding', () {
+      final locked = Finding(
+        rule: const RuleId('alpha', 'one'),
+        severity: Severity.warning,
+        message: 'skipped',
+        location: check.finding('a.dart').location,
+        severityLocked: true,
+      );
+
+      expect(
+        applyLevels([locked], {const RuleId('alpha', 'one'): RuleLevel.off}),
+        isEmpty,
+      );
+    });
   });
 
   group('applyExclude', () {

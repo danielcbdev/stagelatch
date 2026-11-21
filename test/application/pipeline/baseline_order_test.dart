@@ -22,6 +22,7 @@ import '../../support/fake_dart_toolchain_factory.dart';
 import '../../support/fake_git_repository.dart';
 import '../../support/fake_sdk_locator.dart';
 import '../../support/fake_snapshot_files.dart';
+import '../../support/fake_test_runner.dart';
 import '../../support/fake_working_tree.dart';
 
 const _config =
@@ -50,6 +51,7 @@ Pipeline _pipeline(
   toolVersion: Version.parse('0.1.0'),
   sdkLocator: FakeSdkLocator(),
   toolchains: FakeDartToolchainFactory(),
+  testRunners: FakeTestRunnerFactory(FakeTestRunner()),
 );
 
 /// The baseline file that accepts [count] findings like [finding] in a file

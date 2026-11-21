@@ -8,8 +8,10 @@ import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
 import 'package:stagelatch/src/domain/dart/import_graph.dart';
+import 'package:stagelatch/src/domain/dart/test_runner.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/package_map.dart';
+import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
 import 'package:stagelatch/src/domain/snapshot.dart';
 
@@ -28,10 +30,13 @@ final class PipelineCheckContext implements CheckContext {
     required this.targetBranch,
     required this.packages,
     required this.dart,
+    required this.tests,
+    required this._divergentAmong,
     required this._selection,
     required this._config,
   });
 
+  final Future<Set<RepoPath>> Function(Set<RepoPath>) _divergentAmong;
   final Selection _selection;
   final Config _config;
 
@@ -59,6 +64,14 @@ final class PipelineCheckContext implements CheckContext {
   /// The toolchain of this phase; it starts nothing until asked.
   @override
   final DartToolchain dart;
+
+  /// The runner of the whole run; it starts nothing until asked.
+  @override
+  final TestRunner tests;
+
+  @override
+  Future<Set<RepoPath>> divergentAmong(Set<RepoPath> paths) =>
+      _divergentAmong(paths);
 
   /// Built once, from the directives of every `.dart` file of [snapshot].
   /// `facts` starts no process.

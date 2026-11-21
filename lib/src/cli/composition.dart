@@ -23,6 +23,7 @@ import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/infrastructure/dart/file_sdk_locator.dart';
+import 'package:stagelatch/src/infrastructure/dart/process_test_runner.dart';
 import 'package:stagelatch/src/infrastructure/dart/sdk_dart_toolchain.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
 import 'package:stagelatch/src/infrastructure/git/git_cli_repository.dart';
@@ -109,6 +110,7 @@ final class Composition {
           toolchains: SdkDartToolchainFactory(
             cache: FileCache(commonDir: layout.commonDir),
           ),
+          testRunners: const ProcessTestRunnerFactory(),
         ),
         hookInstaller: HookInstaller(store),
         git: git,

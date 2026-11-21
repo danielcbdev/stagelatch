@@ -7,7 +7,7 @@ Status: **Approved (2026-11-12).** How findings are silenced, from narrowest to 
 The pipeline applies these filters in this order. Each one only removes findings or changes severity; none adds, except step 4.
 
 1. **Selection.** Drop findings whose rule the hook's selectors do not enable.
-2. **Levels.** Apply `rules:`: `off` drops, `error`/`warning` override the severity.
+2. **Levels.** Apply `rules:`: `off` drops, `error`/`warning` override the severity. A finding with `severityLocked` keeps the severity the check reported (still dropped by `off`): the dirty-skip warning of `tests/affected` is locked to `warning`, so `rules: tests/affected: error` does not make a skip fail the run. Failed-test findings of the same rule follow the configured level.
 3. **Exclude.** Drop findings whose path matches an `exclude` glob.
 4. **Inline ignore.** Drop findings covered by a `stagelatch:ignore` comment; add `stagelatch/invalid-ignore` findings. Counted as `suppressed`.
 5. **Baseline.** Drop findings matched by the baseline. Counted as `baselined`.

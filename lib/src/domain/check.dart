@@ -4,10 +4,12 @@ library;
 import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
 import 'package:stagelatch/src/domain/dart/import_graph.dart';
+import 'package:stagelatch/src/domain/dart/test_runner.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/finding.dart';
 import 'package:stagelatch/src/domain/fix.dart';
 import 'package:stagelatch/src/domain/package_map.dart';
+import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
 import 'package:stagelatch/src/domain/snapshot.dart';
 
@@ -98,6 +100,18 @@ abstract interface class CheckContext {
   /// directives of every `.dart` file of [snapshot]. Like [dart], only a
   /// check that needs it should ask.
   Future<ImportGraph> get importGraph;
+
+  /// Runs the tests of a package in the working tree. Nothing is located or
+  /// started until [TestRunner.run] is called, so a check that runs no test
+  /// must not call it. Only `tests/affected` does, and only on pre-push and
+  /// `ci` (ADR-0018).
+  TestRunner get tests;
+
+  /// The paths among [paths] whose working tree copy is not what [snapshot]
+  /// holds: they differ from it, or they are untracked, not ignored files
+  /// that [snapshot] lacks (ADR-0018). Empty when the working tree equals
+  /// the snapshot for all of them.
+  Future<Set<RepoPath>> divergentAmong(Set<RepoPath> paths);
 
   /// The branch the change is headed for: the current branch on commit,
   /// the remote branch on push, the base ref in CI. Null when unknown.

@@ -20,6 +20,7 @@ import '../support/fake_dart_toolchain_factory.dart';
 import '../support/fake_git_repository.dart';
 import '../support/fake_hook_store.dart';
 import '../support/fake_sdk_locator.dart';
+import '../support/fake_test_runner.dart';
 import '../support/fake_working_tree.dart';
 import '../support/temp_repo.dart';
 
@@ -119,7 +120,7 @@ void main() {
       contains(
         'pre-commit: [format, pubspec, sensitive-files, tests/solo, '
         'tests/new-skip]\n'
-        '  pre-push: [analyze]\n',
+        '  pre-push: [analyze, tests/affected]\n',
       ),
     );
     expect(result.stdout, contains('Created stagelatch.yaml.\n'));
@@ -226,6 +227,7 @@ void main() {
           toolVersion: Version.parse('0.1.0-dev.1'),
           sdkLocator: FakeSdkLocator(),
           toolchains: FakeDartToolchainFactory(),
+          testRunners: FakeTestRunnerFactory(FakeTestRunner()),
         ),
         hookInstaller: HookInstaller(FakeHookStore()),
         git: git,

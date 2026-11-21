@@ -68,9 +68,11 @@ void main() {
       expect(check.rules.map((rule) => rule.id.toString()), [
         'tests/solo',
         'tests/new-skip',
+        'tests/affected',
       ]);
       expect(check.rules.first.defaultSeverity, Severity.error);
-      expect(check.rules.last.defaultSeverity, Severity.warning);
+      expect(check.rules[1].defaultSeverity, Severity.warning);
+      expect(check.rules.last.defaultSeverity, Severity.error);
       expect(check.rules.every((rule) => rule.summary.endsWith('.')), isTrue);
     });
 
