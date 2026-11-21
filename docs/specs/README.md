@@ -42,7 +42,7 @@ Writing the specs forced decisions that `CLAUDE.md` leaves open or states loosel
 | R11 | The resolved SDK must be outside the repository. | `security.md` S2 |
 | R12 | Size units are binary: `1KB` = 1024 bytes. | `config.md` |
 | R13 | Console output is ASCII only. | `cli.md` |
-| R14 | `tests/affected` does not run when affected files have uncommitted changes; it reports a warning instead. | `rules.md` |
+| R14 | `tests/affected` does not run when files it executes differ from the working tree (uncommitted, untracked or another checked-out commit); it reports a warning instead. Refined by ADR-0018. | `rules.md`, `git.md` |
 | R15 | Dart SDK floor of the tool itself: `^3.13.0`. | `coding-standards.md` |
 | R16 | Custom checks (1.0.0) run as external processes speaking a JSON protocol. Draft only. | `custom-checks.md` |
 | R17 | Missing `.dart_tool/package_config.json` when Dart analysis is needed is a usage error (exit 64) asking for `dart pub get`. | `dart-toolchain.md` |
