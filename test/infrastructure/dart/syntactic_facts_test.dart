@@ -135,7 +135,7 @@ void main() {
     ]);
   });
 
-  test('test calls and identifiers stay empty in this version', () {
+  test('a file without test calls has none, and has its identifiers', () {
     final facts = _extract(
       "import 'a.dart';\n@JsonSerializable() class A {}\n",
     );
@@ -143,6 +143,6 @@ void main() {
     expect(facts.annotatedDeclarations.single.name, 'A');
     expect(facts.isWellFormed, isTrue);
     expect(facts.testCalls, isEmpty);
-    expect(facts.identifiers, isEmpty);
+    expect(facts.identifiers, {'import', 'JsonSerializable', 'class', 'A'});
   });
 }

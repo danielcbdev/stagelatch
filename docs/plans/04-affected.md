@@ -178,10 +178,10 @@ test('a cold cache, a warm cache and a deleted cache give the same JSON report',
 **Decisions fixed here** (specified in `rules.md` `l10n/unused-key` and `dart-toolchain.md` 6):
 - `identifiers` is every `TokenKind.word` token (the lexer has no keyword table, which is what ADR-0017 means by "identifier and keyword"), interpolated expressions included. A file that is not well formed has an empty set. The version is raised to 2 and the golden regenerated, because stored v1 entries have no identifiers.
 - The rule looks at a package when `l10n.yaml` or an ARB file of it changed (as today) or when a `.dart` file that belongs to it was added, modified, deleted or renamed (either path). It skips the package when the template is missing or not an object, and when any scanned file is not well formed.
-- Scanned files: `snapshot.list()` entries with extension `.dart`, regular or executable, `packageOf(path) == package`, not under `setup.outputDir`, not ending in a `codegen.generated_suffixes` suffix. Facts are requested concurrently (`Future.wait`) and served by the cache.
+- Scanned files: `snapshot.list()` entries with extension `.dart`, regular or executable, `packageOf(path) == package`, not under `setup.outputDir` (or `setup.arbDir` when `outputDir` is null: Flutter gen-l10n writes generated localizations there), not ending in a `codegen.generated_suffixes` suffix. Facts are requested concurrently (`Future.wait`) and served by the cache. A scanned file whose facts are `null` is treated like an ill-formed one.
 - `_package` in `l10n_check.dart` returns early when neither `missing-key` nor `placeholder-mismatch` is enabled; restructure so `unused-key` still runs, and so a package looked at only because of a Dart change runs nothing else.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // identifiers_test.dart
@@ -204,21 +204,23 @@ test('a key referenced nowhere is reported at the template key', () async {
 });
 test('a key used through l10n.key, a getter chain or an interpolation is used', () async { /* ... */ });
 test('a reference in a generated file does not count', () async { /* under output-dir, and *.g.dart */ });
+test('when output-dir is omitted, arb-dir is excluded from the scan', () async { /* app_localizations*.dart in arb-dir */ });
 test('a reference in another package does not count', () async { /* packages/b/lib/x.dart */ });
 test('the rule scans the whole package, not the changeset', () async { /* the only use is in an unchanged file */ });
 test('the rule looks at the package when a Dart file of it changed even if no ARB did', () async { /* removing the last use */ });
 test('a deleted or renamed Dart file triggers it, under either path', () async { /* ... */ });
 test('a Dart file of another package does not trigger it', () async { /* ... */ });
 test('a package with a file that is not well formed produces no finding', () async { /* ... */ });
+test('a package with a file whose facts cannot be read produces no finding', () async { /* facts == null */ });
 test('metadata keys starting with @ are not keys', () async { /* ... */ });
 test('the rule can be off or an error through rules:', () async { /* isEnabled false: no facts requested */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, `identifiers` is empty and the rule does not exist.
-- [ ] **Step 3: Implement** as decided above. Register `unusedKeyRule` with summary `A key of the template is not used by any Dart file.`
-- [ ] **Step 4: Measure the gate.** Run `benchmark/bin/measure_cli.dart --hook pre-commit` on `s3-l10n` and `s10-l10n`, cold (empty cache and empty analysis cache) and hot, and put the table in the pull request. **If the cold pre-commit exceeds 2 s on either, stop and ask the owner.** Do not change the default hook list, the rule's scope or its trigger to make it fit; the owner chooses (for example, reporting only newly unused keys would change the spec).
-- [ ] **Step 5: Regenerate** `docs/rules.md`; run all four commands. Expected: PASS.
-- [ ] **Step 6: Commit.** `feat(checks): add l10n/unused-key`
+- [x] **Step 2: Run.** Expected: FAIL, `identifiers` is empty and the rule does not exist.
+- [x] **Step 3: Implement** as decided above. Register `unusedKeyRule` with summary `A key of the template is not used by any Dart file.`
+- [x] **Step 4: Measure the gate.** Run `benchmark/bin/measure_cli.dart --hook pre-commit` on `s3-l10n` and `s10-l10n`, cold (empty cache and empty analysis cache) and hot, and put the table in the pull request. **If the cold pre-commit exceeds 2 s on either, stop and ask the owner.** Do not change the default hook list, the rule's scope or its trigger to make it fit; the owner chooses (for example, reporting only newly unused keys would change the spec).
+- [x] **Step 5: Regenerate** `docs/rules.md`; run all four commands. Expected: PASS.
+- [x] **Step 6: Commit.** `feat(checks): add l10n/unused-key`
 
 ### Task 3: Affected test selection
 

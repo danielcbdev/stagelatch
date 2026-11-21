@@ -206,9 +206,9 @@ void main() {
     final text = encodeFacts(const DartFileFacts());
 
     expect(decodeFacts(text, _a), isNotNull);
-    expect(text, startsWith('{"v":1,'));
-    expect(decodeFacts(text.replaceFirst('"v":1', '"v":2'), _a), isNull);
-    expect(decodeFacts(text.replaceFirst('"v":1', '"v":"1"'), _a), isNull);
+    expect(text, startsWith('{"v":2,'));
+    expect(decodeFacts(text.replaceFirst('"v":2', '"v":3'), _a), isNull);
+    expect(decodeFacts(text.replaceFirst('"v":2', '"v":"2"'), _a), isNull);
   });
 
   test('garbage never throws: every strict prefix of a valid document, and '
@@ -228,8 +228,8 @@ void main() {
       '1',
       '"v"',
       '{}',
-      '{"v":1}',
-      '{"v":1,"directives":"x"}',
+      '{"v":2}',
+      '{"v":2,"directives":"x"}',
       _document(identifiers: 'x'),
       _document(identifiers: [1]),
       _document(isWellFormed: 1),

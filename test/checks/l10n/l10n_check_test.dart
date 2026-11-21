@@ -60,7 +60,10 @@ Future<List<Finding>> _run(
     packages: PackageMap(
       packages ?? [const DartPackage(root: null, name: 'app')],
     ),
-    enabled: enabled,
+    // `unused-key` has its own tests; it needs Dart facts, which these
+    // translation-only scenarios do not provide.
+    enabled:
+        enabled ?? {missingKeyRule, placeholderMismatchRule, unparseableRule},
   );
   final result = await const L10nCheck().run(context);
   expect(result.fixes, isEmpty);
@@ -80,10 +83,19 @@ void main() {
         'l10n/missing-key',
         'l10n/placeholder-mismatch',
         'l10n/unparseable',
+        'l10n/unused-key',
       ]);
       expect(
-        check.rules.every((rule) => rule.defaultSeverity == Severity.error),
+        check.rules
+            .where((rule) => rule.id != unusedKeyRule)
+            .every((rule) => rule.defaultSeverity == Severity.error),
         isTrue,
+      );
+      expect(
+        check.rules
+            .singleWhere((rule) => rule.id == unusedKeyRule)
+            .defaultSeverity,
+        Severity.warning,
       );
       expect(check.rules.every((rule) => rule.summary.endsWith('.')), isTrue);
     });

@@ -118,7 +118,10 @@ final class DartFileFacts {
   /// Calls to the configured test functions, in source order.
   final List<TestCall> testCalls;
 
-  /// Every identifier token of the file. Filled from 0.3.0 on.
+  /// Every identifier and keyword token of the file, including those inside
+  /// string interpolations; nothing from comments or string contents. Empty
+  /// when the file is not well formed ([isWellFormed]): an empty set there
+  /// does not mean "no identifiers".
   final Set<String> identifiers;
 
   /// Whether the file could be read: false when the extractor found an
@@ -127,6 +130,7 @@ final class DartFileFacts {
   /// because the extractor does not trust what it read, and a check that
   /// needs them must leave the file to `analyze` instead of reading the
   /// empty lists as "there are none". [directives] are read from the top of
-  /// the file and keep their meaning.
+  /// the file and keep their meaning. [identifiers] are empty for the same
+  /// reason.
   final bool isWellFormed;
 }

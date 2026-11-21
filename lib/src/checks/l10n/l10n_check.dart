@@ -5,10 +5,12 @@ import 'package:stagelatch/src/checks/l10n/arb_document.dart';
 import 'package:stagelatch/src/checks/l10n/icu_arguments.dart';
 import 'package:stagelatch/src/checks/l10n/l10n_rules.dart';
 import 'package:stagelatch/src/checks/l10n/l10n_setup.dart';
+import 'package:stagelatch/src/checks/l10n/unused_keys.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/finding.dart';
 import 'package:stagelatch/src/domain/location.dart';
+import 'package:stagelatch/src/domain/package_map.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
 import 'package:stagelatch/src/domain/severity.dart';
@@ -20,6 +22,11 @@ import 'package:stagelatch/src/domain/severity.dart';
 /// its ARB directory changed or was deleted. All the locales of the
 /// directory are then compared with the template, not only the changed
 /// ones: adding a key to the template makes every translation stale.
+///
+/// `unused-key` is the exception to change-awareness: it scans every Dart
+/// file of the package, so it also looks at a package when a `.dart` file
+/// that belongs to it was added, modified, deleted or renamed (under either
+/// path). A package looked at only for that reason runs nothing else.
 final class L10nCheck implements Check {
   /// Creates the check.
   const new();
@@ -40,6 +47,10 @@ final class L10nCheck implements Check {
   Future<CheckResult> run(CheckContext context) async {
     final changed = {for (final change in context.changes.changes) change.path};
     final present = {for (final change in context.changes.present) change.path};
+    final wantUnused = context.isEnabled(unusedKeyRule);
+    final dartChanged = wantUnused
+        ? _packagesWithDartChanges(context)
+        : const <DartPackage>{};
     final findings = <Finding>[];
     for (final package in context.packages.packages) {
       final setup = await readL10nSetup(
@@ -54,17 +65,47 @@ final class L10nCheck implements Check {
       final arbChanged = changed.any(
         (path) => path.parent == setup.arbDir && path.extension == '.arb',
       );
-      if (!arbChanged && !changed.contains(l10nYaml)) continue;
-      findings.addAll(await _package(context, setup, present));
+      final translationsChanged = arbChanged || changed.contains(l10nYaml);
+      if (!translationsChanged && !dartChanged.contains(package)) continue;
+      findings.addAll(
+        await _package(
+          context,
+          setup,
+          package,
+          present,
+          compare: translationsChanged,
+          wantUnused: wantUnused,
+        ),
+      );
     }
     return CheckResult(findings: findings);
   }
 
+  /// The packages that own a `.dart` file of the changeset, under its new
+  /// path or its old one.
+  Set<DartPackage> _packagesWithDartChanges(CheckContext context) {
+    final owners = <DartPackage>{};
+    for (final change in context.changes.changes) {
+      for (final path in [change.path, ?change.previousPath]) {
+        if (path.extension != '.dart') continue;
+        final owner = context.packages.packageOf(path);
+        if (owner != null) owners.add(owner);
+      }
+    }
+    return owners;
+  }
+
+  /// Looks at one package. With [compare], the translations are compared
+  /// with the template; without it, only the template is read, for
+  /// `unused-key`.
   Future<List<Finding>> _package(
     CheckContext context,
     L10nSetup setup,
-    Set<RepoPath> present,
-  ) async {
+    DartPackage package,
+    Set<RepoPath> present, {
+    required bool compare,
+    required bool wantUnused,
+  }) async {
     final findings = <Finding>[];
     final templatePath = RepoPath(
       '${setup.arbDir.value}/${setup.templateFile}',
@@ -76,6 +117,7 @@ final class L10nCheck implements Check {
     for (final entry in await context.snapshot.list(under: setup.arbDir)) {
       final path = entry.path;
       if (path.parent != setup.arbDir || path.extension != '.arb') continue;
+      if (!compare && path != templatePath) continue;
       final parsed = await context.documents.json(context.snapshot, path);
       switch (parsed) {
         case DocumentMissing():
@@ -100,6 +142,12 @@ final class L10nCheck implements Check {
 
     final template = documents[templatePath];
     if (template == null) return findings;
+    if (wantUnused) {
+      findings.addAll(
+        await unusedKeyFindings(context, setup, template, package),
+      );
+    }
+    if (!compare) return findings;
     final wantMissing = context.isEnabled(missingKeyRule);
     final wantMismatch = context.isEnabled(placeholderMismatchRule);
     if (!wantMissing && !wantMismatch) return findings;

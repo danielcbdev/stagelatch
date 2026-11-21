@@ -132,3 +132,41 @@ Measured on 2026-11-21 on an Apple M-series laptop, 2,462 `.dart` files:
 | warm cache, same process | 218 ms |
 | empty cache, fresh process | 1,541 ms |
 | warm cache, fresh process | 264 ms |
+
+## `l10n/unused-key` on the commit hook (plan 04, Task 2)
+
+`l10n/unused-key` scans every non-generated `.dart` file of the package, so a
+staged `.dart` file makes it look at the whole package. The corpus has an
+`l10n.yaml` and a template of 4,156 keys, so `s3-l10n` and `s10-l10n` reuse the
+patches of `s3` and `s10` unchanged. `measure_cli.dart` deletes the corpus's
+facts cache (`.git/stagelatch/cache`) before each cold run, as well as using a
+fresh `HOME`:
+
+```bash
+dart pub global activate --source path .
+cd benchmark
+dart run bin/measure_cli.dart --hook pre-commit --scenario s3-l10n \
+  --scenario s10-l10n --cold 8 --warm 10 --out 19-cli-0.3.0-l10n-pre-commit.json
+```
+
+Measured on 2026-11-21 on the same laptop and SDK as above, with the default
+pre-commit list of 0.3.0 (format, codegen, pubspec, l10n, assets,
+sensitive-files, tests/solo, tests/new-skip). Cold: no facts cache and an empty
+analysis cache; warm: both populated.
+
+| Scenario | Cold p50 / p95 | Cold min-max | Warm p50 / p95 |
+|---|---|---|---|
+| s3-l10n | 1.79 / 1.88 s | 1.73-1.88 s | 1.20 / 1.29 s |
+| s10-l10n | 1.83 / 1.85 s | 1.80-1.85 s | 1.26 / 1.43 s |
+| 0.2.0 (no unused-key), s3 | 0.55 / 0.56 s | | 0.77 / 0.78 s |
+| 0.2.0 (no unused-key), s10 | 0.61 / 0.63 s | | 0.83 / 0.85 s |
+
+Both stay under the 2 s gate, with about 0.12 s of margin at the worst cold
+run. In a first measurement taken right after `dart pub global activate`, the
+very first cold run (s3) took 2.2 s, and the 9 cold runs after it stayed
+between 1.73 and 1.94 s; as in the 0.2.0 table above, that run is the
+activation warm-up. The table is a second, complete measurement (8 cold and
+10 warm runs per scenario) in which no run exceeded 1.89 s. Compared with 0.2.0, the rule adds about 1.2 s cold (extracting the
+identifiers of 2,462 files and storing them) and about 0.4 s warm (listing the
+snapshot and reading 2,462 cache entries); these are differences of medians,
+not a profile.

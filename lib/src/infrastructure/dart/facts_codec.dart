@@ -16,7 +16,7 @@ import 'package:stagelatch/src/domain/repo_path.dart';
 /// `test/infrastructure/dart/facts_corpus_test.dart` fails until both are
 /// done. It names the cache namespace, `facts-v<factsFormatVersion>`, so an
 /// old entry is never read as a new one.
-const int factsFormatVersion = 1;
+const int factsFormatVersion = 2;
 
 /// The canonical JSON of [facts]: fixed member order, no whitespace,
 /// identifiers sorted, positions only. The path is not stored; [decodeFacts]

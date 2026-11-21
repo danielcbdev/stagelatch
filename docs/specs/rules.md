@@ -158,9 +158,9 @@ Setup, per package with an `l10n.yaml`: `arb-dir` (default `lib/l10n`) and `temp
 
 ### `l10n/unused-key`
 
-- A template key whose name is not in the `identifiers` ([`dart-toolchain.md`](dart-toolchain.md#6-facts)) of any non-generated `.dart` file of the package. Generated files are those under the l10n output directory and those matching `codegen.generated_suffixes`. "Of the package" means `PackageMap.packageOf` returns that package, so a nested package's files do not count.
+- A template key whose name is not in the `identifiers` ([`dart-toolchain.md`](dart-toolchain.md#6-facts)) of any non-generated `.dart` file of the package. Generated files are those under the l10n output directory (`output-dir` in `l10n.yaml`, or `arb-dir` when `output-dir` is omitted — Flutter gen-l10n's default) and those matching `codegen.generated_suffixes`. "Of the package" means `PackageMap.packageOf` returns that package, so a nested package's files do not count.
 - `identifiers` holds every identifier and keyword token of a file and nothing from comments or string contents: `l10n.checkoutTitle`, `AppLocalizations.of(context).checkoutTitle`, `'${l10n.checkoutTitle}'` and `'$checkoutTitle'` all count as a use of `checkoutTitle`.
-- A package with a scanned file whose facts are not well formed produces no `unused-key` finding: such a file has no identifiers, and an empty set must not be read as "no uses". Its syntax error is left to `analyze`.
+- A package with a scanned file whose facts are not well formed, or cannot be read, produces no `unused-key` finding: such a file has no identifiers, and an empty set must not be read as "no uses". Its syntax error is left to `analyze`.
 - This rule scans the whole package; it is the only rule that is not change-aware. It is looked at when `l10n.yaml` or an ARB file of the package changed, or a `.dart` file of the package changed.
 - Location: the key in the template. Message: `Key "<key>" is not referenced by any Dart file.`
 

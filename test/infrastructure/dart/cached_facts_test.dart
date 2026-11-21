@@ -101,7 +101,7 @@ void main() {
       'facts-v$factsFormatVersion/$blob-${_hash(['alpha', 'zeta'])}',
     ]);
     expect(cache.reads, cache.writes);
-    expect(factsFormatVersion, 1);
+    expect(factsFormatVersion, 2);
   });
 
   test('the same functions in another order share the key', () async {
@@ -147,12 +147,12 @@ void main() {
     final files = FakeSnapshotFiles({'a.dart': _source});
     await make().facts(files, RepoPath('a.dart'));
     final key = cache.entries.keys.single;
-    cache.entries[key] = cache.entries[key]!.replaceFirst('"v":1', '"v":9');
+    cache.entries[key] = cache.entries[key]!.replaceFirst('"v":2', '"v":9');
 
     final facts = await make().facts(files, RepoPath('a.dart'));
 
     expect(facts!.testCalls, hasLength(1));
-    expect(cache.entries[key], contains('"v":1'));
+    expect(cache.entries[key], contains('"v":2'));
   });
 
   test('an exception from the cache is a miss', () async {

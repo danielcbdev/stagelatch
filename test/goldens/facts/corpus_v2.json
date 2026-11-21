@@ -1,5 +1,5 @@
 {
-  "factsFormatVersion": 1,
+  "factsFormatVersion": 2,
   "testFunctions": [
     "group",
     "myTest",
@@ -8,7 +8,7 @@
   ],
   "files": {
     "annotated.dart.txt": {
-      "v": 1,
+      "v": 2,
       "isWellFormed": true,
       "directives": [
         {
@@ -114,10 +114,52 @@
         }
       ],
       "testCalls": [],
-      "identifiers": []
+      "identifiers": [
+        "Circle",
+        "Color",
+        "Default",
+        "JsonEnum",
+        "JsonKey",
+        "JsonSerializable",
+        "JsonValue",
+        "Map",
+        "Order",
+        "Shape",
+        "String",
+        "_$OrderFromJson",
+        "_$OrderToJson",
+        "_$Shape",
+        "circle",
+        "class",
+        "const",
+        "double",
+        "dynamic",
+        "enum",
+        "explicitToJson",
+        "factory",
+        "final",
+        "freezed",
+        "fromJson",
+        "green",
+        "id",
+        "import",
+        "int",
+        "json",
+        "name",
+        "override",
+        "part",
+        "r",
+        "red",
+        "sealed",
+        "this",
+        "toJson",
+        "toString",
+        "true",
+        "with"
+      ]
     },
     "directives.dart.txt": {
-      "v": 1,
+      "v": 2,
       "isWellFormed": true,
       "directives": [
         {
@@ -219,10 +261,30 @@
       ],
       "annotatedDeclarations": [],
       "testCalls": [],
-      "identifiers": []
+      "identifiers": [
+        "Bar",
+        "Deprecated",
+        "Foo",
+        "a",
+        "app",
+        "as",
+        "dart",
+        "export",
+        "hide",
+        "html",
+        "if",
+        "import",
+        "js_interop",
+        "library",
+        "main",
+        "of",
+        "part",
+        "show",
+        "void"
+      ]
     },
     "empty.dart.txt": {
-      "v": 1,
+      "v": 2,
       "isWellFormed": true,
       "directives": [],
       "annotatedDeclarations": [],
@@ -230,7 +292,7 @@
       "identifiers": []
     },
     "interpolation.dart.txt": {
-      "v": 1,
+      "v": 2,
       "isWellFormed": true,
       "directives": [
         {
@@ -279,10 +341,27 @@
           "skip": null
         }
       ],
-      "identifiers": []
+      "identifiers": [
+        "String",
+        "count",
+        "describe",
+        "final",
+        "for",
+        "greet",
+        "import",
+        "in",
+        "int",
+        "main",
+        "n",
+        "name",
+        "plural",
+        "test",
+        "toUpperCase",
+        "void"
+      ]
     },
     "tests.dart.txt": {
-      "v": 1,
+      "v": 2,
       "isWellFormed": true,
       "directives": [
         {
@@ -518,10 +597,26 @@
           }
         }
       ],
-      "identifiers": []
+      "identifiers": [
+        "Skip",
+        "async",
+        "false",
+        "group",
+        "import",
+        "library",
+        "main",
+        "myTest",
+        "skip",
+        "solo",
+        "test",
+        "testWidgets",
+        "tester",
+        "true",
+        "void"
+      ]
     },
     "unbalanced.dart.txt": {
-      "v": 1,
+      "v": 2,
       "isWellFormed": false,
       "directives": [
         {
@@ -542,7 +637,7 @@
       "identifiers": []
     },
     "unterminated.dart.txt": {
-      "v": 1,
+      "v": 2,
       "isWellFormed": false,
       "directives": [
         {

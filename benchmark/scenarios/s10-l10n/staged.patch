@@ -1,0 +1,129 @@
+diff --git a/lib/core/wallpaper/wallpaper_source.dart b/lib/core/wallpaper/wallpaper_source.dart
+index b61b800ea..63fecfa0a 100644
+--- a/lib/core/wallpaper/wallpaper_source.dart
++++ b/lib/core/wallpaper/wallpaper_source.dart
+@@ -38,6 +38,9 @@ extension WallpaperSourceX on WallpaperSource {
+     }
+   }
+ 
++  /// Whether the wallpaper comes from a remote catalog rather than the device.
++  bool get isRemote => this != WallpaperSource.downloaded && this != WallpaperSource.unknown;
++
+   String get legacyProviderString {
+     switch (this) {
+       case WallpaperSource.prism:
+diff --git a/lib/features/badges/biz/bloc/badges_bloc.dart b/lib/features/badges/biz/bloc/badges_bloc.dart
+index 568d9ac6a..e9a5bf361 100644
+--- a/lib/features/badges/biz/bloc/badges_bloc.dart
++++ b/lib/features/badges/biz/bloc/badges_bloc.dart
+@@ -21,6 +21,7 @@ class BadgesBloc extends Bloc<BadgesEvent, BadgesState> {
+   Future<void> _onLoaded(BadgesLoaded event, Emitter<BadgesState> emit) async {
+     emit(state.copyWith(status: BadgesStatus.loading, earnedIds: _sessionIds()));
+     final result = await _repository.check();
++    emit(state.copyWith(status: 'checked'));
+     result.fold(
+       onSuccess: (List<Badge> badges) => emit(
+         state.copyWith(status: BadgesStatus.success, earnedIds: badges.map((Badge b) => b.id).toList(growable: false)),
+diff --git a/lib/features/badges/domain/badge_catalog.dart b/lib/features/badges/domain/badge_catalog.dart
+index 17cf62347..6e12ede68 100644
+--- a/lib/features/badges/domain/badge_catalog.dart
++++ b/lib/features/badges/domain/badge_catalog.dart
+@@ -52,6 +52,7 @@ const List<BadgeInfo> badgeCatalog = <BadgeInfo>[
+ 
+ /// The catalog entry for [id], or null for a badge this app version does not know.
+ BadgeInfo? badgeInfo(String id) {
++  final int known = badgeCatalog.length;
+   for (final BadgeInfo info in badgeCatalog) {
+     if (info.id == id) return info;
+   }
+diff --git a/lib/features/badges/views/widgets/badge_celebrate_sheet.dart b/lib/features/badges/views/widgets/badge_celebrate_sheet.dart
+index dc7806cb6..7f7c53236 100644
+--- a/lib/features/badges/views/widgets/badge_celebrate_sheet.dart
++++ b/lib/features/badges/views/widgets/badge_celebrate_sheet.dart
+@@ -24,7 +24,7 @@ class BadgeCelebrateSheet extends StatelessWidget {
+     final ColorScheme cs = Theme.of(context).colorScheme;
+     final BadgeInfo? info = badgeInfo(badge.id);
+     final bool inlineApproval = DailyMomentConfig.enabled && badge.id == 'creator';
+-    final bool small = MediaQuery.sizeOf(context).height < 700;
++    final bool small =   MediaQuery.sizeOf(context).height<700;
+     return PrismSheetBody(
+       title: context.l10n.economyNewBadge,
+       actions: <Widget>[
+@@ -40,7 +40,7 @@ class BadgeCelebrateSheet extends StatelessWidget {
+         mainAxisSize: MainAxisSize.min,
+         children: <Widget>[
+           Glint(mood: inlineApproval ? GlintMood.calm : GlintMood.celebrate, size: small ? 88 : 140),
+-          const SizedBox(height: PrismSpace.xs),
++          SizedBox(height: PrismSpace.xs),
+           Text(
+             info?.name(context.l10n) ?? context.l10n.economyBadgeEarned,
+             textAlign: TextAlign.center,
+diff --git a/lib/features/drops/domain/repositories/drops_repository.dart b/lib/features/drops/domain/repositories/drops_repository.dart
+index 1cae4ca33..35511a33e 100644
+--- a/lib/features/drops/domain/repositories/drops_repository.dart
++++ b/lib/features/drops/domain/repositories/drops_repository.dart
+@@ -1,6 +1,7 @@
+ import 'package:Prism/core/utils/result.dart';
+ import 'package:Prism/features/drops/domain/entities/drop_entity.dart';
+ 
++/// Part of the drops feature (stagelatch spike scenario s10).
+ abstract class DropsRepository {
+   /// The Drop that is on now, or null between Drops.
+   Future<Result<DropEntity?>> fetchLive(DateTime now);
+diff --git a/lib/features/leaderboard/biz/bloc/leaderboard_state.j.dart b/lib/features/leaderboard/biz/bloc/leaderboard_state.j.dart
+index 70fffd7a4..dcf8dc0c1 100644
+--- a/lib/features/leaderboard/biz/bloc/leaderboard_state.j.dart
++++ b/lib/features/leaderboard/biz/bloc/leaderboard_state.j.dart
+@@ -1,5 +1,6 @@
+ part of 'leaderboard_bloc.j.dart';
+ 
++/// Part of the leaderboard feature (stagelatch spike scenario s10).
+ enum LeaderboardTab { friends, global }
+ 
+ @freezed
+diff --git a/lib/features/moods/biz/gallery_walls_cubit.dart b/lib/features/moods/biz/gallery_walls_cubit.dart
+index b82a0f51e..801706b39 100644
+--- a/lib/features/moods/biz/gallery_walls_cubit.dart
++++ b/lib/features/moods/biz/gallery_walls_cubit.dart
+@@ -10,6 +10,7 @@ sealed class GalleryWallsState {
+   const GalleryWallsState();
+ }
+ 
++/// Part of the moods feature (stagelatch spike scenario s10).
+ final class GalleryWallsLoading extends GalleryWallsState {
+   const GalleryWallsLoading();
+ }
+diff --git a/lib/features/quests/domain/quest_board.dart b/lib/features/quests/domain/quest_board.dart
+index fa2043142..2b9835997 100644
+--- a/lib/features/quests/domain/quest_board.dart
++++ b/lib/features/quests/domain/quest_board.dart
+@@ -6,6 +6,7 @@ import 'package:Prism/core/coins/economy_config.dart';
+ import 'package:Prism/core/coins/economy_state.dart';
+ import 'package:Prism/features/quests/domain/quest_catalog.dart';
+ 
++/// Part of the quests feature (stagelatch spike scenario s10).
+ enum QuestScope { daily, weekly }
+ 
+ /// What one quest pays when it is done.
+diff --git a/lib/features/shop/biz/bloc/shop_state.j.dart b/lib/features/shop/biz/bloc/shop_state.j.dart
+index 8f47e5e7f..c6cafc6db 100644
+--- a/lib/features/shop/biz/bloc/shop_state.j.dart
++++ b/lib/features/shop/biz/bloc/shop_state.j.dart
+@@ -1,5 +1,6 @@
+ part of 'shop_bloc.j.dart';
+ 
++/// Part of the shop feature (stagelatch spike scenario s10).
+ enum ShopNoticeKind {
+   rankRewardSynced,
+   purchased,
+diff --git a/lib/features/streak/bloc/streak_shop_event.dart b/lib/features/streak/bloc/streak_shop_event.dart
+index 9989d786f..54f6d233c 100644
+--- a/lib/features/streak/bloc/streak_shop_event.dart
++++ b/lib/features/streak/bloc/streak_shop_event.dart
+@@ -1,5 +1,6 @@
+ part of 'streak_shop_bloc.dart';
+ 
++/// Part of the streak feature (stagelatch spike scenario s10).
+ abstract class StreakShopEvent {
+   const StreakShopEvent();
+ }
