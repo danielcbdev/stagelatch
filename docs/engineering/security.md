@@ -18,15 +18,17 @@ Status: **Approved (2026-11-12).** Rules are numbered so that reviews and code c
 **What we do not defend against**
 
 - A developer who chooses to bypass the hook. CI is the guarantee (ADR-0005).
-- Code the project itself asks us to run: `tests/affected` runs the project's tests by design, under S14.
+- Code the project itself asks us to run: `tests/affected` and custom checks, under S14.
 
 ## Rules
 
 ### S1. Process execution
 
 - Processes are started with an executable and an argument list. A shell is never involved: no `runInShell: true`, no `sh -c`, no string concatenation into a command.
-- Only two executables may be started: `git`, and the `dart`/`flutter` binary of the resolved SDK.
-- No config key may name a command, script or executable. The single future exception is specified in [`custom-checks.md`](../specs/custom-checks.md) and needs its own approval.
+- Executables the tool may start:
+  - `git`;
+  - the `dart` / `flutter` binary of the resolved SDK;
+  - from 1.0.0, a custom-check command named by `custom_checks.<id>.run` ([ADR-0019](../adr/0019-custom-checks-out-of-process.md), [`custom-checks.md`](../specs/custom-checks.md)): still an argument list, never a shell. If `run[0]` is `dart` or `flutter`, the host substitutes the resolved SDK binary; otherwise a bare name is resolved by an explicit `PATH` walk (skip empty, `.`, relative, and in-repo directories) and started by absolute path — never a bare name that lets the OS search the process cwd first (Windows `CreateProcessW`). This is the only config key that may name an executable.
 - Arguments that come from repository content are placed after `--` when the command accepts it.
 
 ### S2. SDK location
@@ -78,7 +80,7 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 ### S7. Network
 
 - The tool opens no sockets. No telemetry, no update check, no remote config.
-- `tests/affected` is the only feature that runs project code; what that code does is the project's responsibility (S14). The tool itself opens no sockets.
+- `tests/affected` and custom checks (S14) run project or PATH-resolved code; what that code does is the project's responsibility. The tool itself opens no sockets.
 
 ### S8. CI and release
 
@@ -114,16 +116,30 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 
 ### S14. Running project code
 
-[ADR-0018](../adr/0018-affected-tests-run-against-validated-snapshot.md). `tests/affected` is the only feature that starts project code, and the only one allowed to.
+Two features start code that is not stagelatch itself: `tests/affected` ([ADR-0018](../adr/0018-affected-tests-run-against-validated-snapshot.md)) and custom checks ([ADR-0019](../adr/0019-custom-checks-out-of-process.md)).
+
+#### S14a. `tests/affected`
 
 - It may start test processes only on `pre-push` and `ci`. `pre-commit`, `doctor`, `why`, `init`, `install`, `uninstall` and `baseline` never do.
 - It starts nothing unless the closure equals the snapshot (no divergent path; ignored files and a lock absent from the snapshot are out of scope), checked before the first process and again after the last one. Otherwise it reports the skip warning. Files outside the closure are a documented limitation.
 - Process execution follows S1: `dart test` or `flutter test` of the resolved SDK, an argument list, test paths after `--`, never a shell. A test path never reaches a shell.
-- The environment is inherited unchanged (S11). The tool never injects, forwards or logs a secret.
-- The process's stdout and stderr are untrusted input: parsed as machine-readable events (S6) and sanitized before display (S5). Output is read as a stream of lines; a line longer than 1 MiB is dropped unparsed, and at most the first 64 KiB of standard error is kept.
-- The process is closed in a `finally`: a child that is still running when the tool stops (an error, an interrupt) is killed, never left behind. Its standard input is closed at once, so it cannot wait for a prompt (ADR-0011). Killing the child does not kill grandchildren: `flutter.bat` can leave a `flutter_tester` behind (`dart-toolchain.md` section 9).
-- On Windows, an executable ending in `.bat` or `.cmd` (the Flutter SDK's `flutter.bat`) is started through the command interpreter, which interprets metacharacters in arguments. A test path that contains a control character or any of `"`, `&`, `|`, `<`, `>`, `^`, `%` or `!` is therefore never passed to one: the run is a startup error (`rules.md`) naming the path.
+- On diverge: skip with a **warning** (push/CI may still pass). Silent pass is forbidden by making the skip visible.
 - `stagelatch ci` with `tests/affected` executes the pull request's code like any `dart test` step. The README and `action.yml` state this, including the usual restrictions on secrets for pull requests from forks (S8).
+
+#### S14b. Custom checks (1.0.0)
+
+- May start a child only on `pre-push` and `ci` when selected by the hook list, or on `pre-commit` only when a team explicitly lists the custom check id there (not in built-in defaults). `doctor`, `why`, `init`, `install` and `uninstall` never start one. `baseline create` / `prune` run the pipeline and therefore may.
+- Program bytes come from the working tree; analyzed file bytes come only through the protocol from the snapshot ([`custom-checks.md`](../specs/custom-checks.md)).
+- Source closure must be non-empty before spawn. If inference from `run` cannot produce one, `custom_checks.<id>.sources` is required; otherwise exit 78 (config). Starts nothing when the check's source closure diverges from the snapshot (ADR-0018 rules on that closure). On diverge: **exit 64** naming the check and path, with entry-point-specific resolve hints (stricter than S14a: an opted-in gate must not be skipped while the run still succeeds; 64 not 70 because uncommitted sources are user state).
+- Process execution follows S1's custom-check exception: argument list from `custom_checks.<id>.run`, never a shell; bare `PATH` names resolved to absolute paths as above; per-check timeout (default 60s) kills the child and exits 70; hang-kill is not a `time_budget` skip (ADR-0003).
+- `--no-custom-checks` on `run` and `ci` skips all custom checks and prints a notice (fork pull requests).
+
+#### S14 common
+
+- The environment is inherited unchanged (S11). The tool never injects, forwards or logs a secret.
+- The process's stdout and stderr are untrusted input: parsed as machine-readable events or protocol lines (S6) and sanitized before display (S5). Output is read as a stream of lines; a line longer than 1 MiB is dropped or treated as a protocol error as specified for that feature, and at most the first 64 KiB of standard error is kept.
+- The process is closed in a `finally`: a child that is still running when the tool stops (an error, an interrupt, a timeout) is killed, never left behind. Its standard input is closed at once, so it cannot wait for a prompt (ADR-0011). Killing the child does not kill grandchildren: `flutter.bat` can leave a `flutter_tester` behind (`dart-toolchain.md` section 9).
+- On Windows, an executable ending in `.bat` or `.cmd` is started through the command interpreter, which interprets metacharacters in arguments. An argument that contains a control character or any of `"`, `&`, `|`, `<`, `>`, `^`, `%` or `!` is therefore never passed to one: the run is a startup error naming the path or custom check.
 
 ## Security checklist for every pull request
 
@@ -133,7 +149,7 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 - [ ] Repository-derived strings pass through the sanitizer before output (S5).
 - [ ] New parsers have size bounds and an adversarial-input test (S6).
 - [ ] No network access, no new dependency without an ADR (S7, S9).
-- [ ] Nothing starts project code outside `tests/affected` on `pre-push` and `ci`, and only after the divergence test (S14).
+- [ ] Nothing starts project code outside `tests/affected` and custom checks, and only under S14 (entry points, divergence, bounds, kill).
 
 ## Reporting
 

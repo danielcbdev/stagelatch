@@ -1,0 +1,7 @@
+{"dir":"to","obj":{"type":"init","protocol":1,"entry":"pre-push","settings":{},"capabilities":[]}}
+{"dir":"from","obj":{"type":"ready","protocol":1,"rules":[{"id":"team/no-print","summary":"Bans print.","defaultSeverity":"error"}]}}
+{"dir":"to","obj":{"type":"run","changes":[{"path":"lib/a.dart","kind":"modified","previousPath":null}],"all":false}}
+{"dir":"from","obj":{"type":"read","id":1,"path":"lib/a.dart","side":"snapshot"}}
+{"dir":"to","obj":{"type":"content","id":1,"text":"void main() { print(1); }\n"}}
+{"dir":"from","obj":{"type":"finding","rule":"team/no-print","path":"lib/a.dart","line":1,"column":15,"message":"Do not call print."}}
+{"dir":"from","obj":{"type":"done"}}

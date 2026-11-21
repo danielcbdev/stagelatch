@@ -256,6 +256,7 @@ void main() {
         'pubspec',
         'assets',
         'tests',
+        'custom_checks',
       });
     });
 

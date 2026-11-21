@@ -212,6 +212,63 @@
           "examples": [["test", "testWidgets", "group", "blocTest"]]
         }
       }
+    },
+    "custom_checks": {
+      "type": ["object", "null"],
+      "description": "Out-of-process checks. Each key is a check id; see docs/specs/custom-checks.md.",
+      "examples": [
+        {
+          "team": {
+            "run": ["dart", "run", "tool/stagelatch_checks.dart"],
+            "timeout": "60s",
+            "rules": { "no-print": "error" }
+          }
+        }
+      ],
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "description": "One custom check: run is required; other reserved keys optional; additional keys become settings.",
+        "required": ["run"],
+        "properties": {
+          "run": {
+            "type": "array",
+            "description": "Executable and arguments. Never a shell string.",
+            "minItems": 1,
+            "items": { "type": "string" },
+            "examples": [["dart", "run", "tool/stagelatch_checks.dart"]]
+          },
+          "timeout": {
+            "type": "string",
+            "description": "Wall-clock budget for the child from spawn until done.",
+            "pattern": "^(\\d{1,9}ms|\\d{1,9}(\\.\\d{1,6})?s)$",
+            "default": "60s",
+            "examples": ["60s"]
+          },
+          "sources": {
+            "type": "array",
+            "description": "Repository-relative files that constitute the check program. Required when inference from run cannot produce a non-empty closure.",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 },
+            "examples": [["tool/stagelatch_checks.dart"]]
+          },
+          "rules": {
+            "type": ["object", "null"],
+            "description": "Severity overrides for this check's rules, keyed by the local rule name (no check prefix).",
+            "propertyNames": {
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            },
+            "additionalProperties": {
+              "enum": ["error", "warning", "off", false]
+            },
+            "examples": [{ "no-print": "error" }]
+          }
+        },
+        "additionalProperties": true
+      }
     }
   }
 }

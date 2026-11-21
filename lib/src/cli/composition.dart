@@ -23,6 +23,7 @@ import 'package:stagelatch/src/checks/tests/tests_check.dart';
 import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/documents.dart';
+import 'package:stagelatch/src/infrastructure/custom/spawned_check_process.dart';
 import 'package:stagelatch/src/infrastructure/dart/file_sdk_locator.dart';
 import 'package:stagelatch/src/infrastructure/dart/process_test_runner.dart';
 import 'package:stagelatch/src/infrastructure/dart/sdk_dart_toolchain.dart';
@@ -115,6 +116,8 @@ final class Composition {
           sdkLocator: sdkLocator,
           toolchains: toolchains,
           testRunners: const ProcessTestRunnerFactory(),
+          customProcessFactory: ({required repoRoot, sdk}) =>
+              SpawnedCheckProcessFactory(repoRoot: repoRoot, sdk: sdk),
         ),
         hookInstaller: HookInstaller(store),
         git: git,

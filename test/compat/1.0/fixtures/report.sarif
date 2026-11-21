@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "stagelatch",
+          "version": "0.1.0",
+          "rules": [
+            {
+              "id": "format/unformatted",
+              "shortDescription": {
+                "text": "A Dart file is not formatted."
+              }
+            },
+            {
+              "id": "pubspec/path-dependency",
+              "shortDescription": {
+                "text": "A dependency uses a local path that is not a package of this repository."
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "format/unformatted",
+          "level": "warning",
+          "message": {
+            "text": "File is not formatted."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "lib/a.dart",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 5
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "pubspec/path-dependency",
+          "level": "error",
+          "message": {
+            "text": "Dependency \"design_system\" uses a path that is not a package in this repository: ../design_system."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pubspec.yaml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 14,
+                  "startColumn": 5,
+                  "endLine": 14,
+                  "endColumn": 26
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

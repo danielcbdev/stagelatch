@@ -514,10 +514,10 @@ tests:
       );
     });
 
-    test('custom_checks is reserved for 1.0.0', () async {
-      final error = await _error('custom_checks: {}\n');
+    test('custom_checks with no entries loads as empty', () async {
+      final config = await _config('custom_checks: {}\n');
 
-      expect(error.message, 'custom_checks requires stagelatch >= 1.0.0.');
+      expect(config.customChecks, isEmpty);
     });
   });
 

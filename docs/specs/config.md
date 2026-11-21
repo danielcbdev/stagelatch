@@ -72,6 +72,7 @@ baseline: .stagelatch/baseline.json
 | `assets.roots` | list of directories | `[assets/]` | Where `assets/undeclared` and `assets/max-file-size` look, relative to each package |
 | `assets.ignore` | list of globs | `[]` | Asset paths exempt from all `assets` rules, matched against the path relative to the package (a directory is also exempt when `<dir>/x` would match) |
 | `tests.functions` | list of identifiers | `[test, testWidgets, group]` | Calls inspected by `tests/solo` and `tests/new-skip`; also part of the facts cache key ([`dart-toolchain.md`](dart-toolchain.md#61-the-facts-cache)) |
+| `custom_checks` | map of check id to entry | `{}` | Out-of-process checks; schema and validation in [`custom-checks.md`](custom-checks.md) §§5–6 |
 | `baseline` | path | `.stagelatch/baseline.json` | Baseline file; a missing file is an empty baseline |
 
 ## 4. Value syntax
@@ -107,7 +108,6 @@ stagelatch.yaml:12:3: Unknown key "forbid" under "pubspec".
 | Invalid value | `Invalid <kind> "<value>" in "<key>".` Kinds: `selector`, `glob`, `size`, `duration`, `version`, `scope`, `severity`, `directory`, `identifier`, `path`. A bare number is read as its text, so `max_file_size: 500` is an invalid size, not a type error. |
 | Unknown hook name under `hooks` | `Unknown hook "<name>". Expected pre-commit, pre-push or ci.` |
 | Duplicate key | `Duplicate mapping key.` (reported by the YAML parser, at the second occurrence) |
-| Reserved key | `custom_checks requires stagelatch >= 1.0.0.` |
 
 A section, list or map written without a value (`format:` alone on a line) keeps its defaults.
 | Tool too old | `This repository requires stagelatch >= <min>; you have <current>. Run: dart pub global activate stagelatch` |
@@ -124,4 +124,4 @@ Since `0.2.0`, `schema/stagelatch.schema.json` describes this file for editors. 
 
 ## 8. In-code model
 
-`application/config/config.dart` holds an immutable `Config` with one typed settings class per check (`FormatSettings`, `AnalyzeSettings`, `CodegenSettings`, `PubspecSettings`, `AssetsSettings`, `TestsSettings`). `CheckContext.settings<T>()` returns the one a check asks for. Globs, sizes and durations are parsed once, at load time.
+`application/config/config.dart` holds an immutable `Config` with one typed settings class per check (`FormatSettings`, `AnalyzeSettings`, `CodegenSettings`, `PubspecSettings`, `AssetsSettings`, `TestsSettings`) and `List<CustomCheckConfig> customChecks`. `CheckContext.settings<T>()` returns the one a check asks for. Globs, sizes and durations are parsed once, at load time.

@@ -77,28 +77,30 @@ Add this line to it, or re-run with --force to replace it (a backup is kept):
 
 Since `0.1.0-dev.1`. For each git hook name: remove the script if it carries the managed marker, then restore the most recent backup if one exists. Never touches an unmanaged hook. Output: `Removed <hook> hook.`, `Restored <hook> hook from <backup>.`, or `No managed <hook> hook found.` Always exits 0 unless a file operation fails.
 
-### 3.4 `run <hook> [--all] [--no-fix] [--reporter <console|json>] [-- <hook args>]`
+### 3.4 `run <hook> [--all] [--no-fix] [--no-custom-checks] [--reporter <console|json>] [-- <hook args>]`
 
-`pre-commit` since `0.1.0-dev.1`; `pre-push` and `--reporter json` since `0.1.0`; `--all` since `0.2.0`.
+`pre-commit` since `0.1.0-dev.1`; `pre-push` and `--reporter json` since `0.1.0`; `--all` since `0.2.0`; `--no-custom-checks` since `1.0.0`.
 
 - `<hook>` is `pre-commit` or `pre-push`; anything else is a usage error: `Unknown hook "<hook>". Expected pre-commit or pre-push.`
 - **Hook arguments.** Git calls the `pre-push` hook with two arguments, the remote name and its URL, and the hook script passes them on after the hook name: `run pre-push <remote> <url>`. `run pre-push` accepts zero or two such arguments, with or without a `--` before them; `run pre-commit` accepts none. Any other count is the usage error above, with all the words after `run` as `<hook>`.
 - `--reporter` accepts `console` and `json`. Another value is a usage error: `Unknown reporter "<value>". Expected console or json.`
 - Runs the pipeline for that entry point ([`architecture.md`](../architecture.md#53-the-pipeline)).
 - `--no-fix` disables fix application for this run regardless of config.
+- `--no-custom-checks` skips every custom check: no child process starts, selectors that name only custom checks are skipped, and the notice `Skipping custom checks (--no-custom-checks).` is written to stderr and included in the JSON `notices` list ([`custom-checks.md`](custom-checks.md#13---no-custom-checks)).
 - `--all` ignores the changeset and treats every regular file of the snapshot as changed: the index for `pre-commit`, each pushed commit for `pre-push`. The base is resolved as without it.
 - **`pre-push` input.** Git passes the remote name and URL as arguments and one line per ref on stdin: `<local ref> <local sha> <remote ref> <remote sha>`. When stdin is a terminal or empty, one ref is synthesized from the current branch and its upstream, and the remote is the upstream's remote (remote sha all zeros when there is no upstream). With no upstream and no remote argument, the remote is `origin`.
 - Exit: 0 or 1 by verdict; 64/70/78 as in section 2.
 
-### 3.5 `ci --base <ref> [--head <ref>] [--all] [--reporter <console|json|github|junit|sarif>]`
+### 3.5 `ci --base <ref> [--head <ref>] [--all] [--no-custom-checks] [--reporter <console|json|github|junit|sarif>]`
 
-Since `0.1.0` (`junit`, `sarif` since `0.3.0`).
+Since `0.1.0` (`junit`, `sarif` since `0.3.0`; `--no-custom-checks` since `1.0.0`).
 
 - `--base` is required. `--head` defaults to `HEAD`.
 - `--reporter` accepts `console`, `json`, `github`, `junit` and `sarif` (default `console`). Another value is a usage error: `Unknown reporter "<value>". Expected console, json, github, junit or sarif.` `run` accepts `console` and `json` only.
 - `junit` and `sarif` print one document on stdout (section 7). On exit 64, 70 or 78 they print nothing on stdout and the human message goes to stderr; only `json` has an error document.
 - Selectors come from `hooks.ci`, or the union of `hooks.pre-commit` and `hooks.pre-push`.
 - Fixes are never applied.
+- `--no-custom-checks` is the same as on `run` (section 3.4): skip custom checks and emit the notice. Documented for fork pull requests that must not execute untrusted check code.
 - No merge base (typically a shallow clone), exit 64: `Cannot find a merge base between <base> and <head>. If this is a shallow clone, fetch full history (actions/checkout: fetch-depth: 0).`
 
 ### 3.6 `doctor [--reporter <console|json>]`
@@ -116,6 +118,7 @@ Since `0.1.0`. Runs these probes in order and prints one line each, prefixed `ok
 | D7 | `stagelatch.yaml` is valid | invalid |
 | D8 | resolved SDK: path, version, source | no SDK found, or SDK inside the repository |
 | D9 | `.dart_tool/package_config.json` per package, at its resolution root | never (`warn` when missing) |
+| D10 | each `custom_checks:` entry: id, resolved command, sources, executable resolvable | never (`warn` when the executable is not found); omitted when no custom checks are configured |
 
 Line format: the status padded with spaces to six characters, the probe ID, one space, the message. D4 prints one line per configured git hook and D9 one line per distinct package config location (packages of one pub workspace share the root's), each with the same ID. Messages, `<x>` substituted and sanitized (S5):
 
@@ -130,8 +133,9 @@ Line format: the status padded with spaces to six characters, the probe ID, one 
 | D7 | `stagelatch.yaml is valid.` / `No stagelatch.yaml; defaults apply.` | | `stagelatch.yaml: <message of the ConfigException>` |
 | D8 | `Dart SDK <version> at <root> (<source>)`, where `<source>` is `sdk_path`, `fvm` or `PATH` | | the `ConfigException` message of [`dart-toolchain.md`](dart-toolchain.md#1-sdk-resolution) section 1 |
 | D9 | `<path> found.` | `Missing <path>. Run: dart pub get` | |
+| D10 | `custom check "<id>": <resolved argv> (sources: <paths>; executable ok)` | `custom check "<id>": <argv> (sources: <paths>; executable not found)` | |
 
-`<path>` in D9 is the repository-relative location of `.dart_tool/package_config.json` at the package's resolution root ([`dart-toolchain.md`](dart-toolchain.md#2-packages)). A probe that throws unexpectedly becomes `fail` with the message `Probe failed: <first line of the error>`, and the remaining probes still run. No environment variable value is printed.
+`<path>` in D9 is the repository-relative location of `.dart_tool/package_config.json` at the package's resolution root ([`dart-toolchain.md`](dart-toolchain.md#2-packages)). D10 resolves `dart`/`flutter` via the project SDK and bare names via PATH (same rules as custom-check spawn); it does not start a child or speak the protocol. A probe that throws unexpectedly becomes `fail` with the message `Probe failed: <first line of the error>`, and the remaining probes still run. No environment variable value is printed.
 
 With `--reporter json`, one JSON object instead of the lines, keys in this order: `{"schemaVersion": 1, "probes": [{"id": "D1", "status": "ok", "message": "git 2.56.0"}, ...], "exitCode": 0}`, indented by two spaces, followed by a newline. Messages are not sanitized there; the encoder escapes them. Another `--reporter` value is a usage error: `Unknown reporter "<value>". Expected console or json.`
 

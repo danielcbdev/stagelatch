@@ -35,10 +35,12 @@ jobs:
       - name: Install dependencies
         run: dart pub get
 
-      # The spike package (plan 00) is analyzed and format-checked with the
-      # root; without its own resolution its imports would not resolve.
-      - name: Install benchmark dependencies
-        run: dart pub get --directory benchmark
+      # Nested packages analyzed/format-checked with the root need their own
+      # resolution; without it, package: URIs fail (uri_does_not_exist).
+      - name: Install nested package dependencies
+        run: |
+          dart pub get --directory benchmark
+          dart pub get --directory example/custom_check
 
       # Formatter output is specific to an SDK release (ADR-0008), so the
       # check is authoritative on stable only.
@@ -91,11 +93,14 @@ jobs:
 
       # Packages whose tests `tests/affected` may select, and every package
       # `analyze` may touch, need a package config (plan 04, Task 10): the
-      # root, benchmark, test/fixtures/dart_app, and the workspace fixture.
+      # root, benchmark, example/custom_check, test/fixtures/dart_app, and
+      # the workspace fixture. MaterializedSnapshot copies each package's
+      # package_config from the working tree (not from git).
       - name: Install dependencies
         run: |
           dart pub get
           dart pub get --directory benchmark
+          dart pub get --directory example/custom_check
           dart pub get --directory test/fixtures/dart_app
           dart pub get --directory test/fixtures/workspace
 

@@ -6,6 +6,11 @@ import 'package:stagelatch/src/application/ports/git_repository.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/finding.dart';
 
+/// Notice when `--no-custom-checks` skips out-of-process checks
+/// (docs/specs/custom-checks.md §13).
+const String noCustomChecksNotice =
+    'Skipping custom checks (--no-custom-checks).';
+
 /// One invocation of the pipeline.
 final class RunRequest {
   /// Creates a request for [entry].
@@ -15,6 +20,7 @@ final class RunRequest {
     this.allowFixes = true,
     this.hook,
     this.useBaseline = true,
+    this.noCustomChecks = false,
   });
 
   /// What started the run.
@@ -35,6 +41,9 @@ final class RunRequest {
   /// Whether the baseline absorbs findings. False when the baseline is
   /// being written.
   final bool useBaseline;
+
+  /// Whether custom checks are skipped (`--no-custom-checks` on `run`/`ci`).
+  final bool noCustomChecks;
 }
 
 /// The outcome of a run.
