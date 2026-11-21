@@ -6,7 +6,8 @@
 # assets, so those checks are not listed. tests/affected executes selected
 # tests of the root package (and any other package whose tests the
 # changeset reaches); the dogfood job runs `dart pub get` for the root,
-# benchmark and test/fixtures/dart_app so those packages resolve.
+# benchmark, example/custom_check, test/fixtures/dart_app and the
+# workspace fixture so those packages resolve.
 hooks:
   pre-commit: [format, pubspec, sensitive-files, tests/solo, tests/new-skip]
   pre-push: [analyze, tests/affected]
