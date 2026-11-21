@@ -1,6 +1,8 @@
-# stagelatch on its own repository (plan 02, Task 16).
+# yaml-language-server: $schema=https://raw.githubusercontent.com/danielcbdev/stagelatch/main/schema/stagelatch.schema.json
+# stagelatch on its own repository (plan 02, Task 16; plan 03, Task 10).
 # The defaults of ADR-0008: the commit hook stays fast, and analyze runs on
-# push and in CI, where `ci` takes the union of both lists.
+# push and in CI, where `ci` takes the union of both lists. This repository
+# has no codegen, l10n or assets, so those checks are not listed.
 hooks:
-  pre-commit: [format, pubspec, sensitive-files]
+  pre-commit: [format, pubspec, sensitive-files, tests/solo, tests/new-skip]
   pre-push: [analyze]

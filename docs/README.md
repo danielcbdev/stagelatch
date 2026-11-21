@@ -1,6 +1,6 @@
 # stagelatch documentation
 
-Status: **Approved by the owner on 2026-11-12.** Nothing here is implemented yet.
+Status: **Approved by the owner on 2026-11-12.** Implemented up to `0.2.0` (plans 00 to 03); plans 04 and 05 are still to do.
 
 ## Reading order for an implementing agent
 
@@ -14,6 +14,12 @@ Status: **Approved by the owner on 2026-11-12.** Nothing here is implemented yet
 4. [`specs/`](specs/README.md): what the software must do, with exact values.
 5. [`plans/`](plans/README.md): how to build it, task by task.
 6. [`adr/`](adr/README.md): why each decision was made.
+
+## For users
+
+- [`../README.md`](../README.md): what it does, quick start, adoption guide, benchmark.
+- [`rules.md`](rules.md): the rule reference. It is generated from the registered checks by `dart run tool/generate_rules_doc.dart`; a test fails when it is stale.
+- [`../schema/stagelatch.schema.json`](../schema/stagelatch.schema.json): the JSON Schema of `stagelatch.yaml`.
 
 ## Precedence
 
