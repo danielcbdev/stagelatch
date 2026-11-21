@@ -35,15 +35,41 @@ const _batchMetacharacters = '"&|<>^%!';
 
 /// A [CheckProcess] backed by an OS process.
 final class SpawnedCheckProcess implements CheckProcess {
-  new _(this._process, {required this._killGrace}) {
+  new _(
+    this._process, {
+    required this._killGrace,
+    required this._killProcessTree,
+  }) {
     _lines = _process.stdout
         .transform(const Utf8Decoder(allowMalformed: true))
         .transform(const LineSplitter());
     _standardError = _readStandardError(_process.stderr);
+    _active.add(this);
+  }
+
+  /// Children that have been started and not yet [kill]ed.
+  ///
+  /// Acceptance tests call [killAllActive] in tearDown so a timed-out host
+  /// run cannot leave a `dart run` child holding the temp directory on
+  /// Windows.
+  static final Set<SpawnedCheckProcess> _active = {};
+
+  /// Stops every child still tracked in [_active] and waits for each exit.
+  static Future<void> killAllActive() async {
+    final leftover = List<SpawnedCheckProcess>.of(_active);
+    for (final process in leftover) {
+      await process.kill();
+    }
   }
 
   final Process _process;
   final Duration _killGrace;
+
+  /// When true (production Windows), kill the OS process tree via taskkill.
+  ///
+  /// Unit tests that inject a fake [Process] keep this false so a synthetic
+  /// pid is never passed to taskkill.
+  final bool _killProcessTree;
   late final Stream<String> _lines;
   late final Future<String> _standardError;
   var _killed = false;
@@ -72,12 +98,33 @@ final class SpawnedCheckProcess implements CheckProcess {
       return;
     }
     _killed = true;
+    _active.remove(this);
+    if (_killProcessTree) {
+      // `dart run` can leave a grandchild; TerminateProcess on the parent
+      // alone leaves the tree holding temp files (PathAccessException).
+      await _taskkillTree(_process.pid);
+      try {
+        await _process.exitCode.timeout(_killGrace);
+      } on TimeoutException {
+        await _taskkillTree(_process.pid);
+        await _process.exitCode;
+      }
+      return;
+    }
     _process.kill();
     try {
       await _process.exitCode.timeout(_killGrace);
     } on TimeoutException {
       _process.kill(ProcessSignal.sigkill);
       await _process.exitCode;
+    }
+  }
+
+  static Future<void> _taskkillTree(int pid) async {
+    try {
+      await Process.run('taskkill', ['/PID', '$pid', '/T', '/F']);
+    } on ProcessException {
+      // Already gone, or taskkill unavailable in the environment.
     }
   }
 
@@ -179,7 +226,11 @@ final class SpawnedCheckProcessFactory implements CheckProcessFactory {
       throw InternalException('cannot start: ${error.message}');
     }
 
-    return SpawnedCheckProcess._(process, killGrace: _killGrace);
+    return SpawnedCheckProcess._(
+      process,
+      killGrace: _killGrace,
+      killProcessTree: _isWindows,
+    );
   }
 
   List<String> _resolveCommand(List<String> command) {
