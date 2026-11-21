@@ -125,12 +125,14 @@ All four run on every pull request, on Dart stable and beta, on Ubuntu, macOS an
 
 **Symptom.** `dart test` reports `Failed to load "<suite>": Connection closed before full header was received, uri = http://127.0.0.1:<port>/<token>/ws`. It happens before any assertion of that suite counts, and it hits pure suites (`test/domain/rule_id_test.dart`) as well as suites that spawn `git`.
 
-**Where it was seen.** Windows jobs (pull request 12, which is why they run with `--concurrency=1`) and `ubuntu-latest / dart beta` on 2026-11-20 (run 44683972741, two suites, green on rerun). Every other red run in the history was a real failure and did not carry this message.
+**Where it was seen.** Windows jobs (pull request 12, which is why they run with `--concurrency=1`) and `ubuntu-latest / dart beta` on 2026-11-20 (run 44683972741, two suites, green on rerun). After PR #53, run 44848100638 (`ubuntu-latest / dart stable`, the coverage job, push of #66 onto develop) failed with `Failed to load "test/application/environment_test.dart": Connection closed before full header was received`. Every other red run in the history was a real failure and did not carry this message.
+
+**Coverage-job occurrences since PR #53.** Count: **1** — run 44848100638. That job is the only one that still passes `--coverage-path`, which matches the hypothesis from #53 (the failure only appears where `--coverage-path` is on). Three occurrences mean moving coverage to its own job with `--concurrency=1`.
 
 **What the evidence says.**
 
 - The URI is the VM service WebSocket (`/ws`). With `test_core` 0.6.x the runner opens it only for coverage (`vm/platform.dart` calls `_gatherCoverage` through `package:coverage`'s `collect`), or in `--debug` mode. A plain `dart test` never opens it.
-- Every occurrence had `--coverage-path` on, in jobs that did not read the report.
+- Every occurrence had `--coverage-path` on. Occurrences before PR #53 were in jobs that did not read the report; the one after #53 was on the coverage job itself.
 - It did not reproduce locally: 0 failures in 160 runs of `test/domain` (macOS, Dart stable), 80 with coverage and 80 without.
 - No upstream issue carries the exact message for this path. `dart-lang/sdk#56474` is the same `HttpException` text in an unrelated caller.
 
