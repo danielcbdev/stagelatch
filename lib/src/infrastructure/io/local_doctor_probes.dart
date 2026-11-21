@@ -24,22 +24,7 @@ final class LocalDoctorProbes implements DoctorProbes {
 
   @override
   Future<String?> gitVersion() async {
-    final variables = _environment.variables;
-    final pathEnv =
-        variables['PATH'] ??
-        variables['Path'] ??
-        Platform.environment['PATH'] ??
-        Platform.environment['Path'] ??
-        '';
-    final git = resolvePathExecutable(
-      name: 'git',
-      pathEntries: splitPathEnv(pathEnv, isWindows: _windows),
-      repoRoot: _repoRoot,
-      isWindows: _windows,
-      pathExtensions: pathExtSuffixes(
-        variables['PATHEXT'] ?? Platform.environment['PATHEXT'],
-      ),
-    );
+    final git = _resolveOnPath('git');
     if (git == null) return null;
     try {
       final result = await Process.run(git, const ['--version']);
@@ -51,14 +36,26 @@ final class LocalDoctorProbes implements DoctorProbes {
   }
 
   @override
-  Future<String?> resolveOnPath(String name) async {
-    final path = _environment.variables['PATH'] ?? '';
-    for (final entry in path.split(_windows ? ';' : ':')) {
-      if (entry.isEmpty) continue;
-      final candidate = p.join(entry, name);
-      if (File(candidate).existsSync()) return candidate;
-    }
-    return null;
+  Future<String?> resolveOnPath(String name) async => _resolveOnPath(name);
+
+  /// Absolute PATH hit for [name], skipping repository-controlled entries.
+  String? _resolveOnPath(String name) {
+    final variables = _environment.variables;
+    final pathEnv =
+        variables['PATH'] ??
+        variables['Path'] ??
+        Platform.environment['PATH'] ??
+        Platform.environment['Path'] ??
+        '';
+    return resolvePathExecutable(
+      name: name,
+      pathEntries: splitPathEnv(pathEnv, isWindows: _windows),
+      repoRoot: _repoRoot,
+      isWindows: _windows,
+      pathExtensions: pathExtSuffixes(
+        variables['PATHEXT'] ?? Platform.environment['PATHEXT'],
+      ),
+    );
   }
 
   /// `dart pub global activate` records each package under
