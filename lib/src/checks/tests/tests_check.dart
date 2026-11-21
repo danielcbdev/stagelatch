@@ -49,59 +49,66 @@ final class TestsCheck implements Check {
     if (!wantSolo && !wantSkip && !wantAffected) return const CheckResult();
 
     final findings = <Finding>[];
-    for (final change in context.changes.present) {
-      final path = change.path;
-      if (!isTestFile(path, context.packages)) continue;
-      final facts = await context.dart.facts(context.snapshot, path);
-      if (facts == null || !facts.isWellFormed) continue;
+    // Solo and new-skip need facts; affected does not. Skipping this loop
+    // when only affected is enabled keeps LazyToolchain asleep.
+    if (wantSolo || wantSkip) {
+      for (final change in context.changes.present) {
+        final path = change.path;
+        if (!isTestFile(path, context.packages)) continue;
+        final facts = await context.dart.facts(context.snapshot, path);
+        if (facts == null || !facts.isWellFormed) continue;
 
-      if (wantSolo) {
-        for (final call in facts.testCalls) {
-          final solo = call.solo;
-          if (solo == null) continue;
-          findings.add(
-            Finding(
-              rule: soloRule,
-              severity: Severity.error,
-              message:
-                  '"solo" must not be committed: it silently skips every '
-                  'other test.',
-              location: solo,
-            ),
-          );
+        if (wantSolo) {
+          for (final call in facts.testCalls) {
+            final solo = call.solo;
+            if (solo == null) continue;
+            findings.add(
+              Finding(
+                rule: soloRule,
+                severity: Severity.error,
+                message:
+                    '"solo" must not be committed: it silently skips every '
+                    'other test.',
+                location: solo,
+              ),
+            );
+          }
         }
-      }
 
-      if (wantSkip) {
-        final skipped = [
-          for (final call in facts.testCalls)
-            if (call.skip != null) call,
-        ];
-        if (skipped.isEmpty) continue;
-        final before = await _skippedInBase(
-          context,
-          change.previousPath ?? path,
-        );
-        // The n-th skipped call of a key is new when the base had fewer
-        // than n of them, which reports the later ones.
-        final seen = <String, int>{};
-        for (final call in skipped) {
-          final key = testKey(call);
-          final index = seen.update(key, (n) => n + 1, ifAbsent: () => 0);
-          if (index < (before[key] ?? 0)) continue;
-          findings.add(
-            Finding(
-              rule: newSkipRule,
-              severity: Severity.warning,
-              message: 'Test "${call.description}" was skipped in this change.',
-              location: call.skip!,
-            ),
+        if (wantSkip) {
+          final skipped = [
+            for (final call in facts.testCalls)
+              if (call.skip != null) call,
+          ];
+          if (skipped.isEmpty) continue;
+          final before = await _skippedInBase(
+            context,
+            change.previousPath ?? path,
           );
+          // The n-th skipped call of a key is new when the base had fewer
+          // than n of them, which reports the later ones.
+          final seen = <String, int>{};
+          for (final call in skipped) {
+            final key = testKey(call);
+            final index = seen.update(key, (n) => n + 1, ifAbsent: () => 0);
+            if (index < (before[key] ?? 0)) continue;
+            findings.add(
+              Finding(
+                rule: newSkipRule,
+                severity: Severity.warning,
+                message:
+                    'Test "${call.description}" was skipped in this change.',
+                location: call.skip!,
+              ),
+            );
+          }
         }
       }
     }
     // Last: it may run the project's tests, and only on pre-push and ci.
-    findings.addAll(await affectedFindings(context));
+    if (wantAffected) {
+      findings.addAll(await affectedFindings(context));
+    }
     return CheckResult(findings: findings);
   }
 
