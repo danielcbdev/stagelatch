@@ -19,6 +19,7 @@ Status: **Approved by the owner on 2026-11-12.** Implemented up to `0.2.0` (plan
 
 - [`../README.md`](../README.md): what it does, quick start, adoption guide, benchmark.
 - [`rules.md`](rules.md): the rule reference. It is generated from the registered checks by `dart run tool/generate_rules_doc.dart`; a test fails when it is stale.
+- [`custom-checks.md`](custom-checks.md): how to write an out-of-process custom check (1.0.0); reference under [`../example/custom_check/`](../example/custom_check/).
 - [`../schema/stagelatch.schema.json`](../schema/stagelatch.schema.json): the JSON Schema of `stagelatch.yaml`.
 
 ## Precedence

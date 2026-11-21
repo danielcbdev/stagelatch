@@ -208,11 +208,11 @@ final class ExternalCheck implements Check {
 - Create: `docs/custom-checks.md`, `example/custom_check/README.md`, `example/custom_check/bin/check.dart` (and minimal supporting files)
 - Test: `test/acceptance/ac34_example_custom_check_test.dart` (or fixture-driven end-to-end against the example)
 
-- [ ] **Step 1: Write the failing tests:** the example check passes the well-behaved host assertions end to end (init/ready/run/done; optional finding).
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** the guide and example: write a rule, test it, wire it in config.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(custom): add author guide and example check`
+- [x] **Step 1: Write the failing tests:** the example check passes the well-behaved host assertions end to end (init/ready/run/done; optional finding).
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** the guide and example: write a rule, test it, wire it in config.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(custom): add author guide and example check`
 
 ---
 
