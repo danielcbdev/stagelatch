@@ -85,6 +85,7 @@ final class SdkDartToolchain implements DartToolchain {
   Future<List<DartDiagnostic>> diagnose(Set<RepoPath> files) async {
     final requested = [...files]..sort();
     final roots = <RepoPath?>{};
+    final resolutionRoots = <RepoPath?>{};
     final analyzed = <RepoPath>[];
     for (final file in requested) {
       final package = _packages.packageOf(file);
@@ -92,15 +93,16 @@ final class SdkDartToolchain implements DartToolchain {
       // (docs/specs/dart-toolchain.md, section 2).
       if (package == null) continue;
       roots.add(package.root);
+      resolutionRoots.add(_packages.resolutionRootOf(package));
       analyzed.add(file);
     }
     if (analyzed.isEmpty) return const [];
-    roots.forEach(_requirePackageConfig);
+    resolutionRoots.forEach(_requirePackageConfig);
 
     final full = await (_full ??= MaterializedSnapshot.write(
       snapshot: _snapshot,
       repoRoot: _repoRoot,
-      packages: _packages.packages,
+      packages: _packages,
     ));
     final server = await (_server ??= AnalysisServerClient.start(
       _sdk.dartExecutable,
@@ -217,7 +219,7 @@ final class SdkDartToolchain implements DartToolchain {
     final settings = await (_settings ??= MaterializedSnapshot.write(
       snapshot: _snapshot,
       repoRoot: _repoRoot,
-      packages: _packages.packages,
+      packages: _packages,
       settingsOnly: true,
     ));
     // dart format looks up the package config from the directory of the

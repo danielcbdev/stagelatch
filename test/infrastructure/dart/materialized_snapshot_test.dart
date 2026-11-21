@@ -22,13 +22,13 @@ void main() {
 
   Future<MaterializedSnapshot> write(
     FakeSnapshotFiles snapshot, {
-    List<DartPackage> packages = const [],
+    PackageMap? packages,
     bool settingsOnly = false,
   }) async {
     final materialized = await MaterializedSnapshot.write(
       snapshot: snapshot,
       repoRoot: repo,
-      packages: packages,
+      packages: packages ?? PackageMap(const []),
       settingsOnly: settingsOnly,
     );
     addTearDown(materialized.delete);
@@ -126,7 +126,7 @@ void main() {
 
     final materialized = await write(
       FakeSnapshotFiles({'app/pubspec.yaml': 'name: app\n'}),
-      packages: [DartPackage(root: RepoPath('app'), name: 'app')],
+      packages: PackageMap([DartPackage(root: RepoPath('app'), name: 'app')]),
     );
 
     final copied = jsonDecode(
@@ -162,11 +162,49 @@ void main() {
     final materialized = await MaterializedSnapshot.write(
       snapshot: FakeSnapshotFiles({'a.dart': 'a'}),
       repoRoot: repo,
-      packages: const [],
+      packages: PackageMap(const []),
     );
 
     await materialized.delete();
 
     expect(Directory(materialized.root).existsSync(), isFalse);
+  });
+
+  test('members share one copy of the root package config', () async {
+    const root = DartPackage(root: null, name: 'root');
+    final a = DartPackage(root: RepoPath('packages/a'), name: 'a');
+    final b = DartPackage(root: RepoPath('packages/b'), name: 'b');
+    File(p.join(repo, '.dart_tool', 'package_config.json'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        jsonEncode({
+          'configVersion': 2,
+          'packages': [
+            {'name': 'root', 'rootUri': '../', 'packageUri': 'lib/'},
+            {'name': 'a', 'rootUri': '../packages/a', 'packageUri': 'lib/'},
+            {'name': 'b', 'rootUri': '../packages/b', 'packageUri': 'lib/'},
+          ],
+        }),
+      );
+
+    final materialized = await write(
+      FakeSnapshotFiles({
+        'pubspec.yaml': 'name: root\n',
+        'packages/a/pubspec.yaml': 'name: a\n',
+        'packages/b/pubspec.yaml': 'name: b\n',
+      }),
+      packages: PackageMap([root, a, b], workspaceRoots: {a: root, b: root}),
+    );
+
+    expect(filesUnder(materialized.root), [
+      '.dart_tool/package_config.json',
+      'packages/a/pubspec.yaml',
+      'packages/b/pubspec.yaml',
+      'pubspec.yaml',
+    ]);
+    expect(
+      File(p.join(materialized.root, 'packages/a', '.dart_tool')).existsSync(),
+      isFalse,
+    );
   });
 }

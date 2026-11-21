@@ -61,3 +61,25 @@ Future<void> writeFile(String root, String path, String content) async {
   await file.parent.create(recursive: true);
   await file.writeAsString(content);
 }
+
+/// Copies `test/fixtures/workspace` into a new temporary directory, runs
+/// `dart pub get --offline` at the workspace root and returns the
+/// directory, symlinks resolved.
+///
+/// Members have no local `.dart_tool` or lock after pub get; the root
+/// holds both. The caller deletes the directory.
+Future<String> copyWorkspaceFixture() async {
+  final created = await Directory.systemTemp.createTemp('stagelatch_ws_');
+  final root = await created.resolveSymbolicLinks();
+  final source = Directory(p.join('test', 'fixtures', 'workspace'));
+  await for (final entity in source.list(recursive: true)) {
+    if (entity is! File) continue;
+    final relative = p.relative(entity.path, from: source.path);
+    if (p.split(relative).contains('.dart_tool')) continue;
+    final target = File(p.join(root, relative));
+    await target.parent.create(recursive: true);
+    await entity.copy(target.path);
+  }
+  await pubGetOffline(root);
+  return root;
+}

@@ -88,4 +88,26 @@ void main() {
       expect(ui.usesFlutter, isFalse);
     });
   });
+
+  group('PackageMap workspaces', () {
+    final map = PackageMap(
+      [app, ui, nested],
+      workspaceRoots: {ui: app, nested: app},
+    );
+
+    test('resolutionPackageOf returns the workspace root for a member', () {
+      expect(map.resolutionPackageOf(ui), app);
+      expect(map.resolutionPackageOf(app), app);
+    });
+
+    test('resolutionRootOf is the workspace root directory', () {
+      expect(map.resolutionRootOf(ui), isNull);
+      expect(map.resolutionRootOf(nested), isNull);
+    });
+
+    test('workspaceMembersOf lists every package of the root', () {
+      expect(map.workspaceMembersOf(ui), [app, ui, nested]);
+      expect(map.workspaceMembersOf(app), [app, ui, nested]);
+    });
+  });
 }
