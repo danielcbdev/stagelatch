@@ -13,8 +13,10 @@ const RuleId soloRule = RuleId(testsCheckId, 'solo');
 /// A test or group skipped in this change.
 const RuleId newSkipRule = RuleId(testsCheckId, 'new-skip');
 
-/// What the check declares about its rules, in catalog order. `affected` is
-/// registered by plan 04, not here.
+/// The tests that a change can affect, run on pre-push and in `ci`.
+const RuleId affectedRule = RuleId(testsCheckId, 'affected');
+
+/// What the check declares about its rules, in catalog order.
 const List<RuleDescriptor> testsRuleDescriptors = [
   RuleDescriptor(
     id: soloRule,
@@ -25,5 +27,12 @@ const List<RuleDescriptor> testsRuleDescriptors = [
     id: newSkipRule,
     defaultSeverity: Severity.warning,
     summary: 'A test was skipped in this change.',
+  ),
+  RuleDescriptor(
+    id: affectedRule,
+    defaultSeverity: Severity.error,
+    summary:
+        'A test affected by the change fails, or cannot be run. '
+        'Runs on pre-push and ci only.',
   ),
 ];

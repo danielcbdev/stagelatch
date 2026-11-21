@@ -86,3 +86,4 @@ Reports findings.
 |---|---|---|---|
 | `tests/solo` | error | no | A test uses solo, which skips every other test. |
 | `tests/new-skip` | warning | no | A test was skipped in this change. |
+| `tests/affected` | error | no | A test affected by the change fails, or cannot be run. Runs on pre-push and ci only. |

@@ -68,9 +68,11 @@ void main() {
       expect(check.rules.map((rule) => rule.id.toString()), [
         'tests/solo',
         'tests/new-skip',
+        'tests/affected',
       ]);
       expect(check.rules.first.defaultSeverity, Severity.error);
-      expect(check.rules.last.defaultSeverity, Severity.warning);
+      expect(check.rules[1].defaultSeverity, Severity.warning);
+      expect(check.rules.last.defaultSeverity, Severity.error);
       expect(check.rules.every((rule) => rule.summary.endsWith('.')), isTrue);
     });
 
@@ -357,6 +359,31 @@ void main() {
 
       expect(await only(soloRule), [soloRule]);
       expect(await only(newSkipRule), [newSkipRule]);
+    });
+
+    test('only tests/affected does not ask for facts', () async {
+      final dart = FakeDartToolchain();
+      final context = FakeCheckContext(
+        snapshot: FakeSnapshotFiles({
+          'test/a_test.dart': _file(
+            "  test('a', () {}, solo: true, skip: true);",
+          ),
+        }),
+        changes: ChangeSet([
+          FileChange(
+            path: RepoPath('test/a_test.dart'),
+            kind: ChangeKind.added,
+          ),
+        ]),
+        packages: PackageMap([const DartPackage(root: null, name: 'app')]),
+        dart: dart,
+        enabled: {affectedRule},
+      );
+
+      final result = await const TestsCheck().run(context);
+
+      expect(result.findings, isEmpty);
+      expect(dart.factsCalls, isEmpty);
     });
 
     test('solo and skip of one call are reported separately', () async {

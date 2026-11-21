@@ -17,6 +17,7 @@ import '../../support/fake_clock.dart';
 import '../../support/fake_dart_toolchain_factory.dart';
 import '../../support/fake_git_repository.dart';
 import '../../support/fake_sdk_locator.dart';
+import '../../support/fake_test_runner.dart';
 import '../../support/fake_working_tree.dart';
 
 const _path = '.stagelatch/baseline.json';
@@ -57,6 +58,7 @@ _setup(List<(String, int)> at, {Map<String, String> tree = const {}}) {
     toolVersion: Version.parse('0.1.0'),
     sdkLocator: FakeSdkLocator(),
     toolchains: FakeDartToolchainFactory(),
+    testRunners: FakeTestRunnerFactory(FakeTestRunner()),
   );
   return (
     commands: BaselineCommands(pipeline, workingTree),

@@ -22,7 +22,9 @@ List<Finding> applySelection(List<Finding> findings, Selection selection) => [
 ];
 
 /// Applies the `rules:` map: [RuleLevel.off] drops a finding, the other
-/// levels replace its severity. A rule without a level is left as reported.
+/// levels replace its severity. A rule without a level is left as reported,
+/// and so is a finding whose [Finding.severityLocked] is set (it is still
+/// dropped by `off`).
 List<Finding> applyLevels(
   List<Finding> findings,
   Map<RuleId, RuleLevel> levels,
@@ -37,6 +39,10 @@ List<Finding> applyLevels(
     final severity = level.severity;
     // A level without a severity is `off`: the finding is dropped.
     if (severity == null) continue;
+    if (finding.severityLocked) {
+      result.add(finding);
+      continue;
+    }
     result.add(
       Finding(
         rule: finding.rule,

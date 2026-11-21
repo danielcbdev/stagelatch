@@ -27,6 +27,7 @@ import '../support/fake_dart_toolchain_factory.dart';
 import '../support/fake_git_repository.dart';
 import '../support/fake_hook_store.dart';
 import '../support/fake_sdk_locator.dart';
+import '../support/fake_test_runner.dart';
 import '../support/fake_working_tree.dart';
 import '../support/temp_repo.dart';
 
@@ -196,6 +197,7 @@ void main() {
           toolVersion: Version.parse('0.1.0'),
           sdkLocator: FakeSdkLocator(),
           toolchains: FakeDartToolchainFactory(),
+          testRunners: FakeTestRunnerFactory(FakeTestRunner()),
         ),
         hookInstaller: HookInstaller(FakeHookStore()),
         git: git,

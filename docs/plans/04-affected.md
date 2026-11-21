@@ -371,7 +371,7 @@ test('the fixture package: a compile error is a startup error', () async { /* ..
 - **`LazyTestRunner`** locates the SDK and creates the runner through `TestRunnerFactory` on the first `run`, like `LazyToolchain`; a run that never asks locates nothing.
 - Existing pre-push reports gain a `tests` row once the rule is registered; update them.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // affected_rule_test.dart
@@ -425,12 +425,12 @@ test('two thousand candidates are answered with one check-ignore', () async { /*
 
 AC-24 to AC-27 use a real repository with `stagelatch.yaml` `hooks: {pre-commit: [], pre-push: [tests/affected]}`, a `.gitignore` with `.dart_tool/`, a pubspec with a `dev_dependencies: test` constraint, `pubGetOffline` (Task 4), and the real `dart test`; each reports through `repo.stagelatch(['run', 'pre-push', ...], stdin: ...)` as `ac19_pre_push_test.dart` does. A test that must "not skip" contains a failing test, so a run is visible as exit 1 and a skip as exit 0 with the warning. One of them also lists `analyze` so both run concurrently.
 
-- [ ] **Step 2: Run.** Expected: FAIL, the members and the rule do not exist.
-- [ ] **Step 3: Implement** per `specs/rules.md` `tests/affected` and the decisions above. Add `ci --all` to AC-24's file: every test is selected.
-- [ ] **Step 4: Run** all four commands, regenerating `docs/rules.md` first. Expected: PASS.
+- [x] **Step 2: Run.** Expected: FAIL, the members and the rule do not exist.
+- [x] **Step 3: Implement** per `specs/rules.md` `tests/affected` and the decisions above. Add `ci --all` to AC-24's file: every test is selected.
+- [x] **Step 4: Run** all four commands, regenerating `docs/rules.md` first. Expected: PASS.
 
 - Dirty-skip findings are severity-locked to `warning`: `applyLevels` must not raise them when `rules: tests/affected: error` is set (same rule id). Failed-test findings follow the configured severity. Update `baseline-and-suppression.md` accordingly. Test: with `rules: {tests/affected: error}`, a dirty skip stays warning/exit 0 and a real failure still blocks.
-- [ ] **Step 5: Commit.** `feat(checks): add tests/affected`
+- [x] **Step 5: Commit.** `feat(checks): add tests/affected`
 
 ### Task 6: `why`
 
