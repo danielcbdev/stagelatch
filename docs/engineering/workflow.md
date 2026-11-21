@@ -47,6 +47,7 @@ A task is **one** pull request. If a task turns out to need two, stop and split 
 - Summary in the imperative, lowercase start, no period, at most 72 characters.
 - The squash commit takes the pull request title; write the title as the changelog entry you want.
 - A breaking change uses `!` and a `BREAKING CHANGE:` footer.
+- After `1.0.0`, a change that breaks any artefact in [`stability.md`](../stability.md) §1 (config keys/types/rejects/exit 78, rule ids, exit codes, JSON/SARIF/JUnit shapes, custom-check protocol 1, baseline format, managed hook contract) **must** be a major: use `feat!` / `fix!` (or another type with `!`) and a `BREAKING CHANGE:` footer that names the §1 artefact and points at a migration note in the CHANGELOG. Compatibility tests under `test/compat/1.0/` stay; a new major adds `test/compat/<major>.0/` alongside them.
 - Commits inside a task branch follow the same format; each plan step that says "commit" is one commit.
 
 ## 4. Pull request description

@@ -9,7 +9,7 @@ Status: **Approved (2026-11-12).** Plans are executed in order, one task at a ti
 | [`02-core.md`](02-core.md) | `0.1.0` | 01, and the approved spike report | done (0.1.0) |
 | [`03-checks.md`](03-checks.md) | `0.2.0` | 02 | done (0.2.0) |
 | [`04-affected.md`](04-affected.md) | `0.3.0` | 03, and [ADR-0018](../adr/0018-affected-tests-run-against-validated-snapshot.md) | done (0.3.0) |
-| [`05-public-api.md`](05-public-api.md) | `1.0.0` | 04, and re-approval of the custom-checks spec (ADR-0019) | proposed (Task 1 gate) |
+| [`05-public-api.md`](05-public-api.md) | `1.0.0` | 04, and re-approval of the custom-checks spec (ADR-0019) | in progress (Task 7 freeze; release Phase 4) |
 
 Plans 00 and 01 share no files and may run in either order. Everything else is strictly sequential.
 

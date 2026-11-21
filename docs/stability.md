@@ -1,8 +1,9 @@
 # Stability contract (1.0.0)
 
-Status: **Draft.** Proposed with plan 05 Task 1; becomes binding when `1.0.0` is released. Until then the lists below are the intended freeze surface.
-
-Semantic versioning applies to the artefacts below. A breaking change to anything in §1 requires a new major version. Compatibility tests under `test/compat/1.0/` (added in plan 05 Task 7) must keep passing on every later release of the 1.x line.
+Status: **Binding.** This document is the semver surface for the 1.x line.
+Compatibility tests under `test/compat/1.0/` must keep passing on every later
+release of 1.x. A breaking change to anything in §1 requires a new major
+version (see [`engineering/workflow.md`](engineering/workflow.md) §3).
 
 ## 1. Covered by semver
 

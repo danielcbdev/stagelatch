@@ -1,0 +1,23 @@
+[
+  "assets/max-file-size",
+  "assets/missing",
+  "assets/undeclared",
+  "codegen/stale",
+  "format/unformatted",
+  "l10n/missing-key",
+  "l10n/placeholder-mismatch",
+  "l10n/unparseable",
+  "l10n/unused-key",
+  "pubspec/build-number-regression",
+  "pubspec/dependency-overrides",
+  "pubspec/lockfile-out-of-sync",
+  "pubspec/path-dependency",
+  "pubspec/unparseable",
+  "pubspec/unpinned-git",
+  "sensitive-files/credentials",
+  "sensitive-files/signing",
+  "stagelatch/invalid-ignore",
+  "tests/affected",
+  "tests/new-skip",
+  "tests/solo"
+]

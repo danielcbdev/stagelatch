@@ -99,9 +99,12 @@ Generated Dart files when `codegen.generated_files_committed` is `false`, and
 a gitignored `pubspec.lock`, are outside the guarantee the same way.
 
 **Fork pull requests.** `stagelatch ci` with `tests/affected` executes the
-pull request's tests and the code they import, like a `dart test` step. For
-pull requests from forks the usual restrictions on secrets apply, and
-workflows must use `pull_request`, never `pull_request_target`.
+pull request's tests and the code they import, like a `dart test` step.
+When `custom_checks` are configured, `ci` also starts those child processes
+(project code from the branch). For pull requests from forks the usual
+restrictions on secrets apply, workflows must use `pull_request`, never
+`pull_request_target`, and pass `--no-custom-checks` (or the action input
+`no-custom-checks: true`) so untrusted check code does not run.
 
 ### `why`, workspaces and the facts cache
 
@@ -190,10 +193,19 @@ baseline prune` drops the entries that no longer match; it never adds
 entries. `baseline create` refuses to overwrite a file; pass `--force` to
 start over.
 
-**Custom checks.** From 1.0.0, when `custom_checks` are configured,
-`baseline create` and `baseline prune` run those checks and therefore
-**execute project code** — the same class of warning as `stagelatch ci`
-with `tests/affected`. See [`docs/specs/custom-checks.md`](docs/specs/custom-checks.md).
+**Custom checks.** From 1.0.0 you can declare out-of-process checks under
+`custom_checks:` in `stagelatch.yaml`. Each check is a separate process that
+speaks protocol 1 (line-delimited JSON). There is no `stagelatch_core`
+package: copy [`example/custom_check/`](example/custom_check/) and follow
+[`docs/custom-checks.md`](docs/custom-checks.md). Normative contract:
+[`docs/specs/custom-checks.md`](docs/specs/custom-checks.md). Stability of
+the protocol and the rest of the public surface:
+[`docs/stability.md`](docs/stability.md).
+
+When `custom_checks` are configured, `baseline create` and `baseline prune`
+run those checks and therefore **execute project code** — the same class of
+warning as `stagelatch ci` with `tests/affected`. For fork-safe CI, pass
+`--no-custom-checks` (see the fork note above).
 
 ## CI
 
@@ -209,6 +221,7 @@ request:
 - uses: danielcbdev/stagelatch@v0.3.0
   with:
     base: origin/${{ github.base_ref }}
+    # no-custom-checks: true   # for fork PRs when custom_checks are configured
 ```
 
 Findings appear as annotations on the pull request. `stagelatch ci

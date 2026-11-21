@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status: Proposed (Task 1).** Spec [`custom-checks.md`](../specs/custom-checks.md) and [ADR-0019](../adr/0019-custom-checks-out-of-process.md) are Proposed; Tasks 2–7 wait for owner approval of this pull request (Parada 1).
+**Status: In progress (Task 7 freeze).** Spec [`custom-checks.md`](../specs/custom-checks.md) and [ADR-0019](../adr/0019-custom-checks-out-of-process.md) are Approved for implementation. Phase 3 freezes the stability contract; Phase 4 (`release-as` + `develop` → `main`) is separate.
 
 **Goal:** Ship `1.0.0`: custom checks out of process, and a frozen stability contract.
 
@@ -10,7 +10,7 @@
 
 **Tech Stack:** As plan 04. Process host in `infrastructure/custom/`; protocol types in `application/custom/`.
 
-**Spec:** [`specs/custom-checks.md`](../specs/custom-checks.md) (Proposed). **ADR:** [0019](../adr/0019-custom-checks-out-of-process.md). **Stability:** [`docs/stability.md`](../stability.md) (Draft → binding at release).
+**Spec:** [`specs/custom-checks.md`](../specs/custom-checks.md). **ADR:** [0019](../adr/0019-custom-checks-out-of-process.md). **Stability:** [`docs/stability.md`](../stability.md) (Binding; freeze in Task 7 Phase 3).
 
 ## Global Constraints
 
@@ -218,18 +218,18 @@ final class ExternalCheck implements Check {
 
 ### Task 7: Freeze and 1.0.0
 
-**Branch:** `docs/05-07-release`
+**Branch:** `docs/05-07-freeze` (freeze); `release/1.0.0` (Phase 4)
 
 **Files:**
-- Modify: `docs/stability.md` (Draft → binding), `README.md`, `docs/plans/README.md`, `action.yml` (document `--no-custom-checks` / fork note)
+- Modify: `docs/stability.md` (Draft → binding), `README.md`, `docs/plans/README.md`, `action.yml` (document `--no-custom-checks` / fork note), `docs/engineering/workflow.md` (post-1.0 break marking)
 - Create: `test/compat/1.0/` fixtures and tests per `stability.md` §1 (config keys/types/rejects/exit 78 — not validation message text; hook marker + invocation contract — not full script bytes)
 - Modify: `lib/stagelatch.dart` only if comments need updating (still exports `packageVersion` only)
 
-- [ ] **Step 1: Finalize `docs/stability.md`** and add `test/compat/1.0/` tests matching §1 (no byte-compare of hook template; no exact config validation strings).
-- [ ] **Step 2: Verify** all four commands and `dart pub publish --dry-run`.
-- [ ] **Step 3: Acceptance AC-29–AC-35 green on the matrix where applicable.
-- [ ] **Step 4: Commit.** `docs: define the 1.0 stability contract`
-- [ ] **Step 5: Release** `1.0.0` per [`workflow.md`](../engineering/workflow.md) section 8 (`release-as: 1.0.0` as needed).
+- [x] **Step 1: Finalize `docs/stability.md`** and add `test/compat/1.0/` tests matching §1 (no byte-compare of hook template; no exact config validation strings).
+- [x] **Step 2: Verify** all four commands and `dart pub publish --dry-run`.
+- [x] **Step 3: Acceptance AC-29–AC-35 green on the matrix where applicable.
+- [x] **Step 4: Commit.** `docs: define the 1.0 stability contract`
+- [ ] **Step 5: Release** `1.0.0` per [`workflow.md`](../engineering/workflow.md) section 8 (`release-as: 1.0.0` as needed). Phase 4 / Parada 3 — not this PR.
 
 ---
 
