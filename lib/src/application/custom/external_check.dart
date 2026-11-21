@@ -32,10 +32,12 @@ final class ExternalCheck implements Check {
     required this.timeout,
     required Set<RepoPath> sourceClosure,
     required this.workingDirectory,
+    List<RuleDescriptor> knownRules = const [],
     this.settings = const {},
     this.all = false,
   }) : _command = List.unmodifiable(command),
-       _sourceClosure = Set.unmodifiable(sourceClosure) {
+       _sourceClosure = Set.unmodifiable(sourceClosure),
+       _knownRules = List.unmodifiable(knownRules) {
     if (_sourceClosure.isEmpty) {
       throw ArgumentError.value(
         sourceClosure,
@@ -59,17 +61,23 @@ final class ExternalCheck implements Check {
   /// Repository root passed to [CheckProcessFactory.start].
   final String workingDirectory;
 
+  /// Rules listed under `custom_checks.<id>.rules` before handshake.
+  final List<RuleDescriptor> _knownRules;
+
   /// Extra keys from `custom_checks.<id>` (excluding reserved ones).
   final Map<String, Object?> settings;
 
   /// Whether `--all` was passed for this pipeline run.
   final bool all;
 
+  /// Rule ids declared in a `ready` of the last successful [run], if any.
+  final Set<RuleId> handshakeRules = {};
+
   @override
   CheckPhase get phase => CheckPhase.verify;
 
   @override
-  List<RuleDescriptor> get rules => const [];
+  List<RuleDescriptor> get rules => _knownRules;
 
   @override
   bool get hasDynamicRules => true;
@@ -159,6 +167,7 @@ final class ExternalCheck implements Check {
   ) async {
     final findings = <Finding>[];
     final declared = <RuleId, RuleDescriptor>{};
+    handshakeRules.clear();
     var sawReady = false;
     var sawDone = false;
     final pendingReads = <int>{};
@@ -188,6 +197,7 @@ final class ExternalCheck implements Check {
               );
             }
             declared[rule.id] = rule;
+            handshakeRules.add(rule.id);
           }
           process.send(
             encodeToCheck(

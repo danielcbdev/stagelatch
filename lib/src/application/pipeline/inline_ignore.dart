@@ -154,14 +154,19 @@ bool _endsId(int unit) => _isSpace(unit) || unit == 0x2C /* , */;
 /// ids in changed files.
 ///
 /// A comment on line n covers findings of the rules it names whose start
-/// line is n or n + 1. An id is known when [catalog] has it or when it is
-/// under `analyze/`. [invalidIgnoreRule] is known too but suppresses
-/// nothing, because its findings are added after this filter has run.
+/// line is n or n + 1. An id is known when [catalog] has it, when it is
+/// under `analyze/`, when its check prefix is in [trustedCustomCheckIds]
+/// (`--no-custom-checks`), or when it is in [additionalKnownRules]
+/// (handshake / config / selectors). [invalidIgnoreRule] is known too but
+/// suppresses nothing, because its findings are added after this filter
+/// has run.
 Future<IgnoreOutcome> applyInlineIgnores(
   List<Finding> findings, {
   required SnapshotFiles snapshot,
   required ChangeSet changes,
   required CheckCatalog catalog,
+  Set<String> trustedCustomCheckIds = const {},
+  Set<RuleId> additionalKnownRules = const {},
 }) async {
   final directives = <RepoPath, List<IgnoreDirective>>{};
   Future<List<IgnoreDirective>> directivesOf(RepoPath path) async {
@@ -195,7 +200,14 @@ Future<IgnoreOutcome> applyInlineIgnores(
   for (final change in changes.present) {
     for (final directive in await directivesOf(change.path)) {
       for (final id in directive.ids) {
-        if (_isKnown(id.text, catalog)) continue;
+        if (_isKnown(
+          id.text,
+          catalog,
+          trustedCustomCheckIds: trustedCustomCheckIds,
+          additionalKnownRules: additionalKnownRules,
+        )) {
+          continue;
+        }
         invalid.add(
           Finding(
             rule: invalidIgnoreRule,
@@ -215,7 +227,12 @@ Future<IgnoreOutcome> applyInlineIgnores(
   return IgnoreOutcome(kept: kept, suppressed: suppressed, invalid: invalid);
 }
 
-bool _isKnown(String text, CheckCatalog catalog) {
+bool _isKnown(
+  String text,
+  CheckCatalog catalog, {
+  Set<String> trustedCustomCheckIds = const {},
+  Set<RuleId> additionalKnownRules = const {},
+}) {
   if (text.startsWith('analyze/') && text.length > 'analyze/'.length) {
     return true;
   }
@@ -225,5 +242,7 @@ bool _isKnown(String text, CheckCatalog catalog) {
   } on FormatException {
     return false;
   }
+  if (trustedCustomCheckIds.contains(id.check)) return true;
+  if (additionalKnownRules.contains(id)) return true;
   return catalog.hasRule(id);
 }

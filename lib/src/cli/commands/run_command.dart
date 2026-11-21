@@ -23,6 +23,11 @@ final class RunCommand extends Command<int> {
     argParser
       ..addFlag('all', negatable: false, help: 'Check every file.')
       ..addFlag('no-fix', negatable: false, help: 'Do not apply fixes.')
+      ..addFlag(
+        'no-custom-checks',
+        negatable: false,
+        help: 'Skip custom checks for this run.',
+      )
       ..addOption('reporter', help: 'console (default) or json.');
   }
 
@@ -66,11 +71,16 @@ final class RunCommand extends Command<int> {
               remote: hook.length == 3 ? hook[1] : null,
             )
           : const PreCommitEntry() as EntryPoint;
+      final noCustomChecks = argResults?.flag('no-custom-checks') ?? false;
+      if (noCustomChecks) {
+        io.stderr.writeln(noCustomChecksNotice);
+      }
       final reports = await composition.pipeline.run(
         RunRequest(
           entry: entry,
           all: argResults?.flag('all') ?? false,
           allowFixes: !(argResults?.flag('no-fix') ?? false),
+          noCustomChecks: noCustomChecks,
         ),
       );
       (reporter == 'json'

@@ -25,6 +25,11 @@ final class CiCommand extends Command<int> {
       ..addOption('base', help: 'The ref the change is to be merged into.')
       ..addOption('head', defaultsTo: 'HEAD', help: 'The ref to judge.')
       ..addFlag('all', negatable: false, help: 'Check every file.')
+      ..addFlag(
+        'no-custom-checks',
+        negatable: false,
+        help: 'Skip custom checks for this run.',
+      )
       ..addOption(
         'reporter',
         help: 'console (default), json, github, junit or sarif.',
@@ -63,12 +68,17 @@ final class CiCommand extends Command<int> {
     }
     final composition = await _open(io);
     try {
+      final noCustomChecks = argResults?.flag('no-custom-checks') ?? false;
+      if (noCustomChecks) {
+        io.stderr.writeln(noCustomChecksNotice);
+      }
       final reports = await composition.pipeline.run(
         RunRequest(
           entry: CiEntry(baseRef: base, headRef: head),
           all: argResults?.flag('all') ?? false,
           // CI judges a commit and never writes to the index.
           allowFixes: false,
+          noCustomChecks: noCustomChecks,
         ),
       );
       _reporter(reporter, io, composition).report(reports);

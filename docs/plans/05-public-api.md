@@ -192,11 +192,11 @@ final class ExternalCheck implements Check {
 - Test: `test/cli/no_custom_checks_test.dart`, `test/application/doctor/custom_checks_probe_test.dart`
 - Acceptance: AC-32 (`--no-custom-checks`)
 
-- [ ] **Step 1: Write the failing tests:** `--no-custom-checks` skips and notices; `doctor` lists each custom check and resolved command; with the flag, ignore whose check prefix is a configured custom id is accepted without handshake; unknown check prefix still yields `invalid-ignore`; with check active, undeclared rule yields `invalid-ignore`.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(cli): add --no-custom-checks and doctor listing`
+- [x] **Step 1: Write the failing tests:** `--no-custom-checks` skips and notices; `doctor` lists each custom check and resolved command; with the flag, ignore whose check prefix is a configured custom id is accepted without handshake; unknown check prefix still yields `invalid-ignore`; with check active, undeclared rule yields `invalid-ignore`.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(cli): add --no-custom-checks and doctor listing`
 
 ---
 
