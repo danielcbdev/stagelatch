@@ -241,8 +241,7 @@ lib/checkout/cart.dart (changed)
     );
   });
 
-  test('a changed pubspec.yaml explain prints the configuration chain',
-      () async {
+  test('changed pubspec.yaml prints the configuration chain', () async {
     final why = _why(
       index: {
         'pubspec.yaml': 'name: app\n',

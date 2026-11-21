@@ -14,8 +14,7 @@ final class FakeGitRepository implements GitRepository {
   /// By default it resolves every entry point to one run of the index
   /// against no base, with [changes]. Pass [_runs] to decide exactly what
   /// `resolve` returns, and [_commits] for the content of commit snapshots.
-  /// [againstIndex] is what `resolveAgainstIndex` returns; when null, a
-  /// run of the index with [changes] is used.
+  /// Pass [againstIndex] to control what [resolveAgainstIndex] returns.
   new({
     Map<String, Object> index = const {},
     this._commits = const {},
@@ -24,10 +23,9 @@ final class FakeGitRepository implements GitRepository {
     this._runs,
     this._diverging = const {},
     this._layout,
-    ResolvedRun? againstIndex,
+    this.againstIndex,
   }) : index = {...index},
-       _changes = changes ?? ChangeSet(const []),
-       _againstIndex = againstIndex;
+       _changes = changes ?? ChangeSet(const []);
 
   /// The content of the index. Applying a fix changes it.
   final Map<String, Object> index;
@@ -35,11 +33,13 @@ final class FakeGitRepository implements GitRepository {
   /// The target branch of the default run.
   final String? targetBranch;
 
+  /// Override for [resolveAgainstIndex]; when null a default index run is used.
+  final ResolvedRun? againstIndex;
+
   final Map<String, Map<String, Object>> _commits;
   final ChangeSet _changes;
   final List<ResolvedRun>? _runs;
   final Set<String> _diverging;
-  final ResolvedRun? _againstIndex;
 
   /// Every fix handed to [applyFixes], in order.
   final List<Fix> appliedFixes = [];
@@ -84,13 +84,13 @@ final class FakeGitRepository implements GitRepository {
         ];
   }
 
-  /// The [baseRef] of the most recent [resolveAgainstIndex] call.
+  /// The `baseRef` of the most recent [resolveAgainstIndex] call.
   String? lastAgainstIndexBaseRef;
 
   @override
   Future<ResolvedRun> resolveAgainstIndex({String? baseRef}) async {
     lastAgainstIndexBaseRef = baseRef;
-    return _againstIndex ??
+    return againstIndex ??
         ResolvedRun(
           snapshot: const IndexSnapshot(),
           base: null,
