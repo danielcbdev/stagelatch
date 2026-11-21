@@ -247,6 +247,21 @@ import 'dart:core';
     expect(offenders, isEmpty);
   });
 
+  test('only infrastructure/{git,dart,custom} call Process.start', () {
+    final allowed = {
+      for (final leaf in ['git', 'dart', 'custom'])
+        ['lib', 'src', 'infrastructure', leaf].join(Platform.pathSeparator),
+    };
+    final offenders = [
+      for (final file in Directory('lib').listSync(recursive: true))
+        if (file is File && file.path.endsWith('.dart'))
+          if (RegExp(r'Process\.start\s*\(').hasMatch(file.readAsStringSync()))
+            if (!allowed.any(file.path.contains)) file.path,
+    ];
+
+    expect(offenders, isEmpty);
+  });
+
   group('_spawnsTestTool', () {
     test('flags a file that starts a process with the test argument', () {
       expect(
