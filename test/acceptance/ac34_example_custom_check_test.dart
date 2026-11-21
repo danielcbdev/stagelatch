@@ -56,7 +56,8 @@ custom_checks:
 
   tearDown(() async {
     // ExternalCheck kills in finally; if the test timed out first, the child
-    // may still hold files under the temp repo (PathAccessException on Windows).
+    // may still hold files under the temp repo
+    // (PathAccessException on Windows).
     await SpawnedCheckProcess.killAllActive();
     await repo?.dispose();
   });
