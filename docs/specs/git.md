@@ -105,10 +105,12 @@ Untracked files are not part of any snapshot and are invisible to this list and 
 **Divergent, for `tests/affected` (ADR-0018).** From `0.3.0`, tests run on the working tree, so the check needs the whole picture. A path of the test closure (rules.md `tests/affected`) is divergent when:
 
 - it is in the list above, which also covers a commit snapshot that is not the checked-out commit; or
-- it is the target of an import edge of the closure, absent from the snapshot, and a regular file of that path exists on disk. This is a file system test on those targets, not `git ls-files --others`, so untracked and ignored files both count; or
-- it is one of the package's `pubspec.yaml`, `pubspec.lock` and `analysis_options.yaml`, absent from the snapshot and present on disk.
+- it is the target of an import edge of the closure, absent from the snapshot, a regular file of that path exists on disk, and it is not ignored. The candidates are the missing edge targets; those that exist on disk are passed once to `git check-ignore --stdin -z`, and ignored ones are dropped (intentional generated files do not skip). An untracked, non-ignored file counts; or
+- it is the package's `pubspec.yaml` or `analysis_options.yaml`, absent from the snapshot, present on disk and not ignored.
 
-The list is computed once before the test processes start and again after they exit. Files outside the closure never make a path divergent.
+The package's `pubspec.lock` is in the closure only when it exists in the snapshot, and then diverges only through the first rule. A lock that exists only on disk is out of scope. Non-imported config and data files (`dart_test.yaml`, `flutter_test_config.dart`, `pubspec_overrides.yaml`, `build.yaml`, fixtures, goldens, assets) are never part of the check.
+
+The list is computed once before the test processes start and again after they exit, with the same rules and the closure of the start. Files outside the closure never make a path divergent.
 
 ## 6. Applying fixes
 

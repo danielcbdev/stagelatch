@@ -117,7 +117,7 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 [ADR-0018](../adr/0018-affected-tests-run-against-validated-snapshot.md). `tests/affected` is the only feature that starts project code, and the only one allowed to.
 
 - It may start test processes only on `pre-push` and `ci`. `pre-commit`, `doctor`, `why`, `init`, `install`, `uninstall` and `baseline` never do.
-- It starts nothing unless the closure equals the snapshot (no divergent path), checked before the first process and again after the last one. Otherwise it reports the skip warning.
+- It starts nothing unless the closure equals the snapshot (no divergent path; ignored files and a lock absent from the snapshot are out of scope), checked before the first process and again after the last one. Otherwise it reports the skip warning. Files outside the closure are a documented limitation.
 - Process execution follows S1: `dart test` or `flutter test` of the resolved SDK, an argument list, test paths after `--`, never a shell. A test path never reaches a shell.
 - The environment is inherited unchanged (S11). The tool never injects, forwards or logs a secret.
 - The process's stdout and stderr are untrusted input: parsed as machine-readable events (S6) and sanitized before display (S5).
