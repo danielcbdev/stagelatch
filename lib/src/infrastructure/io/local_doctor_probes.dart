@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:stagelatch/src/application/environment.dart';
 import 'package:stagelatch/src/application/ports/doctor_probes.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
+import 'package:stagelatch/src/infrastructure/io/path_executable.dart';
 
 /// Answers [DoctorProbes] from the file system and `git --version`.
 ///
@@ -23,8 +24,25 @@ final class LocalDoctorProbes implements DoctorProbes {
 
   @override
   Future<String?> gitVersion() async {
+    final variables = _environment.variables;
+    final pathEnv =
+        variables['PATH'] ??
+        variables['Path'] ??
+        Platform.environment['PATH'] ??
+        Platform.environment['Path'] ??
+        '';
+    final git = resolvePathExecutable(
+      name: 'git',
+      pathEntries: splitPathEnv(pathEnv, isWindows: _windows),
+      repoRoot: _repoRoot,
+      isWindows: _windows,
+      pathExtensions: pathExtSuffixes(
+        variables['PATHEXT'] ?? Platform.environment['PATHEXT'],
+      ),
+    );
+    if (git == null) return null;
     try {
-      final result = await Process.run('git', const ['--version']);
+      final result = await Process.run(git, const ['--version']);
       if (result.exitCode != 0) return null;
       return (result.stdout as String).split('\n').first.trim();
     } on ProcessException {

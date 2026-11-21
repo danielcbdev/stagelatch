@@ -7,6 +7,7 @@ import 'dart:typed_data';
 
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/infrastructure/git/git_result.dart';
+import 'package:stagelatch/src/infrastructure/io/path_executable.dart';
 
 /// Starts git in one repository.
 ///
@@ -17,6 +18,10 @@ import 'package:stagelatch/src/infrastructure/git/git_result.dart';
 /// which the composition root captures from the parent process unchanged.
 /// That is how `GIT_INDEX_FILE`, `GIT_DIR` and `GIT_WORK_TREE`, which git
 /// sets while running a hook, reach the commands we run.
+///
+/// A bare [executable] (no directory separator) is resolved to an absolute
+/// PATH entry before [Process.start], so Windows CreateProcessW cannot
+/// pick a planted `git.exe` from the working directory.
 final class GitProcess {
   /// Creates a launcher for the repository at [workingDirectory].
   ///
@@ -34,6 +39,8 @@ final class GitProcess {
   final String executable;
 
   final Map<String, String> _environment;
+
+  static final bool _windows = Platform.isWindows;
 
   /// Runs `git <args>` to completion.
   ///
@@ -86,9 +93,10 @@ final class GitProcess {
   ///
   /// Throws [UsageException] when git cannot be started.
   Future<Process> start(List<String> args) async {
+    final resolved = _resolvedExecutable();
     try {
       return await Process.start(
-        executable,
+        resolved,
         args,
         workingDirectory: workingDirectory,
         environment: _environment,
@@ -101,5 +109,38 @@ final class GitProcess {
         'Could not run git. Is it installed and on PATH?',
       );
     }
+  }
+
+  /// Absolute path to [executable], or [executable] when it already has a
+  /// directory separator.
+  ///
+  /// Throws [UsageException] when a bare name is not found on PATH.
+  String _resolvedExecutable() {
+    final resolved = resolvePathExecutable(
+      name: executable,
+      pathEntries: splitPathEnv(_pathEnv(), isWindows: _windows),
+      repoRoot: workingDirectory,
+      isWindows: _windows,
+      pathExtensions: pathExtSuffixes(
+        _environment['PATHEXT'] ?? Platform.environment['PATHEXT'],
+      ),
+    );
+    if (resolved == null) {
+      throw const UsageException(
+        'Could not run git. Is it installed and on PATH?',
+      );
+    }
+    return resolved;
+  }
+
+  /// PATH used only to locate the executable.
+  ///
+  /// When the captured environment omits PATH (tests, minimal hooks), the
+  /// parent process PATH is used for resolution. The environment passed to
+  /// git itself stays exactly [_environment] (S11).
+  String _pathEnv() {
+    final fromEnv = _environment['PATH'] ?? _environment['Path'];
+    if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+    return Platform.environment['PATH'] ?? Platform.environment['Path'] ?? '';
   }
 }
