@@ -481,7 +481,7 @@ test('rules accepts only names matching the rule id pattern', () { /* patternPro
 - `docs/` is not published (`.pubignore`), so the README links `docs/rules.md` by its GitHub URL.
 - `docs/rules.md` is generated; the test regenerates the text from the registry and compares it with the file, and the generator's command is in the file's first lines.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('init lists codegen only when build_runner is a dev dependency', () { /* ... */ });
@@ -493,8 +493,8 @@ test('init adds the yaml-language-server schema comment as the first line', () {
 test('docs/rules.md equals what the generator writes from the registry, and lists every registered rule exactly once', () { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement,** then update the README: the new rules, `--all`, a baseline adoption guide (`baseline create`, review the file, stage it, `baseline prune`), and the new `pre-commit` measurement for the `s3` and `s10` scenarios, hot and cold, with the exact command (`benchmark/bin/measure_cli.dart`) and the 0.1.0 numbers beside it. The measurement must stay under 2 s; if it does not, stop and ask (a new check must not be weakened silently).
-- [ ] **Step 4: Run** all four commands; `dart pub publish --dry-run` is clean.
-- [ ] **Step 5: Commit.** `docs: document 0.2.0 rules and baseline adoption`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement,** then update the README: the new rules, `--all`, a baseline adoption guide (`baseline create`, review the file, stage it, `baseline prune`), and the new `pre-commit` measurement for the `s3` and `s10` scenarios, hot and cold, with the exact command (`benchmark/bin/measure_cli.dart`) and the 0.1.0 numbers beside it. The measurement must stay under 2 s; if it does not, stop and ask (a new check must not be weakened silently).
+- [x] **Step 4: Run** all four commands; `dart pub publish --dry-run` is clean.
+- [x] **Step 5: Commit.** `docs: document 0.2.0 rules and baseline adoption`
 - [ ] **Step 6: Release** `0.2.0` per `workflow.md` section 8. No `release-as` is needed: from `0.1.0` a `feat` bumps to `0.2.0`, and no commit of this plan may carry a breaking marker. Open the pull request from `release/0.2.0` into `main` titled `release: 0.2.0`, with plan 03 marked `done (0.2.0)` in `docs/plans/README.md`. The owner merges it, and the release-please steps of section 8 follow.

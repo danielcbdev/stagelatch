@@ -16,6 +16,11 @@ const String rulesDocPath = 'docs/rules.md';
 /// The command that regenerates the file, written in its first lines.
 const String generatorCommand = 'dart run tool/generate_rules_doc.dart';
 
+/// The text of an ignore comment. Kept in one place, and never written after
+/// a `//` in this file, so the generator's own source holds no ignore
+/// comment for stagelatch to read.
+const String _ignoreMarker = 'stagelatch:ignore';
+
 /// The text of the rule reference for [checks], in their order.
 ///
 /// The output uses LF and ends with one newline.
@@ -41,8 +46,8 @@ String renderRulesDoc(List<Check> checks) {
     )
     ..writeln(
       '- **Suppress one finding** with a comment on its line or the '
-      'line before: `// stagelatch:ignore <rule-id>` in Dart, '
-      '`# stagelatch:ignore <rule-id>` in YAML.',
+      'line before: `// $_ignoreMarker <rule-id>` in Dart, '
+      '`# $_ignoreMarker <rule-id>` in YAML.',
     )
     ..writeln(
       '- **Accept the findings a legacy codebase already has** with '

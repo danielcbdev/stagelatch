@@ -74,6 +74,34 @@ Read with the spike's numbers in mind ([`docs/spike/report.md`](../docs/spike/re
   (its settings and analytics files). Every pre-commit run stays under
   1.1 s at p95, cold or warm.
 
+## Pre-commit with the 0.2.0 checks (plan 03, Task 10)
+
+The same two scenarios, with every default pre-commit check of 0.2.0 (format,
+codegen, pubspec, l10n, assets, sensitive-files, tests/solo,
+tests/new-skip) running on the corpus, which has no `stagelatch.yaml`:
+
+```bash
+dart pub global activate --source path .
+cd benchmark
+dart run bin/measure_cli.dart --hook pre-commit --cold 5 --warm 10 \
+  --out 18-cli-0.2.0-pre-commit.json
+```
+
+Measured on 2026-11-20 on the same laptop and SDK as above. Results are in
+`results/18-cli-0.2.0-pre-commit.json`; 0.1.0 is repeated for comparison.
+
+| Version | Scenario | Cold p50 / p95 | Warm p50 / p95 |
+|---|---|---|---|
+| 0.2.0 | s3 | 0.55 / 0.56 s | 0.77 / 0.78 s |
+| 0.2.0 | s10 | 0.61 / 0.63 s | 0.83 / 0.85 s |
+| 0.1.0 | s3 | 0.56 / 0.64 s | 0.78 / 0.89 s |
+| 0.1.0 | s10 | 0.62 / 0.80 s | 0.92 / 1.05 s |
+
+The new checks add no measurable time to the commit hook on these scenarios.
+A first run of the day, right after `dart pub global activate`, took 2.0 s
+once; five more cold runs afterwards stayed at 0.55 s to 0.63 s, so that run
+is treated as the warm-up of the activation and is not in the table.
+
 ## The fact extractor (plan 03, ADR-0017)
 
 `bin/facts.dart` compares two ways of extracting annotated declarations,

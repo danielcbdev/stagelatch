@@ -9,9 +9,9 @@ import '../../support/fake_check_catalog.dart';
 import '../../support/fake_snapshot_files.dart';
 import '../../support/fake_working_tree.dart';
 
-const _schemaComment =
-    '# yaml-language-server: \$schema=https://raw.githubusercontent.com/'
-    'danielcbdev/stagelatch/main/schema/stagelatch.schema.json\n';
+const _schemaUrl =
+    'https://raw.githubusercontent.com/danielcbdev/stagelatch/main/schema/stagelatch.schema.json';
+const _schemaComment = '# yaml-language-server: \$schema=$_schemaUrl\n';
 
 String _render({
   bool codegen = false,
