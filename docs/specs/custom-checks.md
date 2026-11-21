@@ -21,7 +21,7 @@ custom_checks:
   team:
     run: [dart, run, tool/stagelatch_checks.dart]
     # timeout: 60s          # optional; default 60s
-    # sources: []           # optional; see section 6
+    # sources: [tool/stagelatch_checks.dart]  # optional when inferable; required when not (section 6)
     rules:
       no-print: error
 ```
@@ -38,7 +38,8 @@ custom_checks:
 | `pre-push` | Each configured custom check runs when selected by `hooks.pre-push` (see below) | — |
 | `ci` | Same via `hooks.ci` (default: union of pre-commit and pre-push) | `--no-custom-checks` skips all custom checks and prints a notice |
 | `pre-commit` | **Not** in the built-in default hook lists | A team may list a custom check id in `hooks.pre-commit`; documented as opt-in and usually over budget (section 15) |
-| `doctor`, `why`, `init`, `install`, `uninstall`, `baseline` | Never start a custom-check process | — |
+| `baseline create`, `baseline prune` | Run the pipeline **with** custom checks (they need findings for the baseline; see §12) | — |
+| `doctor`, `why`, `init`, `install`, `uninstall` | Never start a custom-check process | — |
 
 Selectors: a hook list may name a custom check by its id (`team`) or a rule (`team/no-print`), same vocabulary as built-ins (ADR-0009). Omitting custom checks from every hook list means they never run even if declared under `custom_checks:`.
 
@@ -52,8 +53,9 @@ Under the root key `custom_checks` (a map). Each entry:
 |---|---|---|---|
 | `run` | non-empty list of strings | (required) | Executable and arguments. Never a shell string. |
 | `timeout` | duration | `60s` | Wall-clock budget for the child from spawn until `done` or failure. Kill + exit 70 when exceeded. Distinct from `time_budget` (ADR-0003). |
-| `sources` | list of repository-relative paths | inferred (section 6) | Files that constitute the check program for the divergence test. |
+| `sources` | non-empty list of repository-relative paths | inferred when possible (section 6) | Files that constitute the check program for the divergence test. Required (exit 78) when inference cannot produce a non-empty closure. An explicit empty list is always a config error. |
 | `rules` | map of `<rule>` → `error` \| `warning` \| `off` | `{}` | Severity overrides for this check's rules. Same semantics as the root `rules:` map; either place may set a level. Omitted rules keep the level the child declares as default severity `error`, unless the root `rules:` map says otherwise. |
+| *(additional keys)* | any JSON-compatible YAML | (none) | Collected into `settings` and sent on `init` (§10.1). Must not reuse the reserved keys above. |
 
 Validation at load time (exit 78):
 
@@ -63,8 +65,10 @@ Validation at load time (exit 78):
 | Entry id shadows a built-in | `custom_checks."<id>" shadows the built-in check "<id>".` |
 | `run` missing, empty, or not a list of strings | `"custom_checks.<id>.run" must be a non-empty list of strings, found <actual>.` |
 | `timeout` invalid | `Invalid duration "<value>" in "custom_checks.<id>.timeout".` |
+| `sources` set to an empty list | `"custom_checks.<id>.sources" must be a non-empty list of repository paths when set, found an empty list.` |
 | `sources` entry not a valid repository path | `Invalid path "<value>" in "custom_checks.<id>.sources".` |
 | Rule key under `custom_checks.<id>.rules` contains `/` | `Rule name "<name>" under custom_checks."<id>" must not contain "/".` |
+| Inference yields an empty closure and `sources` is missing | `custom_checks."<id>": cannot infer a non-empty source closure from "run"; set "custom_checks.<id>.sources" to a non-empty list.` |
 
 Rule ids that appear only under `custom_checks.*.rules` or in selectors are **not** fully validated at load time: the child declares the live set at handshake. A selector or root `rules:` entry that names `<custom-id>/<rule>` is accepted syntactically when `<custom-id>` is a configured custom check; an unknown rule for that check becomes a finding or protocol error at run time (section 11), not a config error at load.
 
@@ -74,14 +78,21 @@ The child is started with working directory = repository root. Its program bytes
 
 ### Divergence closure
 
-Before starting the child, and again after it exits (same pattern as ADR-0018), the host computes a **source closure** for the check:
+Before starting the child, and again after it exits (same pattern as ADR-0018), the host computes a **source closure** for the check. An empty closure is never allowed: that would skip the divergence test and weaken fail-closed.
 
-1. If `sources` is non-empty: those paths (must exist in the snapshot as regular files, or the run is exit 70: `custom check "<id>": source "<path>" is missing from the snapshot.`).
-2. Otherwise, inference:
+1. If `sources` is set and non-empty: those paths (must exist in the snapshot as regular files, or the run is exit 70: `custom check "<id>": source "<path>" is missing from the snapshot.`).
+2. If `sources` is set to an empty list: config error at load (exit 78) with the message in §5.
+3. If `sources` is omitted, inference:
    - If `run[0]` is `dart` or `flutter` (exact) and some later argument is a repository-relative path ending in `.dart` that exists in the snapshot, that path is the entry.
    - Else if `run[0]` is a repository-relative path that exists in the snapshot, that path is the entry.
-   - Else: no inferred entry; the closure is empty and the divergence test is skipped with a doctor-visible notice that the check's program path could not be inferred (still runs). Authors of non-Dart executables should set `sources`.
-3. When the entry is a `.dart` file: add every `.dart` file in its transitive `import` / `export` / `part` closure that exists in the snapshot (same edge rules as the import graph), plus the owning package's `pubspec.yaml`, `analysis_options.yaml`, and `pubspec.lock` when that lock exists in the snapshot.
+   - Else: inference failed. **Do not start the child.** Config error (exit 78), at load when detectable without a snapshot, otherwise before spawn:
+
+```
+custom_checks."<id>": cannot infer a non-empty source closure from "run"; set "custom_checks.<id>.sources" to a non-empty list.
+```
+
+   Examples that need explicit `sources`: `run: [python, tool/x.py]`, `run: [dart, run, package:some_pkg/bin/check.dart]`.
+4. When the entry is a `.dart` file: add every `.dart` file in its transitive `import` / `export` / `part` closure that exists in the snapshot (same edge rules as the import graph), plus the owning package's `pubspec.yaml`, `analysis_options.yaml`, and `pubspec.lock` when that lock exists in the snapshot.
 
 A path in the closure is **divergent** by the same three rules as ADR-0018 (snapshot vs working tree; untracked non-ignored import target; untracked non-ignored `analysis_options.yaml`).
 
@@ -223,7 +234,7 @@ stagelatch itself already spends ~0.8 s of JIT startup (ADR-0004). A default `pr
 |---|---|
 | Findings with severity `error` after filters | 1 |
 | Protocol / timeout / crash / diverge / start failure | 70 |
-| Bad `custom_checks` config | 78 |
+| Bad `custom_checks` config (incl. empty / uninferable `sources`) | 78 |
 | `--no-custom-checks` and no other problems | 0 |
 
 ## 17. Design questions (closed by this proposal)

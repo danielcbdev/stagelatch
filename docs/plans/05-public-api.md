@@ -16,7 +16,7 @@
 
 - Everything in the Global Constraints of plans 01–04.
 - S1 exception and S14b exactly as [`security.md`](../engineering/security.md) and ADR-0019: argument list from `custom_checks.<id>.run`, never a shell; resolved SDK for `dart`/`flutter`; Windows `.bat` guard.
-- Content only through protocol `read` (snapshot/base). Source closure divergence → exit 70 (never a silent pass).
+- Content only through protocol `read` (snapshot/base). Source closure must be non-empty (explicit `sources` when inference fails → exit 78). Divergence → exit 70 (never a silent pass).
 - Timeout default 60s → kill + exit 70; distinct from `time_budget` (ADR-0003).
 - One process per `ExternalCheck.run`; kill/await in `finally`.
 - After 1.0.0, a breaking change to a §1 artefact of `stability.md` requires a major version.
@@ -28,6 +28,7 @@
 - **A child that reports a rule it did not declare, or a path outside the repository.** Expected: protocol error; exit 70; the finding is not kept.
 - **A custom check ID equal to a built-in one.** Expected: config error at load time (exit 78).
 - **Source closure diverges** (unstaged edit to the check entry). Expected: no child started; exit 70 naming the check and path.
+- **`run` that cannot infer sources** (e.g. `python tool/x.py`, `dart run package:…`) without `sources`. Expected: exit 78 with `custom_checks."<id>": cannot infer a non-empty source closure from "run"; set "custom_checks.<id>.sources" to a non-empty list.`
 - **A pull request from a fork running `ci`.** Expected: documented risk, and `--no-custom-checks` works.
 - **Findings for a path inside the repo but outside the changeset.** Expected: accepted, then normal filters apply.
 
@@ -174,7 +175,7 @@ final class ExternalCheck implements Check {
 **Interfaces:**
 - Produces: `CustomCheckConfig { String id; List<String> run; Duration timeout; List<RepoPath> sources; Map<String, RuleLevel> rules; Map<String, Object?> settings }`; `Config.customChecks`; `CheckRegistry.withCustom(List<ExternalCheck>)`; remove reserved-key rejection for `custom_checks` on tools ≥ 1.0.0.
 
-- [ ] **Step 1: Write the failing tests:** key loads; shadowing built-in → config error; `run` non-empty list of strings; selector and `rules:` may name a custom rule; deferred unknown-rule validation; default timeout 60s.
+- [ ] **Step 1: Write the failing tests:** key loads; shadowing built-in → config error; `run` non-empty list of strings; selector and `rules:` may name a custom rule; deferred unknown-rule validation; default timeout 60s; explicit empty `sources` → exit 78; omitted `sources` when `run` is not inferable (e.g. `python`, `dart run package:…`) → exit 78 with the empty-closure message from `custom-checks.md` §5/§6; additional keys land in `settings`.
 - [ ] **Step 2: Run.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run** all four commands. Expected: PASS.

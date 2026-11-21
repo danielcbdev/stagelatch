@@ -130,7 +130,7 @@ Two features start code that is not stagelatch itself: `tests/affected` ([ADR-00
 
 - May start a child only on `pre-push` and `ci` when selected by the hook list, or on `pre-commit` only when a team explicitly lists the custom check id there (not in built-in defaults). `doctor`, `why`, `init`, `install` and `uninstall` never start one. `baseline create` / `prune` run the pipeline and therefore may.
 - Program bytes come from the working tree; analyzed file bytes come only through the protocol from the snapshot ([`custom-checks.md`](../specs/custom-checks.md)).
-- Starts nothing when the check's source closure diverges from the snapshot (ADR-0018 rules on that closure). On diverge: **exit 70** naming the check (stricter than S14a: an opted-in gate must not be skipped while the run still succeeds).
+- Source closure must be non-empty before spawn. If inference from `run` cannot produce one, `custom_checks.<id>.sources` is required; otherwise exit 78 (config). Starts nothing when the check's source closure diverges from the snapshot (ADR-0018 rules on that closure). On diverge: **exit 70** naming the check (stricter than S14a: an opted-in gate must not be skipped while the run still succeeds).
 - Process execution follows S1's custom-check exception: argument list from `custom_checks.<id>.run`, never a shell; per-check timeout (default 60s) kills the child and exits 70; hang-kill is not a `time_budget` skip (ADR-0003).
 - `--no-custom-checks` on `run` and `ci` skips all custom checks and prints a notice (fork pull requests).
 
