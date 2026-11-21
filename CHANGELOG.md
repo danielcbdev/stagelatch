@@ -5,9 +5,6 @@
 
 ### Features
 
-* **cache:** cache syntactic facts by blob id ([#73](https://github.com/danielcbdev/stagelatch/issues/73)) ([196d726](https://github.com/danielcbdev/stagelatch/commit/196d72642cc6473e743561387a62cb429e2e51c5))
-* **cache:** cache syntactic facts by blob id ([#73](https://github.com/danielcbdev/stagelatch/issues/73)) ([141fe2e](https://github.com/danielcbdev/stagelatch/commit/141fe2e1fa812c8370bcf895ecf5e4c45f466831))
-* **cache:** cache syntactic facts by blob id ([#73](https://github.com/danielcbdev/stagelatch/issues/73)) ([bd7b311](https://github.com/danielcbdev/stagelatch/commit/bd7b31170fb11664a8ba335749baff198fb94591))
 * **cache:** cache syntactic facts by blob id ([#73](https://github.com/danielcbdev/stagelatch/issues/73)) ([fc56630](https://github.com/danielcbdev/stagelatch/commit/fc56630b47652f4a1c2bffc25412d4165ae22ec4))
 * **checks:** add l10n/unused-key ([#76](https://github.com/danielcbdev/stagelatch/issues/76)) ([4d27963](https://github.com/danielcbdev/stagelatch/commit/4d27963bb5d3aa6a800b6314c4fd30d9faa0970b))
 * **checks:** add tests/affected ([#77](https://github.com/danielcbdev/stagelatch/issues/77)) ([9e3c90b](https://github.com/danielcbdev/stagelatch/commit/9e3c90b8fe3e8178723a92b6d0080f426fd5b420))
