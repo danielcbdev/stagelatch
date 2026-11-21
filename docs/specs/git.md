@@ -116,7 +116,7 @@ Untracked files are not part of any snapshot and are invisible to this list and 
 
 - it is in the list above, which also covers a commit snapshot that is not the checked-out commit; or
 - it is the target of an import edge of the closure, absent from the snapshot, a regular file of that path exists on disk, and it is not ignored. The candidates are the missing edge targets; those that exist on disk are passed once to `git check-ignore --stdin -z`, and ignored ones are dropped (intentional generated files do not skip). An untracked, non-ignored file counts; or
-- it is the package's `pubspec.yaml` or `analysis_options.yaml`, absent from the snapshot, present on disk and not ignored.
+- it is the package's `analysis_options.yaml`, absent from the snapshot, present on disk and not ignored (a package's `pubspec.yaml` is always in the snapshot when the package exists).
 
 The package's `pubspec.lock` is in the closure only when it exists in the snapshot, and then diverges only through the first rule. A lock that exists only on disk is out of scope. Non-imported config and data files (`dart_test.yaml`, `flutter_test_config.dart`, `pubspec_overrides.yaml`, `build.yaml`, fixtures, goldens, assets) are never part of the check.
 

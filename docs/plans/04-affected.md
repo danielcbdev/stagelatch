@@ -235,7 +235,7 @@ test('the rule can be off or an error through rules:', () async { /* isEnabled f
 
 **Decisions fixed here** (ADR-0018, `rules.md` `tests/affected`):
 - **Sources.** The `.dart` paths of present changes, the `.dart` paths of deleted changes, and every `previousPath` with extension `.dart`. `testFiles` is `graph.dependentsOf(sources)` restricted to `isTestFile`, to `snapshotPaths`, and minus deleted and previous paths, sorted. A changed test file selects itself because `dependentsOf` includes its inputs.
-- **Widening.** For every change whose path (or `previousPath`) has basename `pubspec.yaml` or `analysis_options.yaml`, and for every *present* change whose basename is `pubspec.lock`: the owning package is `packages.packageOf(path)` (skip when null) and every test file of it in `snapshotPaths` is selected; record the path in `widenedBy`. A deleted lock selects nothing. This task uses the package itself; Task 9 widens a workspace root's lock to every member.
+- **Widening.** For every change whose path (or `previousPath`) has basename `pubspec.yaml` or `analysis_options.yaml`, and for every *present* change whose basename is `pubspec.lock`: the owning package is `packages.packageOf(path)` (skip when null) and every test file of it in `snapshotPaths` is selected; record the path in `widenedBy`. A deleted lock selects nothing. This task uses the package itself; Task 9 widens a workspace root's `pubspec.yaml` and lock to every member.
 - **Closure.** `graph.dependenciesOf(testFiles)` (forward closure, edge targets absent from the snapshot included), plus for each package that owns a selected test its `pubspec.yaml` and `analysis_options.yaml` (whether or not they are in the snapshot, so that the divergence test can look at an untracked one) and its `pubspec.lock` only when that path is in `snapshotPaths`.
 - Sorting: every list is sorted by path; `byPackage` by package root, repository root first.
 
@@ -292,7 +292,7 @@ test('results are sorted, and grouped by package with the repository root first'
 - **Confirm before recording.** Run the commands below against the SDKs on the machine, compare with "What 0.2.0 already has" and record every fixture from a real run (the `helper_location` fixture needs a test declared by a helper in another file, to see `root_url`, `root_line`, `root_column`). Write the versions into the fixtures README. CI runners have no Flutter: the Flutter path is covered by inspecting the command and by the recorded `flutter_noise` fixture; end-to-end tests use Dart only.
 - **Commands.** Dart: `<dart> --suppress-analytics test --reporter json -- <files>`. Flutter: `<flutter> test --machine -- <files>`. Working directory: the package root. Files are passed relative to the package directory, in path order, split into batches of at most 20,000 characters of arguments (a single longer path is its own batch); batches of one package run one after the other and their results are merged. Start with `Process.start` and an argument list, never a shell; the environment is inherited unchanged; stdin is closed at once.
 - **A Flutter package** whose `ResolvedSdk.flutterExecutable` is null returns `TestRunResult(startupError: 'the resolved SDK has no flutter executable')` and starts nothing. On Windows a `.bat` or `.cmd` executable refuses a test path with a control character or any of `"&|<>^%!`: `startupError: 'unsafe test path: <path>'`, nothing started.
-- **Parsing.** Output is a stream of lines (`Utf8Decoder(allowMalformed: true)` and `LineSplitter`), never buffered whole. A line is an event when it is at most 1 MiB, starts with `{`, decodes to a map and has a string `type`; everything else (blank lines, text, arrays, truncated JSON) is ignored. Track `testStart` by `test.id`; a test fails when its `testDone` has `result` `failure` or `error`, counted once however many `error` events it had; hidden tests and skipped tests are not failures. A test whose name starts with `loading ` and whose result is not `success` is the startup error, taking the text of its `error` event. Failure location: `root_url`/`root_line`/`root_column` when present, else `url`/`line`/`column`; `url` is mapped to a repository path through `Uri.toFilePath` and `p.relative` against `repoRoot` **resolved through symlinks** (the runner resolves it once); a location outside the repository or without a `url` is `fallbackFile` at 1:1. `finish`: a startup error is the first line of the error text that does not start with `Failed to load` (the first line when none does), one trailing `.` or `:` removed, cut to 300 characters; with no error event and no test started, the first non-empty line of `standardError`; a non-zero `exitCode` with no failure and no startup error is `the test tool exited with code <n>`.
+- **Parsing.** Output is a stream of lines (`Utf8Decoder(allowMalformed: true)` and `LineSplitter`), never buffered whole. A line is an event when it is at most 1 MiB, starts with `{`, decodes to a map and has a string `type`; everything else (blank lines, text, arrays, truncated JSON) is ignored. Track `testStart` by `test.id`; a test fails when its `testDone` has `result` `failure` or `error`, counted once however many `error` events it had; hidden tests and skipped tests are not failures. A loader pseudo-test (name exactly `loading <suite path>`, empty `groupIDs`, no `url`/`line`) whose result is not `success` is the startup error, taking the text of its `error` event. A real test whose name starts with `loading ` is a normal failure. Failure location: `root_url`/`root_line`/`root_column` when present, else `url`/`line`/`column`; `url` is mapped to a repository path through `Uri.toFilePath` and `p.relative` against `repoRoot` **resolved through symlinks** (the runner resolves it once); a location outside the repository or without a `url` is `fallbackFile` at 1:1. `finish`: a startup error is the first line of the error text that does not start with `Failed to load` (the first line when none does), one trailing `.` or `:` removed, cut to 300 characters; with no error event and no test started, the first non-empty line of `standardError`; a non-zero `exitCode` with no failure and no startup error is `the test tool exited with code <n>`.
 - **Bounds and lifetime.** At most the first 64 KiB of standard error is kept. The process is closed in a `finally`: if it is still running (the parser or the stream threw), `kill()` and await its exit. A process that cannot be started is a startup error naming the OS message, not an exception.
 - **Layering.** `layering_test.dart` fails when a file outside `lib/src/infrastructure/dart/` has `Process.` and either `'test'` or `'--machine'`.
 - **Seam.** `ProcessTestRunner` takes an optional `ProcessStarter` (`Process.start`'s shape) so tests inspect the command and use `FakeProcess`.
@@ -307,6 +307,7 @@ test('a failing test is reported with file, line, column and full name', () {
       FailedTest(file: RepoPath('test/b_test.dart'), line: 2, column: 29, name: 'g fails'));
 });
 test('a test with result error is a failure, counted once however many error events it had', () { /* error_result.jsonl */ });
+test('a real failing test named loading spinner is a FailedTest, not a startup error', () { /* ... */ });
 test('hidden loading tests and skipped tests are not failures', () { /* the skipped test of one_failure.jsonl */ });
 test('lines that are not event objects are ignored', () { /* blanks, text, [{"event":...}], truncated JSON, flutter_noise.jsonl */ });
 test('a line longer than 1 MiB is dropped unparsed', () { /* ... */ });
@@ -353,7 +354,7 @@ test('the fixture package: a compile error is a startup error', () async { /* ..
 
 **Files:**
 - Create: `lib/src/checks/tests/affected_rule.dart`, `lib/src/application/pipeline/lazy_test_runner.dart`
-- Modify: `lib/src/domain/check.dart` (`TestRunner get tests`, `Future<Set<RepoPath>> divergentAmong(Set<RepoPath>)`), `lib/src/checks/tests/tests_check.dart`, `tests_rules.dart` (`affectedRule`), `lib/src/application/pipeline/pipeline.dart` (constructor `testRunners`; `tests` and `divergentAmong` into each context), `pipeline_check_context.dart`, `lib/src/application/ports/git_repository.dart` (`divergentAmong`), `lib/src/infrastructure/git/git_cli_repository.dart`, `lib/src/cli/composition.dart` (`ProcessTestRunnerFactory`), `docs/rules.md` (regenerated)
+- Modify: `lib/src/domain/check.dart` (`TestRunner get tests`, `Future<Set<RepoPath>> divergentAmong(Set<RepoPath>)`), `lib/src/checks/tests/tests_check.dart`, `tests_rules.dart` (`affectedRule`), `lib/src/application/pipeline/pipeline.dart` (constructor `testRunners`; `tests` and `divergentAmong` into each context), `pipeline_check_context.dart`, `lib/src/application/ports/git_repository.dart` (`divergentAmong`), `lib/src/infrastructure/git/git_cli_repository.dart`, `lib/src/cli/composition.dart` (`ProcessTestRunnerFactory`), `docs/rules.md` (regenerated), `lib/src/application/pipeline/finding_filters.dart`, `docs/specs/baseline-and-suppression.md`
 - Modify (tests and fakes): `test/support/fake_check_context.dart` (`tests`, `divergent` call log and per-call answers), `fake_git_repository.dart`, `test/application/pipeline/pipeline_test.dart`, `toolchain_wiring_test.dart`, `baseline_order_test.dart`, `test/application/baseline/baseline_commands_test.dart`, `test/cli/runner_test.dart`, `ci_command_test.dart` (each constructs a `Pipeline` and needs a fake `TestRunnerFactory`); every test or golden the full suite shows spelling the default pre-push table
 - Test: `test/checks/tests/affected_rule_test.dart`, `test/application/pipeline/lazy_test_runner_test.dart`, `test/infrastructure/git/divergent_among_test.dart`, `test/acceptance/ac24_affected_dirty_test.dart`, `ac25_untracked_import_test.dart`, `ac26_not_checked_out_test.dart`, `ac27_package_config_test.dart`
 
@@ -425,6 +426,8 @@ AC-24 to AC-27 use a real repository with `stagelatch.yaml` `hooks: {pre-commit:
 - [ ] **Step 2: Run.** Expected: FAIL, the members and the rule do not exist.
 - [ ] **Step 3: Implement** per `specs/rules.md` `tests/affected` and the decisions above. Add `ci --all` to AC-24's file: every test is selected.
 - [ ] **Step 4: Run** all four commands, regenerating `docs/rules.md` first. Expected: PASS.
+
+- Dirty-skip findings are severity-locked to `warning`: `applyLevels` must not raise them when `rules: tests/affected: error` is set (same rule id). Failed-test findings follow the configured severity. Update `baseline-and-suppression.md` accordingly. Test: with `rules: {tests/affected: error}`, a dirty skip stays warning/exit 0 and a real failure still blocks.
 - [ ] **Step 5: Commit.** `feat(checks): add tests/affected`
 
 ### Task 6: `why`
@@ -565,9 +568,6 @@ test('ci --reporter junit prints the document; on a usage error stdout is empty'
 - [ ] **Step 2: Run.** Expected: FAIL.
 - [ ] **Step 3: Implement.** Elements go through `xml_writer.dart`; the reporter never concatenates repository text.
 
-- The dirty-skip finding is severity-locked to `warning`; `rules: tests/affected: error` does not elevate it. Failed-test findings follow the configured severity of `tests/affected`.
-- Loader pseudo-tests from `dart test --reporter json` have name exactly `loading <suite path>`, empty `groupIDs`, and no `url`/`line`. Only those count as startup/loading; a real test whose name starts with `loading ` must still be reported as a failed test.
-
 - [ ] **Step 4: Run** all four commands. Expected: PASS.
 - [ ] **Step 5: Commit.** `feat(reporters): add JUnit reporter`
 
@@ -622,6 +622,9 @@ test('the lock of a member is looked for at the workspace root', () { /* closure
 //   a change in one member selects and runs the tests of another that imports it; `why` explains it.
 ```
 
+
+test('a changed workspace root pubspec.yaml selects the tests of every member', () { /* ... */ });
+test('an unstaged workspace root pubspec.yaml skips affected tests', () { /* ... */ });
 - [ ] **Step 2: Run.** Expected: FAIL.
 - [ ] **Step 3: Implement** per `specs/dart-toolchain.md` section 2 and the decisions above.
 - [ ] **Step 4: Run** all four commands. Expected: PASS.

@@ -532,7 +532,7 @@ final class L10nCheck implements Check {}                                    // 
 // checks/pubspec/
 List<Finding> unpinnedGitFindings(PubspecDocument document, RepoPath path, {required bool requireSha});
 List<Finding> buildNumberRegressionFindings({required PubspecDocument snapshot, required PubspecDocument? base, required RepoPath path});
-List<Finding> lockfileFindings({required PubspecDocument pubspec, required LockfileDocument lock, required RepoPath pubspecPath});
+List<Finding> lockfileFindings({required PubspecDocument pubspec, required LockfileDocument lock, required RepoPath pubspecPath, Set<String> workspaceMemberNames = const {}, bool checkDirectUndeclared = false});
 final class LockedPackage { String get version; String get source; String get dependencyKind; }   // source: hosted | git | path | sdk
 final class LockfileDocument { Map<String, LockedPackage> get packages; }
 
@@ -635,7 +635,7 @@ final class CachedFacts { CachedFacts({required SyntacticFacts extractor, requir
 final class SdkDartToolchainFactory implements DartToolchainFactory { const SdkDartToolchainFactory({Cache? cache}); }
 final class TestCommand { String get executable; List<String> get arguments; RepoPath? get directory; }   // directory: the package root; null at the repository root
 List<TestCommand> testCommands({required ResolvedSdk sdk, required DartPackage package, required List<RepoPath> files});   // batches of at most 20,000 characters
-final class TestEventParser { TestEventParser({required String repoRoot, required RepoPath fallbackFile}); void add(String line); TestRunResult finish({required int exitCode, String standardError = ''}); }
+final class TestEventParser { TestEventParser({required String repoRoot, required RepoPath fallbackFile, p.Context? context}); void add(String line); TestRunResult finish({required int exitCode, String standardError = ''}); }
 final class ProcessTestRunner implements TestRunner { ProcessTestRunner({required ResolvedSdk sdk, required String repoRoot}); }
 final class ProcessTestRunnerFactory implements TestRunnerFactory { const ProcessTestRunnerFactory(); }
 
