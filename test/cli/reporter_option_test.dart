@@ -104,4 +104,19 @@ void main() {
       contains('Unknown reporter "sarif". Expected console or json.'),
     );
   });
+
+  test('run does not accept junit', () async {
+    final result = await repo.stagelatch([
+      'run',
+      'pre-commit',
+      '--reporter',
+      'junit',
+    ]);
+
+    expect(result.exitCode, 64);
+    expect(
+      result.stderr,
+      contains('Unknown reporter "junit". Expected console or json.'),
+    );
+  });
 }

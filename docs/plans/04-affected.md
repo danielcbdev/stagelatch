@@ -550,7 +550,7 @@ test('run does not accept sarif', () async { expect(stderr, contains('Unknown re
 
 **Decisions fixed here** (`cli.md` 7): the testsuite attributes, one testcase per check that ran in registry order, `failures` counts testcases with at least one error finding, warnings go to the testcase's `<system-out>`, an extra last `stagelatch` testcase carries findings whose rule belongs to no check, `time` has three decimals, and characters XML 1.0 forbids are dropped. `ci` only, like SARIF. `xml_writer.dart` is the only file that writes `<` or `&`; no XML dependency.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('escaping covers the five entities and drops characters XML 1.0 forbids', () {
@@ -567,11 +567,11 @@ test('time has three decimals', () { /* 1234 ms -> "1.234" */ });
 test('ci --reporter junit prints the document; on a usage error stdout is empty', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.** Elements go through `xml_writer.dart`; the reporter never concatenates repository text.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.** Elements go through `xml_writer.dart`; the reporter never concatenates repository text.
 
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(reporters): add JUnit reporter`
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(reporters): add JUnit reporter`
 
 ### Task 9: Pub workspaces
 
