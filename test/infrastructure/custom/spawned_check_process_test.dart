@@ -121,18 +121,27 @@ void main() {
     test('a bare PATH hit is started by absolute path', () async {
       final bin = await Directory.systemTemp.createTemp('sl-path-');
       addTearDown(() => bin.delete(recursive: true));
-      final executable = File(p.join(bin.path, 'tool'));
-      await executable.writeAsString('#!/bin/sh\n');
+      // Windows needs a PATHEXT suffix and ';' PATH separators; a bare
+      // `tool` file with isWindows:false splits `C:\...` on ':' and misses.
+      final toolName = Platform.isWindows ? 'tool.bat' : 'tool';
+      final executable = File(p.join(bin.path, toolName));
+      if (Platform.isWindows) {
+        await executable.writeAsString('@echo off\r\n');
+      } else {
+        await executable.writeAsString('#!/bin/sh\n');
+      }
       final calls = <Start>[];
+      final repoRoot = Platform.isWindows ? r'C:\repo' : '/repo';
       final factory = SpawnedCheckProcessFactory(
-        repoRoot: '/repo',
+        repoRoot: repoRoot,
         starter: fakeStarter([FakeProcess()], calls),
-        isWindows: false,
+        isWindows: Platform.isWindows,
         pathEnv: bin.path,
+        pathExt: Platform.isWindows ? '.BAT;.CMD;.EXE' : null,
         context: p.context,
       );
 
-      await factory.start(const ['tool'], workingDirectory: '/repo');
+      await factory.start(const ['tool'], workingDirectory: repoRoot);
 
       expect(calls, hasLength(1));
       expect(p.isAbsolute(calls.single.executable), isTrue);
