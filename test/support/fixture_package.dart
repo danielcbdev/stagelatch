@@ -6,11 +6,16 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 /// Copies the fixture package into a new temporary directory, runs the SDK's
-/// `dart pub get --offline` there (the package has no dependencies, so no
-/// network is needed) and returns the directory, symlinks resolved.
+/// `dart pub get --offline` there and returns the directory, symlinks
+/// resolved.
+///
+/// The package has no dependencies, so no network is needed. With
+/// [withTestPackage] the copy (not the fixture) gets `dev_dependencies:
+/// test`, with the constraint of this repository, which `dart pub get` of
+/// the repository has already put in the pub cache.
 ///
 /// The caller deletes it.
-Future<String> copyFixturePackage() async {
+Future<String> copyFixturePackage({bool withTestPackage = false}) async {
   final created = await Directory.systemTemp.createTemp('stagelatch_app_');
   final root = await created.resolveSymbolicLinks();
   final source = Directory(p.join('test', 'fixtures', 'dart_app'));
@@ -22,6 +27,23 @@ Future<String> copyFixturePackage() async {
     await target.parent.create(recursive: true);
     await entity.copy(target.path);
   }
+  if (withTestPackage) {
+    final pubspec = File(p.join(root, 'pubspec.yaml'));
+    await pubspec.writeAsString(
+      '${await pubspec.readAsString()}\n'
+      'dev_dependencies:\n'
+      '  test: ^1.33.0\n',
+    );
+  }
+  await pubGetOffline(root);
+  return root;
+}
+
+/// Runs the SDK's `dart pub get --offline` in [root], which must be a
+/// package whose dependencies are all in the pub cache.
+///
+/// Throws [StateError] with the tool's message when it fails.
+Future<void> pubGetOffline(String root) async {
   final result = await Process.run(
     'dart',
     ['--suppress-analytics', 'pub', 'get', '--offline'],
@@ -31,7 +53,6 @@ Future<String> copyFixturePackage() async {
   if (result.exitCode != 0) {
     throw StateError('dart pub get failed: ${result.stderr}');
   }
-  return root;
 }
 
 /// Writes [content] to [path] under [root], creating directories.
