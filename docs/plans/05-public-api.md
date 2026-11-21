@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status: In progress (Task 7 freeze).** Spec [`custom-checks.md`](../specs/custom-checks.md) and [ADR-0019](../adr/0019-custom-checks-out-of-process.md) are Approved for implementation. Phase 3 freezes the stability contract; Phase 4 (`release-as` + `develop` → `main`) is separate.
+**Status: done (1.0.0).** Spec [`custom-checks.md`](../specs/custom-checks.md) and [ADR-0019](../adr/0019-custom-checks-out-of-process.md) are Approved. Stability contract frozen; Phase 4 release PR opened.
 
 **Goal:** Ship `1.0.0`: custom checks out of process, and a frozen stability contract.
 
@@ -229,7 +229,7 @@ final class ExternalCheck implements Check {
 - [x] **Step 2: Verify** all four commands and `dart pub publish --dry-run`.
 - [x] **Step 3: Acceptance AC-29–AC-35 green on the matrix where applicable.
 - [x] **Step 4: Commit.** `docs: define the 1.0 stability contract`
-- [ ] **Step 5: Release** `1.0.0` per [`workflow.md`](../engineering/workflow.md) section 8 (`release-as: 1.0.0` as needed). Phase 4 / Parada 3 — not this PR.
+- [x] **Step 5: Release** `1.0.0` per [`workflow.md`](../engineering/workflow.md) section 8 (`release-as: 1.0.0` as needed). Phase 4 / Parada 3 — release PR opened; owner merges.
 
 ---
 
