@@ -1,0 +1,6 @@
+import 'a.dart';
+
+void main() {
+  print('never closed);
+  test('a', () {}, solo: true);
+}

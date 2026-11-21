@@ -112,3 +112,23 @@ lexer, the candidate that was chosen) and `lib/facts_parse.dart`
 lists the commands to reproduce them (`compare`, `edges`, `fuzz`,
 `adversarial`, `scan`, `parse`, `sha`). Nothing of stagelatch imports these
 files.
+
+## The facts cache (plan 04, Task 1)
+
+`bin/cache.dart` times `CachedFacts.facts` over every `.dart` file of the
+corpus at the pinned SHA: the extractor alone, an empty cache, a warm cache,
+and the cold and warm runs again in fresh processes.
+
+```bash
+dart run benchmark/bin/cache.dart
+```
+
+Measured on 2026-11-21 on an Apple M-series laptop, 2,462 `.dart` files:
+
+| Run | Time |
+|---|---|
+| extractor alone (no cache) | 636 ms |
+| empty cache, same process (extract and store) | 1,290 ms |
+| warm cache, same process | 218 ms |
+| empty cache, fresh process | 1,541 ms |
+| warm cache, fresh process | 264 ms |

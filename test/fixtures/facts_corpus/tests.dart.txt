@@ -1,0 +1,17 @@
+@Skip('library level')
+library;
+
+import 'package:test/test.dart';
+
+void main() {
+  group('cart', () {
+    group('totals', () {
+      test('adds', () {}, solo: true);
+      test('subtracts', () {}, solo: false);
+    });
+    test('skipped', () {}, skip: true);
+    test('kept', () {}, skip: false);
+    testWidgets('renders', (tester) async {}, skip: 'flaky');
+    myTest('custom function', () {});
+  });
+}

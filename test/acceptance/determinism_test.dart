@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:path/path.dart' as p;
 import 'package:stagelatch/src/application/environment.dart';
 import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
 import 'package:stagelatch/src/checks/assets/assets_check.dart';
@@ -106,6 +108,50 @@ void main() {
       (jsonDecode(forward.stdout) as Map<String, Object?>)['findings'],
       hasLength(4),
     );
+  });
+
+  test('a cold cache, a warm cache and a deleted cache give the same JSON '
+      'report', () async {
+    final repo = await TempRepo.create();
+    addTearDown(repo.dispose);
+    await addDartPackage(repo);
+    await repo.stageContent(
+      'test/a_test.dart',
+      "import 'package:test/test.dart';\n\n"
+          "void main() {\n  test('a', () {}, solo: true);\n}\n",
+    );
+    await repo.stageContent(
+      'test/b_test.dart',
+      "void main() {\n  test('b', () {}, skip: true);\n}\n",
+    );
+    const args = ['run', 'pre-commit', '--no-fix', '--reporter', 'json'];
+    final cacheDirectory = Directory(
+      p.join(repo.root, '.git', 'stagelatch', 'cache'),
+    );
+    expect(cacheDirectory.existsSync(), isFalse);
+
+    final cold = await repo.stagelatch(args);
+    final entries = cacheDirectory
+        .listSync(recursive: true)
+        .whereType<File>()
+        .toList();
+    final warm = await repo.stagelatch(args);
+    cacheDirectory.deleteSync(recursive: true);
+    final deleted = await repo.stagelatch(args);
+
+    expect(cold.exitCode, 1);
+    expect(entries, isNotEmpty, reason: 'the first run filled the cache');
+    expect(
+      entries.map((file) => p.basename(p.dirname(p.dirname(file.path)))),
+      everyElement(startsWith('facts-v')),
+    );
+    expect(withoutDurations(warm.stdout), withoutDurations(cold.stdout));
+    expect(withoutDurations(deleted.stdout), withoutDurations(cold.stdout));
+    expect(
+      (jsonDecode(cold.stdout) as Map<String, Object?>)['findings'],
+      isNotEmpty,
+    );
+    expect(cacheDirectory.existsSync(), isTrue);
   });
 }
 

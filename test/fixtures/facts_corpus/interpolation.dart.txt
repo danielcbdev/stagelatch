@@ -1,0 +1,11 @@
+import 'package:test/test.dart';
+
+String greet(String name, int count) =>
+    'Hello ${name.toUpperCase()}, you have $count ${plural(count)} left';
+
+void main() {
+  for (final n in [1, 2]) {
+    test('adds $n and ${n + 1}', () {});
+  }
+  test(describe(), () {});
+}
