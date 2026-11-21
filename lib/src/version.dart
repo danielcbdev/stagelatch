@@ -5,4 +5,4 @@ library;
 ///
 /// `release-please` rewrites this line on every release, and a test asserts
 /// that it equals the version in `pubspec.yaml`.
-const String packageVersion = '0.1.0'; // x-release-please-version
+const String packageVersion = '0.2.0'; // x-release-please-version
