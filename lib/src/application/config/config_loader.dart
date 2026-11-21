@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
 import 'package:stagelatch/src/application/config/check_catalog.dart';
 import 'package:stagelatch/src/application/config/config.dart';
+import 'package:stagelatch/src/application/config/custom_check_config.dart';
 import 'package:stagelatch/src/application/config/default_hooks.dart';
 import 'package:stagelatch/src/application/config/hook_selector.dart';
 import 'package:stagelatch/src/application/config/settings.dart';
@@ -115,6 +116,8 @@ final class _ConfigParser {
   PubspecSettings _pubspec = const PubspecSettings();
   AssetsSettings _assets = AssetsSettings();
   TestsSettings _tests = const TestsSettings();
+  final List<CustomCheckConfig> _customChecks = [];
+  final Set<String> _customCheckIds = {};
 
   /// Validates [root] and returns the resulting configuration.
   Config parse(LocatedNode root) {
@@ -127,6 +130,11 @@ final class _ConfigParser {
       );
     }
     if (root.entries['min_version'] case final entry?) _readMinVersion(entry);
+    // Custom checks are known before hooks/rules validate selectors, the
+    // same way min_version is checked first regardless of document order.
+    if (root.entries['custom_checks'] case final entry?) {
+      _readCustomChecks(entry);
+    }
     for (final MapEntry(:key, value: entry) in root.entries.entries) {
       switch (key) {
         case 'min_version':
@@ -156,10 +164,7 @@ final class _ConfigParser {
         case 'tests':
           _readTests(entry);
         case 'custom_checks':
-          _fail(
-            'custom_checks requires stagelatch >= 1.0.0.',
-            entry.keyLocation,
-          );
+          break; // Read first, above.
         default:
           _fail('Unknown key "$key" at the top level.', entry.keyLocation);
       }
@@ -191,6 +196,7 @@ final class _ConfigParser {
       pubspec: _pubspec,
       assets: _assets,
       tests: _tests,
+      customChecks: List.unmodifiable(_customChecks),
     );
   }
 
@@ -237,7 +243,8 @@ final class _ConfigParser {
     } on FormatException {
       _fail('Invalid selector "$text" in "hooks.$hook".', location);
     }
-    if (!catalog.checkIds.contains(selector.check)) {
+    if (!catalog.checkIds.contains(selector.check) &&
+        !_customCheckIds.contains(selector.check)) {
       _fail('Unknown check "${selector.check}" in hooks.$hook.', location);
     }
     final rule = selector.ruleId;
@@ -271,11 +278,205 @@ final class _ConfigParser {
   }
 
   /// Whether [rule] is declared by a check, or belongs to a check whose
-  /// rule names are open-ended.
+  /// rule names are open-ended (analyze and configured custom checks).
   bool _knowsRule(RuleId rule) =>
       catalog.hasRule(rule) ||
       (catalog.checkIds.contains(rule.check) &&
-          catalog.hasDynamicRules(rule.check));
+          catalog.hasDynamicRules(rule.check)) ||
+      _customCheckIds.contains(rule.check);
+
+  static final _checkId = RegExp(r'^[a-z0-9][a-z0-9_-]*$');
+
+  void _readCustomChecks(LocatedEntry entry) {
+    final checks = _mapOf(entry.value, 'custom_checks');
+    for (final MapEntry(key: id, value: child) in checks.entries) {
+      if (!_checkId.hasMatch(id)) {
+        _fail(
+          'Invalid check id "$id" under "custom_checks".',
+          child.keyLocation,
+        );
+      }
+      if (catalog.checkIds.contains(id)) {
+        _fail(
+          'custom_checks."$id" shadows the built-in check "$id".',
+          child.keyLocation,
+        );
+      }
+      if (!_customCheckIds.add(id)) {
+        _fail('Duplicate custom check "$id".', child.keyLocation);
+      }
+      _customChecks.add(_readCustomCheck(id, child));
+    }
+  }
+
+  CustomCheckConfig _readCustomCheck(String id, LocatedEntry entry) {
+    final section = _mapOf(entry.value, 'custom_checks.$id');
+    List<String>? run;
+    var timeout = const Duration(seconds: 60);
+    List<RepoPath>? sources;
+    final rules = <String, RuleLevel>{};
+    final settings = <String, Object?>{};
+
+    for (final MapEntry(:key, value: child) in section.entries) {
+      switch (key) {
+        case 'run':
+          run = _nonEmptyStringList(child.value, 'custom_checks.$id.run');
+        case 'timeout':
+          timeout = _parsed(
+            'duration',
+            child.value,
+            'custom_checks.$id.timeout',
+            parseDuration,
+          );
+        case 'sources':
+          sources = _sourcePaths(child.value, 'custom_checks.$id.sources');
+        case 'rules':
+          _readCustomRules(id, child, rules);
+        default:
+          settings[key] = _jsonValue(child.value);
+      }
+    }
+
+    if (run == null) {
+      _fail(
+        '"custom_checks.$id.run" must be a non-empty list of strings, '
+        'found null.',
+        entry.keyLocation,
+      );
+    }
+
+    final List<RepoPath> resolvedSources;
+    if (sources != null) {
+      resolvedSources = sources;
+    } else {
+      final inferred = inferCustomCheckSourceEntry(run);
+      if (inferred == null) {
+        _fail(
+          'custom_checks."$id": cannot infer a non-empty source closure '
+          'from "run"; set "custom_checks.$id.sources" to a non-empty list.',
+          entry.keyLocation,
+        );
+      }
+      resolvedSources = [inferred];
+    }
+
+    for (final MapEntry(:key, :value) in rules.entries) {
+      _rules.putIfAbsent(RuleId(id, key), () => value);
+    }
+
+    return CustomCheckConfig(
+      id: id,
+      run: List.unmodifiable(run),
+      timeout: timeout,
+      sources: List.unmodifiable(resolvedSources),
+      rules: Map.unmodifiable(rules),
+      settings: Map.unmodifiable(settings),
+    );
+  }
+
+  void _readCustomRules(
+    String id,
+    LocatedEntry entry,
+    Map<String, RuleLevel> rules,
+  ) {
+    final map = _mapOf(entry.value, 'custom_checks.$id.rules');
+    for (final MapEntry(:key, value: child) in map.entries) {
+      if (key.contains('/')) {
+        _fail(
+          'Rule name "$key" under custom_checks."$id" must not contain "/".',
+          child.keyLocation,
+        );
+      }
+      if (!_checkId.hasMatch(key)) {
+        _fail(
+          'Invalid rule name "$key" under custom_checks."$id".',
+          child.keyLocation,
+        );
+      }
+      rules[key] = switch (child.value) {
+        LocatedScalar(value: 'error') => RuleLevel.error,
+        LocatedScalar(value: 'warning') => RuleLevel.warning,
+        LocatedScalar(value: 'off' || false) => RuleLevel.off,
+        _ => _fail(
+          'Level of "$id/$key" must be error, warning or off.',
+          child.value.location,
+        ),
+      };
+    }
+  }
+
+  List<String> _nonEmptyStringList(LocatedNode node, String key) {
+    final items = switch (node) {
+      LocatedList(:final items) => items,
+      LocatedScalar(value: null) => const <LocatedNode>[],
+      _ => _fail(
+        '"$key" must be a non-empty list of strings, found ${_describe(node)}.',
+        node.location,
+      ),
+    };
+    if (items.isEmpty) {
+      _fail(
+        '"$key" must be a non-empty list of strings, found an empty list.',
+        node.location,
+      );
+    }
+    return [
+      for (final item in items)
+        switch (item) {
+          LocatedScalar(value: final String text) => text,
+          _ => _fail(
+            '"$key" must be a non-empty list of strings, '
+            'found ${_describe(item)}.',
+            item.location,
+          ),
+        },
+    ];
+  }
+
+  List<RepoPath> _sourcePaths(LocatedNode node, String key) {
+    final items = switch (node) {
+      LocatedList(:final items) => items,
+      LocatedScalar(value: null) => const <LocatedNode>[],
+      _ => _fail(
+        '"$key" must be a non-empty list of repository paths when set, '
+        'found ${_describe(node)}.',
+        node.location,
+      ),
+    };
+    if (items.isEmpty) {
+      _fail(
+        '"$key" must be a non-empty list of repository paths when set, '
+        'found an empty list.',
+        node.location,
+      );
+    }
+    return [
+      for (final item in items)
+        switch (item) {
+          LocatedScalar(value: final String text) => _parsedText(
+            'path',
+            text,
+            key,
+            item.location,
+            RepoPath.new,
+          ),
+          _ => _fail(
+            '"$key" must be a non-empty list of repository paths when set, '
+            'found ${_describe(item)}.',
+            item.location,
+          ),
+        },
+    ];
+  }
+
+  Object? _jsonValue(LocatedNode node) => switch (node) {
+    LocatedScalar(:final value) => value,
+    LocatedList(:final items) => [for (final item in items) _jsonValue(item)],
+    LocatedMap(:final entries) => {
+      for (final MapEntry(:key, value: child) in entries.entries)
+        key: _jsonValue(child.value),
+    },
+  };
 
   void _readFormat(LocatedEntry entry) {
     var fix = _format.fix;

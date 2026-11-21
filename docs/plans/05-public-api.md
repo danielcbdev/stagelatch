@@ -175,11 +175,11 @@ final class ExternalCheck implements Check {
 **Interfaces:**
 - Produces: `CustomCheckConfig { String id; List<String> run; Duration timeout; List<RepoPath> sources; Map<String, RuleLevel> rules; Map<String, Object?> settings }`; `Config.customChecks`; `CheckRegistry.withCustom(List<ExternalCheck>)`; remove reserved-key rejection for `custom_checks` on tools ≥ 1.0.0.
 
-- [ ] **Step 1: Write the failing tests:** key loads; shadowing built-in → config error; `run` non-empty list of strings; selector and `rules:` may name a custom rule; deferred unknown-rule validation; default timeout 60s; explicit empty `sources` → exit 78; omitted `sources` when `run` is not inferable (e.g. `python`, `dart run package:…`) → exit 78 with the empty-closure message from `custom-checks.md` §5/§6; additional keys land in `settings`.
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(config): add custom_checks`
+- [x] **Step 1: Write the failing tests:** key loads; shadowing built-in → config error; `run` non-empty list of strings; selector and `rules:` may name a custom rule; deferred unknown-rule validation; default timeout 60s; explicit empty `sources` → exit 78; omitted `sources` when `run` is not inferable (e.g. `python`, `dart run package:…`) → exit 78 with the empty-closure message from `custom-checks.md` §5/§6; additional keys land in `settings`.
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(config): add custom_checks`
 
 ---
 
