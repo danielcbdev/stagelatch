@@ -68,6 +68,7 @@ Reports findings.
 | `l10n/missing-key` | error | no | A message of the template is missing in a translation. |
 | `l10n/placeholder-mismatch` | error | no | A translation has different placeholders than the template. |
 | `l10n/unparseable` | error | no | An ARB file is not a valid JSON object. |
+| `l10n/unused-key` | warning | no | A key of the template is not used by any Dart file. |
 
 ## `codegen`
 

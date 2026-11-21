@@ -181,7 +181,7 @@ test('a cold cache, a warm cache and a deleted cache give the same JSON report',
 - Scanned files: `snapshot.list()` entries with extension `.dart`, regular or executable, `packageOf(path) == package`, not under `setup.outputDir`, not ending in a `codegen.generated_suffixes` suffix. Facts are requested concurrently (`Future.wait`) and served by the cache.
 - `_package` in `l10n_check.dart` returns early when neither `missing-key` nor `placeholder-mismatch` is enabled; restructure so `unused-key` still runs, and so a package looked at only because of a Dart change runs nothing else.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // identifiers_test.dart
@@ -214,11 +214,11 @@ test('metadata keys starting with @ are not keys', () async { /* ... */ });
 test('the rule can be off or an error through rules:', () async { /* isEnabled false: no facts requested */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, `identifiers` is empty and the rule does not exist.
-- [ ] **Step 3: Implement** as decided above. Register `unusedKeyRule` with summary `A key of the template is not used by any Dart file.`
-- [ ] **Step 4: Measure the gate.** Run `benchmark/bin/measure_cli.dart --hook pre-commit` on `s3-l10n` and `s10-l10n`, cold (empty cache and empty analysis cache) and hot, and put the table in the pull request. **If the cold pre-commit exceeds 2 s on either, stop and ask the owner.** Do not change the default hook list, the rule's scope or its trigger to make it fit; the owner chooses (for example, reporting only newly unused keys would change the spec).
-- [ ] **Step 5: Regenerate** `docs/rules.md`; run all four commands. Expected: PASS.
-- [ ] **Step 6: Commit.** `feat(checks): add l10n/unused-key`
+- [x] **Step 2: Run.** Expected: FAIL, `identifiers` is empty and the rule does not exist.
+- [x] **Step 3: Implement** as decided above. Register `unusedKeyRule` with summary `A key of the template is not used by any Dart file.`
+- [x] **Step 4: Measure the gate.** Run `benchmark/bin/measure_cli.dart --hook pre-commit` on `s3-l10n` and `s10-l10n`, cold (empty cache and empty analysis cache) and hot, and put the table in the pull request. **If the cold pre-commit exceeds 2 s on either, stop and ask the owner.** Do not change the default hook list, the rule's scope or its trigger to make it fit; the owner chooses (for example, reporting only newly unused keys would change the spec).
+- [x] **Step 5: Regenerate** `docs/rules.md`; run all four commands. Expected: PASS.
+- [x] **Step 6: Commit.** `feat(checks): add l10n/unused-key`
 
 ### Task 3: Affected test selection
 
