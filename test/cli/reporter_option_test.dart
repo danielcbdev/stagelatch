@@ -89,4 +89,19 @@ void main() {
       contains('Unknown reporter "github". Expected console or json.'),
     );
   });
+
+  test('run does not accept sarif', () async {
+    final result = await repo.stagelatch([
+      'run',
+      'pre-commit',
+      '--reporter',
+      'sarif',
+    ]);
+
+    expect(result.exitCode, 64);
+    expect(
+      result.stderr,
+      contains('Unknown reporter "sarif". Expected console or json.'),
+    );
+  });
 }
