@@ -14,9 +14,9 @@ Measurements on this machine (macOS arm64, Dart 3.13.4): a minimal protocol peer
 ## Decision
 
 1. **Out-of-process protocol.** A custom check is a child process speaking line-delimited JSON on stdin/stdout (`protocol: 1`), specified in [`custom-checks.md`](../specs/custom-checks.md). Verify-phase only; no fixes in 1.0.0.
-2. **S1 exception.** `custom_checks.<id>.run` may name an executable as a non-empty argument list. Still never a shell. If `run[0]` is `dart` or `flutter`, the host substitutes the resolved project SDK binary; otherwise PATH / path resolution as in the spec. Windows `.bat` / `.cmd` arguments follow the S14 metacharacter guard.
+2. **S1 exception.** `custom_checks.<id>.run` may name an executable as a non-empty argument list. Still never a shell. If `run[0]` is `dart` or `flutter`, the host substitutes the resolved project SDK binary; otherwise a bare name is resolved by an explicit `PATH` walk (skip empty, `.`, relative, and in-repo directories) and started by absolute path — bare names must not rely on the OS searching the process cwd (Windows `CreateProcessW` searches the parent cwd before `PATH`). Windows `.bat` / `.cmd` arguments follow the S14 metacharacter guard.
 3. **S14 amendment.** Custom checks may start project (or PATH) code on `pre-push` and `ci` when selected by hook lists. They are not on the default `pre-commit` list. `baseline create` and `baseline prune` run the pipeline **with** custom checks (they need findings for the baseline). `doctor`, `why`, `init`, `install` and `uninstall` never start a custom-check process. `--no-custom-checks` disables them for fork-safe CI.
-4. **Source divergence.** Program bytes come from the working tree; analyzed content comes only through protocol `read` (snapshot). Before start and after exit, the host applies an ADR-0018-style divergence test on the check's source closure. The closure must be non-empty: if inference from `run` cannot produce one, config must set `sources`; empty or missing after that is exit 78. On diverge: do not trust results; **exit 70** naming the check (stricter than `tests/affected`'s warning skip, because skipping an opted-in gate would silently weaken it).
+4. **Source divergence.** Program bytes come from the working tree; analyzed content comes only through protocol `read` (snapshot). Before start and after exit, the host applies an ADR-0018-style divergence test on the check's source closure. The closure must be non-empty: if inference from `run` cannot produce one, config must set `sources`; empty or missing after that is exit 78. On diverge: do not trust results; **exit 64** (usage error) naming the check and path, with entry-point-specific resolve hints and `--no-custom-checks` (stricter than `tests/affected`'s warning skip: skipping an opted-in gate must not leave the run green; 64 not 70 because uncommitted sources are user state, not a tool bug).
 5. **Timeout.** Default `60s` per check (`custom_checks.<id>.timeout`). On exceed: kill child, exit 70. This is not `time_budget` (ADR-0003 still only warns).
 6. **Lifetime.** One process per pipeline invocation of that check; no keep-alive across pre-push refs.
 7. **Boundary for protocol 1.** Text via `read` only. No `DartFileFacts`, no import graph over the wire. Empty `capabilities` array reserved for later negotiation.
@@ -27,8 +27,8 @@ Measurements on this machine (macOS arm64, Dart 3.13.4): a minimal protocol peer
 
 - Security checklist and S1/S14 text must name this exception and the divergence/timeout/kill rules.
 - Config loader accepts `custom_checks` from 1.0.0; rule id validation for custom rules is deferred until handshake.
-- Acceptance scenarios AC-29+ cover protocol abuse, timeout, divergence, `--no-custom-checks`, and Windows `.bat` args.
-- Pushing a branch that is not checked out typically fails (exit 70) when custom checks are selected; authors check out that branch or rely on `ci`.
+- Acceptance scenarios AC-29+ cover protocol abuse, timeout, divergence (exit 64), `--no-custom-checks`, Windows `.bat` args, and planted root executables (AC-36).
+- Pushing a branch that is not checked out typically fails (exit 64) when custom checks are selected; authors check out that branch or rely on `ci`.
 - A separate pub package would add a second versioning/release track without removing the need to document the protocol; deferred.
 
 ## Alternatives rejected
@@ -38,7 +38,8 @@ Measurements on this machine (macOS arm64, Dart 3.13.4): a minimal protocol peer
 - **Serve `DartFileFacts` in protocol 1.** Couples the public protocol to an evolving internal schema (ADR-0013/0017); authors can parse text. Revisit via `capabilities` later.
 - **Keep-alive across pre-push refs.** Shared mutable state, harder cleanup, little gain vs one-shot ~0.5 s spawn when the check itself dominates.
 - **Materialize check sources and run from the snapshot directory.** Needs package configs / assets for non-trivial checks; high cost. Divergence guard is the cheaper ADR-0018 lesson.
-- **Warning-skip on diverge (copy ADR-0018 exactly).** Would allow a green push while the custom gate did not run. Rejected for opted-in gates; owner may still choose this — flagged in the Task 1 PR.
+- **Warning-skip on diverge (copy ADR-0018 exactly).** Would allow a green push while the custom gate did not run. Rejected for opted-in gates (owner confirmed fail-closed).
+- **Diverge as exit 70.** Rejected: 70 signals an internal tool error; local uncommitted check sources are usage → exit 64 (owner).
 - **Default custom checks on `pre-commit`.** Measurement: 0.5–0.7 s spawn alone plus tool startup breaks the 1–2 s budget.
 - **Timeout as part of `time_budget`.** Would either skip (forbidden by ADR-0003) or conflate hang-kill with a soft advisory.
 - **Public Dart check API in `lib/stagelatch.dart`.** Would pull host projects toward depending on the tool; contradicts ADR-0004. Protocol is the API.

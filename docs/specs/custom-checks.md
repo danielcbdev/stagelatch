@@ -98,21 +98,26 @@ A path in the closure is **divergent** by the same three rules as ADR-0018 (snap
 
 ### On diverge
 
-**Do not start the child** (or, on the post-run check, discard its findings). The run ends with an **internal error** (exit 70):
+**Do not start the child** (or, on the post-run check, discard its findings). The run ends with a **usage error** (exit **64**), not an internal error: uncommitted check sources are user state, not a tool bug.
 
-```
-custom check "<id>": source diverges from the snapshot at <path>. Commit or discard local changes, or check out the revision being validated.
-```
+Exact messages (one path listed; first divergent path wins):
 
-Silent pass is forbidden. This is stricter than `tests/affected` (warning skip): an opted-in custom gate must not be skipped while the push or CI run still reports success. Consequence: pushing a branch that is not checked out typically fails when custom checks are selected; check out that branch, or rely on `ci` (where the checkout matches HEAD).
+| Entry | Message |
+|---|---|
+| `pre-commit` | `custom check "<id>": source diverges from the snapshot at <path>. Stage the check source changes, or pass --no-custom-checks.` |
+| `pre-push` | `custom check "<id>": source diverges from the snapshot at <path>. Commit the check source changes or check out the pushed revision, or pass --no-custom-checks.` |
+| `ci` (and any other entry that runs the pipeline with custom checks, including `baseline create` / `prune`) | `custom check "<id>": source diverges from the snapshot at <path>. Commit or discard local changes so the working tree matches the snapshot, or pass --no-custom-checks.` |
+
+Silent pass is forbidden. This is stricter than `tests/affected` (warning skip): an opted-in custom gate must not be skipped while the push or CI run still reports success. Consequence: pushing a branch that is not checked out typically fails (exit 64) when custom checks are selected; check out that branch, or rely on `ci` (where the checkout matches HEAD).
 
 ## 7. Which executable
 
 1. `run` is a non-empty argument list. Started with `Process.start` / equivalent: **never** a shell (`runInShell: false`). Exception to S1: the executable is named by config (ADR-0019).
 2. If `run[0]` is `dart` or `flutter` (exact ASCII match): replace it with the corresponding binary of the **resolved project SDK** (ADR-0008 order: `sdk_path`, FVM, PATH). The resolved SDK must still satisfy S2 (outside the repository).
-3. Otherwise: `run[0]` is looked up on `PATH` if it has no path separator; if it contains a separator it is resolved relative to the repository root (and must stay inside the repository after symlink resolution) or used as an absolute path outside the repo when absolute. A missing executable is exit 70: `custom check "<id>": cannot start: <os message>`.
-4. Working directory: repository root. Environment: inherited unchanged (S11). Stdin is the protocol; the host never leaves stdin open for interactive prompts (ADR-0011).
-5. Windows: if the resolved executable path ends in `.bat` or `.cmd`, the S14 metacharacter rule applies to **every** argument: if any argument contains a control character or one of `"`, `&`, `|`, `<`, `>`, `^`, `%`, `!`, the run is exit 70 naming the check and the offending argument (truncated). Test plan: acceptance on Ubuntu, macOS and Windows (AC-33).
+3. Otherwise, when `run[0]` has **no** path separator: resolve it **explicitly** against `PATH` entries, then pass the **absolute** path to `Process.start`. Skip empty entries, `.`, any relative entry, and any directory whose real path is **inside the repository**. Reason: on Windows, `CreateProcessW` searches the parent process current directory before `PATH` when the name has no separator ([CreateProcessW](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw)); hooks typically use cwd = repository root, so a planted `python.exe` / `x.bat` at the root would otherwise run. Dart's `Process.start` inherits that behaviour for bare names. Acceptance: AC-36 (Windows — executable planted at repo root must not run).
+4. When `run[0]` contains a path separator: resolve relative to the repository root (must stay inside the repository after symlink resolution) or use as an absolute path when absolute. A missing executable is exit 70: `custom check "<id>": cannot start: <os message>`.
+5. Working directory: repository root. Environment: inherited unchanged (S11). Stdin is the protocol; the host never leaves stdin open for interactive prompts (ADR-0011).
+6. Windows: if the resolved executable path ends in `.bat` or `.cmd`, the S14 metacharacter rule applies to **every** argument: if any argument contains a control character or one of `"`, `&`, `|`, `<`, `>`, `^`, `%`, `!`, the run is exit 70 naming the check and the offending argument (truncated). Test plan: acceptance on Ubuntu, macOS and Windows (AC-33).
 
 ## 8. Process lifetime and concurrency
 
@@ -191,13 +196,15 @@ Protocol error message shape:
 custom check "<id>": protocol error: <reason>
 ```
 
-Any protocol error, crash, start failure, divergence or timeout is an **internal error** (exit 70) naming the check. It is never turned into a silent pass or a mere warning.
+Any protocol error, crash, start failure or timeout is an **internal error** (exit 70) naming the check. Source divergence is a **usage error** (exit 64) per §6. Neither is turned into a silent pass or a mere warning.
 
 ## 12. Integration with ignore, baseline and reporters
 
 - Declared rules participate in `stagelatch:ignore`, root `rules:`, `exclude`, baseline fingerprints, and all reporters exactly like built-in rules once the handshake has succeeded.
-- `stagelatch/invalid-ignore`: when custom checks are enabled, an ignore naming `team/no-print` is valid if that rule was declared in a `ready` of this run **or** is listed under `custom_checks.team.rules` / selectors (so editors can ignore before the child runs). When `--no-custom-checks` is set, ignores that name a custom rule id are **not** reported as `invalid-ignore` (the check was intentionally disabled); they are ignored as free text for matching purposes and produce no finding.
-- `baseline create` / `prune` run with custom checks enabled (unless the user passes `--no-custom-checks` to the underlying pipeline — baseline commands do not expose that flag in 1.0.0; they run custom checks). Fingerprints use the same algorithm.
+- `stagelatch/invalid-ignore` and custom ids:
+  - **Check active** (child ran or will run): an ignore naming `team/no-print` is valid if that rule was declared in a `ready` of this run **or** is listed under `custom_checks.team.rules` / selectors (so editors can ignore before the child runs). A rule id whose check segment is this custom id but that was **not** declared in the handshake yields `stagelatch/invalid-ignore` as usual.
+  - **With `--no-custom-checks`:** a `stagelatch:ignore` whose `<check>` prefix is the id of a **configured** custom check (present under `custom_checks:`) is accepted without verifying the rule id against a handshake. A prefix that is neither a built-in check nor a configured custom check still yields `stagelatch/invalid-ignore`.
+- `baseline create` / `prune` run with custom checks enabled (unless the user passes `--no-custom-checks` to the underlying pipeline — baseline commands do not expose that flag in 1.0.0; they run custom checks). Fingerprints use the same algorithm. When custom checks are configured, `baseline create` **executes project code** (same class of warning as `ci` / `tests/affected`).
 - JSON reporter: custom findings appear in `findings` with their rule ids; check timings include the custom check id. `schemaVersion` stays `1`.
 - SARIF: one rule descriptor per declared custom rule (id + summary). JUnit: one `testcase` per custom check id that ran.
 - `doctor`: lists each custom check id, the resolved command, inferred or configured sources, and whether the executable is resolvable (probe; does not speak the protocol).
@@ -233,26 +240,27 @@ stagelatch itself already spends ~0.8 s of JIT startup (ADR-0004). A default `pr
 | Situation | Exit |
 |---|---|
 | Findings with severity `error` after filters | 1 |
-| Protocol / timeout / crash / diverge / start failure | 70 |
+| Source closure diverges | 64 |
+| Protocol / timeout / crash / start failure | 70 |
 | Bad `custom_checks` config (incl. empty / uninferable `sources`) | 78 |
 | `--no-custom-checks` and no other problems | 0 |
 
 ## 17. Design questions (closed by this proposal)
 
-See the Task 1 report and the pull request for alternatives considered. Recommendations:
+Owner-approved resolutions (plan 05 Task 1):
 
 1. No `stagelatch_core` in 1.0.0 — protocol + `example/` + guide.
 2. Protocol 1 serves text via `read` only — no facts.
 3. One process per check invocation — no keep-alive.
 4. Default timeout 60s; kill + exit 70; key `custom_checks.<id>.timeout`.
-5. Working tree + ADR-0018-style source closure; diverge → exit 70.
-6. Default entry points: pre-push and ci; pre-commit opt-in only.
-7. `run` list; `dart`/`flutter` → resolved SDK; else PATH; Windows `.bat` guard.
+5. Working tree + ADR-0018-style source closure; diverge → **exit 64** (usage), with entry-point-specific resolve hints and `--no-custom-checks`.
+6. Default entry points: pre-push and ci; pre-commit opt-in only; `baseline create` / `prune` run custom checks.
+7. `run` list; `dart`/`flutter` → resolved SDK; else explicit PATH walk (skip `.` / relative / in-repo dirs), absolute path to `Process.start`; Windows `.bat` guard; planted root executable must not run (AC-36).
 8. Timeout ≠ `time_budget`.
 9. Lifetime as (3); concurrent with other verify checks.
 10. Boundary as §10.2; `protocol: 1`; empty `capabilities`.
-11. Deferred rule validation; ignore/baseline/SARIF/JSON as §12.
+11. Deferred rule validation; ignore/baseline/SARIF/JSON as §12 (including `--no-custom-checks` accepting ignores whose check prefix is a configured custom id).
 12. Adversarial limits as §11.
 13. No separate package release mechanics in 1.0.0.
-14. Stability list in [`docs/stability.md`](../stability.md).
+14. Stability list in [`docs/stability.md`](../stability.md) (config keys/types/defaults/rejects/exit 78 frozen; validation message text not; hook marker + invocation contract frozen, not script bytes).
 15. Public Dart API remains `packageVersion` only (ADR-0004).

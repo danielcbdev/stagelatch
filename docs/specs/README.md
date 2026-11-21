@@ -46,7 +46,7 @@ Writing the specs forced decisions that `CLAUDE.md` leaves open or states loosel
 | R15 | Dart SDK floor of the tool itself: `^3.13.0`. | `coding-standards.md` |
 | R16 | Custom checks (1.0.0) run as external processes speaking a JSON protocol. **Proposed** (ADR-0019); awaiting owner approval. | `custom-checks.md`, ADR-0019 |
 | R17 | Missing `.dart_tool/package_config.json` when Dart analysis is needed is a usage error (exit 64) asking for `dart pub get`. | `dart-toolchain.md` |
-| R18 | Custom checks: no `stagelatch_core` in 1.0.0; text-only `read`; one process per invocation; timeout 60s → exit 70; working-tree sources with diverge → exit 70; empty inferred `sources` → exit 78; default pre-push/ci only; `baseline create`/`prune` run custom checks; public Dart API remains `packageVersion` only. | `custom-checks.md`, `stability.md`, ADR-0019 |
+| R18 | Custom checks: no `stagelatch_core` in 1.0.0; text-only `read`; one process per invocation; timeout 60s → exit 70; working-tree sources with diverge → exit 64; explicit PATH resolution for bare `run[0]`; empty inferred `sources` → exit 78; default pre-push/ci only; `baseline create`/`prune` run custom checks; public Dart API remains `packageVersion` only. | `custom-checks.md`, `stability.md`, ADR-0019 |
 
 ## Open questions for the owner
 

@@ -190,6 +190,11 @@ baseline prune` drops the entries that no longer match; it never adds
 entries. `baseline create` refuses to overwrite a file; pass `--force` to
 start over.
 
+**Custom checks.** From 1.0.0, when `custom_checks` are configured,
+`baseline create` and `baseline prune` run those checks and therefore
+**execute project code** — the same class of warning as `stagelatch ci`
+with `tests/affected`. See [`docs/specs/custom-checks.md`](docs/specs/custom-checks.md).
+
 ## CI
 
 The hooks are fast feedback; the guarantee is the same engine on the pull

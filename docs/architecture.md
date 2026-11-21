@@ -702,7 +702,7 @@ final class CustomCheckConfig {
 ```
 
 - `ExternalCheck.phase` is `CheckPhase.verify`. Rules come from the child's `ready` (`hasDynamicRules` true for the run).
-- Composition resolves `dart`/`flutter` in `run` to the project SDK, builds the source closure, and registers one `ExternalCheck` per `Config.customChecks` entry when the hook selector includes it.
+- Composition resolves `dart`/`flutter` in `run` to the project SDK; other bare `run[0]` names via an explicit PATH walk to an absolute path. Builds the source closure (diverge → exit 64) and registers one `ExternalCheck` per `Config.customChecks` entry when the hook selector includes it.
 - Custom checks are concurrent with other verify checks; each has its own process.
 
 ## 6. Infrastructure decisions that shape everything else

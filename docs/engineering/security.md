@@ -28,7 +28,7 @@ Status: **Approved (2026-11-12).** Rules are numbered so that reviews and code c
 - Executables the tool may start:
   - `git`;
   - the `dart` / `flutter` binary of the resolved SDK;
-  - from 1.0.0, a custom-check command named by `custom_checks.<id>.run` ([ADR-0019](../adr/0019-custom-checks-out-of-process.md), [`custom-checks.md`](../specs/custom-checks.md)): still an argument list, never a shell. If `run[0]` is `dart` or `flutter`, the host substitutes the resolved SDK binary; otherwise the host resolves `run[0]` on `PATH` or as a path. This is the only config key that may name an executable.
+  - from 1.0.0, a custom-check command named by `custom_checks.<id>.run` ([ADR-0019](../adr/0019-custom-checks-out-of-process.md), [`custom-checks.md`](../specs/custom-checks.md)): still an argument list, never a shell. If `run[0]` is `dart` or `flutter`, the host substitutes the resolved SDK binary; otherwise a bare name is resolved by an explicit `PATH` walk (skip empty, `.`, relative, and in-repo directories) and started by absolute path — never a bare name that lets the OS search the process cwd first (Windows `CreateProcessW`). This is the only config key that may name an executable.
 - Arguments that come from repository content are placed after `--` when the command accepts it.
 
 ### S2. SDK location
@@ -130,8 +130,8 @@ Two features start code that is not stagelatch itself: `tests/affected` ([ADR-00
 
 - May start a child only on `pre-push` and `ci` when selected by the hook list, or on `pre-commit` only when a team explicitly lists the custom check id there (not in built-in defaults). `doctor`, `why`, `init`, `install` and `uninstall` never start one. `baseline create` / `prune` run the pipeline and therefore may.
 - Program bytes come from the working tree; analyzed file bytes come only through the protocol from the snapshot ([`custom-checks.md`](../specs/custom-checks.md)).
-- Source closure must be non-empty before spawn. If inference from `run` cannot produce one, `custom_checks.<id>.sources` is required; otherwise exit 78 (config). Starts nothing when the check's source closure diverges from the snapshot (ADR-0018 rules on that closure). On diverge: **exit 70** naming the check (stricter than S14a: an opted-in gate must not be skipped while the run still succeeds).
-- Process execution follows S1's custom-check exception: argument list from `custom_checks.<id>.run`, never a shell; per-check timeout (default 60s) kills the child and exits 70; hang-kill is not a `time_budget` skip (ADR-0003).
+- Source closure must be non-empty before spawn. If inference from `run` cannot produce one, `custom_checks.<id>.sources` is required; otherwise exit 78 (config). Starts nothing when the check's source closure diverges from the snapshot (ADR-0018 rules on that closure). On diverge: **exit 64** naming the check and path, with entry-point-specific resolve hints (stricter than S14a: an opted-in gate must not be skipped while the run still succeeds; 64 not 70 because uncommitted sources are user state).
+- Process execution follows S1's custom-check exception: argument list from `custom_checks.<id>.run`, never a shell; bare `PATH` names resolved to absolute paths as above; per-check timeout (default 60s) kills the child and exits 70; hang-kill is not a `time_budget` skip (ADR-0003).
 - `--no-custom-checks` on `run` and `ci` skips all custom checks and prints a notice (fork pull requests).
 
 #### S14 common

@@ -16,7 +16,7 @@
 
 - Everything in the Global Constraints of plans 01–04.
 - S1 exception and S14b exactly as [`security.md`](../engineering/security.md) and ADR-0019: argument list from `custom_checks.<id>.run`, never a shell; resolved SDK for `dart`/`flutter`; Windows `.bat` guard.
-- Content only through protocol `read` (snapshot/base). Source closure must be non-empty (explicit `sources` when inference fails → exit 78). Divergence → exit 70 (never a silent pass).
+- Content only through protocol `read` (snapshot/base). Source closure must be non-empty (explicit `sources` when inference fails → exit 78). Divergence → exit 64 (usage; never a silent pass). Bare `run[0]` resolved via explicit PATH walk to an absolute path (AC-36).
 - Timeout default 60s → kill + exit 70; distinct from `time_budget` (ADR-0003).
 - One process per `ExternalCheck.run`; kill/await in `finally`.
 - After 1.0.0, a breaking change to a §1 artefact of `stability.md` requires a major version.
@@ -27,7 +27,7 @@
 - **A child that never answers.** Expected: timeout, child killed, exit 70; no orphan process.
 - **A child that reports a rule it did not declare, or a path outside the repository.** Expected: protocol error; exit 70; the finding is not kept.
 - **A custom check ID equal to a built-in one.** Expected: config error at load time (exit 78).
-- **Source closure diverges** (unstaged edit to the check entry). Expected: no child started; exit 70 naming the check and path.
+- **Source closure diverges** (unstaged edit to the check entry). Expected: no child started; exit 64 naming the check and path with the entry-point message from `custom-checks.md` §6.
 - **`run` that cannot infer sources** (e.g. `python tool/x.py`, `dart run package:…`) without `sources`. Expected: exit 78 with `custom_checks."<id>": cannot infer a non-empty source closure from "run"; set "custom_checks.<id>.sources" to a non-empty list.`
 - **A pull request from a fork running `ci`.** Expected: documented risk, and `--no-custom-checks` works.
 - **Findings for a path inside the repo but outside the changeset.** Expected: accepted, then normal filters apply.
@@ -40,10 +40,10 @@
 | No `stagelatch_core` in 1.0.0; kit = guide + `example/` | Release overhead vs benefit; CLAUDE.md said evaluate | ADR-0004, measurement not needed |
 | Protocol 1: text `read` only | Avoid coupling to facts schema | ADR-0013/0017 |
 | One process per invocation; timeout 60s → exit 70 | Hang ≠ budget skip; keep-alive complexity | ADR-0003, S14 |
-| Working tree + diverge → exit 70 | Silent pass forbidden; stricter than ADR-0018 warning | ADR-0018 tension flagged for owner |
+| Working tree + diverge → exit 64 | Silent pass forbidden; usage not internal error (owner) | ADR-0018 tension resolved |
 | Default pre-push/ci only | Cold `dart run` 0.66 s + tool ~0.8 s blows pre-commit budget | measurement |
 | Tasks 2–7 signatures aligned to Proposed spec | Binding interfaces for implementers | architecture §5.8 |
-| AC-29–AC-35 in `testing.md` | Acceptance coverage for protocol, diverge, Windows, forks | testing.md pattern |
+| AC-29–AC-36 in `testing.md` | Acceptance coverage for protocol, diverge (64), PATH cwd plant, Windows, forks | testing.md pattern |
 
 ---
 
@@ -154,7 +154,7 @@ final class ExternalCheck implements Check {
 }
 ```
 
-- Resolve `dart`/`flutter` to the resolved SDK before `start`. Apply Windows `.bat` argument guard. Divergence before start and after exit → throw internal error (exit 70). Max 10_000 findings. Stderr cap 64 KiB.
+- Resolve `dart`/`flutter` to the resolved SDK before `start`. Bare `run[0]` → explicit PATH walk (skip empty/`.`/relative/in-repo), absolute path to `Process.start` (AC-36). Apply Windows `.bat` argument guard. Divergence before start and after exit → usage error (exit 64). Max 10_000 findings. Stderr cap 64 KiB.
 
 - [ ] **Step 1: Write the failing tests:** handshake and declared rules; `read` from snapshot with `text: null` for unreadable; findings mapped; each Review Focus case; child killed in `finally`; timeout; diverge → no start.
 - [ ] **Step 2: Run.** Expected: FAIL.
@@ -192,7 +192,7 @@ final class ExternalCheck implements Check {
 - Test: `test/cli/no_custom_checks_test.dart`, `test/application/doctor/custom_checks_probe_test.dart`
 - Acceptance: AC-32 (`--no-custom-checks`)
 
-- [ ] **Step 1: Write the failing tests:** `--no-custom-checks` skips and notices; `doctor` lists each custom check and resolved command; ignore of custom rule with flag set does not yield `invalid-ignore`.
+- [ ] **Step 1: Write the failing tests:** `--no-custom-checks` skips and notices; `doctor` lists each custom check and resolved command; with the flag, ignore whose check prefix is a configured custom id is accepted without handshake; unknown check prefix still yields `invalid-ignore`; with check active, undeclared rule yields `invalid-ignore`.
 - [ ] **Step 2: Run.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run** all four commands. Expected: PASS.
@@ -222,10 +222,10 @@ final class ExternalCheck implements Check {
 
 **Files:**
 - Modify: `docs/stability.md` (Draft → binding), `README.md`, `docs/plans/README.md`, `action.yml` (document `--no-custom-checks` / fork note)
-- Create: `test/compat/1.0/` fixtures and tests per `stability.md` §1
+- Create: `test/compat/1.0/` fixtures and tests per `stability.md` §1 (config keys/types/rejects/exit 78 — not validation message text; hook marker + invocation contract — not full script bytes)
 - Modify: `lib/stagelatch.dart` only if comments need updating (still exports `packageVersion` only)
 
-- [ ] **Step 1: Finalize `docs/stability.md`** and add `test/compat/1.0/` tests.
+- [ ] **Step 1: Finalize `docs/stability.md`** and add `test/compat/1.0/` tests matching §1 (no byte-compare of hook template; no exact config validation strings).
 - [ ] **Step 2: Verify** all four commands and `dart pub publish --dry-run`.
 - [ ] **Step 3: Acceptance AC-29–AC-35 green on the matrix where applicable.
 - [ ] **Step 4: Commit.** `docs: define the 1.0 stability contract`

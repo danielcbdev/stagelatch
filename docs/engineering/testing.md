@@ -94,7 +94,8 @@ Each scenario is one test file under `test/acceptance/`. IDs are stable and refe
 | AC-32 | `--no-custom-checks` on `run` and `ci`: no child, notice printed; fork documentation covered | 1.0.0 |
 | AC-33 | Custom check on Windows with `.bat` / `.cmd` and a metacharacter in an argument: startup error naming the check (also run on Ubuntu and macOS for the happy path) | 1.0.0 |
 | AC-34 | Example under `example/custom_check/` speaks protocol 1 end to end against the host | 1.0.0 |
-| AC-35 | Source closure diverges (unstaged edit to the check entry): exit 70, child not started; after commit of the same tree, the check runs | 1.0.0 |
+| AC-35 | Source closure diverges (unstaged edit to the check entry): exit 64, child not started, message matches the entry-point text in `custom-checks.md` §6; after commit of the same tree, the check runs | 1.0.0 |
+| AC-36 | Custom check with bare `run[0]` on Windows: executable planted at the repository root must **not** run; host resolves via PATH (absolute path) | 1.0.0 |
 
 ## 5. Determinism test
 
