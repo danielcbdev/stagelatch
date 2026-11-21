@@ -35,8 +35,16 @@ Future<void> main(List<String> arguments) async {
       (ArgParser()
             ..addOption('cold', defaultsTo: '3')
             ..addOption('warm', defaultsTo: '10')
-            ..addOption('scope', help: 'analyze.scope to set; default: none'))
+            ..addOption('scope', help: 'analyze.scope to set; default: none')
+            ..addMultiOption(
+              'hook',
+              allowed: ['pre-commit', 'pre-push'],
+              defaultsTo: ['pre-commit', 'pre-push'],
+              help: 'The hooks to measure.',
+            )
+            ..addOption('out', help: 'Result file name under results/.'))
           .parse(arguments);
+  final hooks = args.multiOption('hook');
   final cold = int.parse(args.option('cold')!);
   final warm = int.parse(args.option('warm')!);
   final scope = args.option('scope');
@@ -60,7 +68,7 @@ Future<void> main(List<String> arguments) async {
   final results = <Map<String, Object?>>[];
   for (final name in const ['s3', 's10']) {
     final scenario = loadScenario(name, ws);
-    for (final hook in const ['pre-commit', 'pre-push']) {
+    for (final hook in hooks) {
       Future<int> once(Map<String, String> env) async {
         await applyScenario(scenario, ws);
         if (scope != null) {
@@ -148,7 +156,9 @@ Future<void> main(List<String> arguments) async {
     corpus.sha,
   ], workingDirectory: ws.corpusDir);
 
-  final name = scope == null ? '17-cli.json' : '17-cli-scope-$scope.json';
+  final name =
+      args.option('out') ??
+      (scope == null ? '17-cli.json' : '17-cli-scope-$scope.json');
   final file = File(p.join(ws.repoRoot, 'benchmark', 'results', name));
   await file.writeAsString(
     '${const JsonEncoder.withIndent('  ').convert(results)}\n',

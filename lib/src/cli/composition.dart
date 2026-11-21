@@ -33,6 +33,20 @@ import 'package:stagelatch/src/infrastructure/io/local_working_tree.dart';
 import 'package:stagelatch/src/infrastructure/io/system_clock.dart';
 import 'package:stagelatch/src/version.dart';
 
+/// The checks of the tool, in the order of the documented hook lists.
+///
+/// The rule reference `docs/rules.md` is generated from this list.
+const List<Check> productionChecks = [
+  FormatCheck(),
+  AnalyzeCheck(),
+  PubspecCheck(),
+  SensitiveFilesCheck(),
+  AssetsCheck(),
+  L10nCheck(),
+  CodegenCheck(),
+  TestsCheck(),
+];
+
 /// The wired tool: pipeline, hooks and the git processes behind them.
 ///
 /// [create] is the production wiring. Tests build a [Composition] from
@@ -72,19 +86,7 @@ final class Composition {
       const documents = StructuredDocuments();
       final worktree = LocalWorkingTree(layout.root);
       // Registry order is the order of the documented hook lists.
-      final registry = CheckRegistry(
-        checks ??
-            const [
-              FormatCheck(),
-              AnalyzeCheck(),
-              PubspecCheck(),
-              SensitiveFilesCheck(),
-              AssetsCheck(),
-              L10nCheck(),
-              CodegenCheck(),
-              TestsCheck(),
-            ],
-      );
+      final registry = CheckRegistry(checks ?? productionChecks);
       final sdkLocator = FileSdkLocator(
         repoRoot: layout.root,
         environment: io.environment,
