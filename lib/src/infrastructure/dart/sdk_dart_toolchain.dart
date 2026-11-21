@@ -31,30 +31,35 @@ final class SdkDartToolchainFactory implements DartToolchainFactory {
     required String repoRoot,
     required SnapshotFiles snapshot,
     required PackageMap packages,
+    required Set<String> testFunctions,
   }) => SdkDartToolchain(
     sdk: sdk,
     repoRoot: repoRoot,
     snapshot: snapshot,
     packages: packages,
+    testFunctions: testFunctions,
   );
 }
 
 /// Diagnostics from the resolved SDK's analysis server over a materialized
-/// snapshot; formatting from its `dart format`; facts from the directive
-/// scanner. Nothing starts until a request needs it.
+/// snapshot; formatting from its `dart format`; facts from the in-process
+/// extractor (ADR-0017). Nothing starts until a request needs it.
 final class SdkDartToolchain implements DartToolchain {
-  /// Creates the toolchain for `snapshot`.
+  /// Creates the toolchain for `snapshot`. [testFunctions] are the
+  /// functions whose calls become `testCalls`.
   new({
     required this._sdk,
     required this._repoRoot,
     required this._snapshot,
     required this._packages,
-  });
+    required Set<String> testFunctions,
+  }) : _facts = SyntacticFacts(testFunctions: testFunctions);
 
   final ResolvedSdk _sdk;
   final String _repoRoot;
   final SnapshotFiles _snapshot;
   final PackageMap _packages;
+  final SyntacticFacts _facts;
 
   Future<MaterializedSnapshot>? _full;
   Future<MaterializedSnapshot>? _settings;
@@ -252,7 +257,7 @@ final class SdkDartToolchain implements DartToolchain {
   Future<DartFileFacts?> facts(SnapshotFiles files, RepoPath path) async {
     final text = await files.readText(path);
     if (text == null) return null;
-    return const SyntacticFacts().extract(text, path);
+    return _facts.extract(text, path);
   }
 
   @override

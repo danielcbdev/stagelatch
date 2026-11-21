@@ -117,7 +117,8 @@ void main() {
     expect(
       await repo.read('stagelatch.yaml'),
       contains(
-        'pre-commit: [format, pubspec, sensitive-files]\n'
+        'pre-commit: [format, pubspec, sensitive-files, tests/solo, '
+        'tests/new-skip]\n'
         '  pre-push: [analyze]\n',
       ),
     );

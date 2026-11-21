@@ -3,6 +3,7 @@
 library;
 
 import 'package:stagelatch/src/application/config/config.dart';
+import 'package:stagelatch/src/application/config/settings.dart';
 import 'package:stagelatch/src/application/ports/dart_toolchain_factory.dart';
 import 'package:stagelatch/src/application/ports/sdk_locator.dart';
 import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
@@ -42,6 +43,7 @@ final class LazyToolchain implements DartToolchain {
       repoRoot: await _repoRoot(),
       snapshot: _snapshot,
       packages: _packages,
+      testFunctions: _config.settings<TestsSettings>().functions.toSet(),
     );
   }();
 

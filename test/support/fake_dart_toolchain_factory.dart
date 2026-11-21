@@ -22,6 +22,9 @@ final class FakeDartToolchainFactory implements DartToolchainFactory {
   /// The snapshot each toolchain was created for, in order.
   final List<SnapshotFiles> snapshots = [];
 
+  /// The test functions each toolchain was created with, in order.
+  final List<Set<String>> testFunctions = [];
+
   /// How many toolchains were created.
   int get createCount => created.length;
 
@@ -31,8 +34,10 @@ final class FakeDartToolchainFactory implements DartToolchainFactory {
     required String repoRoot,
     required SnapshotFiles snapshot,
     required PackageMap packages,
+    required Set<String> testFunctions,
   }) {
     snapshots.add(snapshot);
+    this.testFunctions.add(testFunctions);
     final toolchain = _build();
     created.add(toolchain);
     return toolchain;

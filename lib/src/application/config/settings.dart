@@ -6,12 +6,4 @@ export 'package:stagelatch/src/checks/assets/assets_settings.dart';
 export 'package:stagelatch/src/checks/codegen/codegen_settings.dart';
 export 'package:stagelatch/src/checks/format/format_settings.dart';
 export 'package:stagelatch/src/checks/pubspec/pubspec_settings.dart';
-
-/// Parameters of the `tests` check.
-final class TestsSettings {
-  /// Creates the settings.
-  const new({this.functions = const ['test', 'testWidgets', 'group']});
-
-  /// The functions whose calls count as tests or groups.
-  final List<String> functions;
-}
+export 'package:stagelatch/src/checks/tests/tests_settings.dart';

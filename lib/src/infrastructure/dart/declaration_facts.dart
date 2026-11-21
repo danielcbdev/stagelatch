@@ -9,6 +9,7 @@ import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
 import 'package:stagelatch/src/domain/location.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/infrastructure/dart/dart_lexer.dart';
+import 'package:stagelatch/src/infrastructure/dart/line_index.dart';
 
 /// Annotation names that never make a declaration "annotated".
 const _ignoredAnnotations = {
@@ -32,8 +33,33 @@ const _dot = 0x2E;
 const _at = 0x40;
 const _openBracket = 0x5B;
 
+/// A top-level declaration that carries a `@Skip` annotation: the tokens it
+/// covers, and where the annotation is.
+typedef SkipScope = ({int from, int to, Location location});
+
+/// What reading the declarations of a file found.
+final class DeclarationScan {
+  /// Creates the result.
+  const new({
+    required this.declarations,
+    required this.skipScopes,
+    required this.librarySkip,
+  });
+
+  /// The annotated declarations, in source order.
+  final List<AnnotatedDeclaration> declarations;
+
+  /// Top-level declarations with a `@Skip` annotation, in token order. They
+  /// do not overlap, so a token is inside at most one.
+  final List<SkipScope> skipScopes;
+
+  /// The `@Skip` annotation of the `library` directive, or null.
+  final Location? librarySkip;
+}
+
 /// The annotated declarations of a file, in source order: top-level
-/// declarations, and the members and enum constants of class-like ones.
+/// declarations, and the members and enum constants of class-like ones. It
+/// also finds the `@Skip` annotations that skip whole tests.
 ///
 /// There is no parser here, so where a declaration ends is decided from the
 /// tokens: at the first `;`, or at the `}` that closes its body. After a
@@ -44,9 +70,13 @@ const _openBracket = 0x5B;
 ///
 /// [lexed] must be balanced; with brackets that do not pair the ends of
 /// declarations mean nothing, and the caller does not ask.
-List<AnnotatedDeclaration> extractDeclarations(Lexed lexed, RepoPath path) {
-  final recognizer = _Recognizer(lexed, path)..topLevel();
-  return recognizer.declarations;
+DeclarationScan scanDeclarations(Lexed lexed, RepoPath path, LineIndex lines) {
+  final recognizer = _Recognizer(lexed, path, lines)..topLevel();
+  return DeclarationScan(
+    declarations: recognizer.declarations,
+    skipScopes: recognizer.skipScopes,
+    librarySkip: recognizer.librarySkip,
+  );
 }
 
 /// The result of reading a declaration's header: its name, and where its
@@ -59,14 +89,19 @@ final class _Header {
   final bool isEnum;
 }
 
+/// One annotation: its name as written, and the offsets it covers.
+typedef _Annotation = ({String name, int start, int end});
+
 final class _Recognizer {
-  new(this._lexed, this._path) : _s = _lexed.source;
+  new(this._lexed, this._path, this._lines) : _s = _lexed.source;
 
   final Lexed _lexed;
   final RepoPath _path;
+  final LineIndex _lines;
   final String _s;
   final declarations = <AnnotatedDeclaration>[];
-  List<int>? _lineStarts;
+  final skipScopes = <SkipScope>[];
+  Location? librarySkip;
 
   int get _n => _lexed.length;
 
@@ -87,34 +122,15 @@ final class _Recognizer {
 
   String _text(int k) => _lexed.lexeme(k);
 
-  /// The 1-based line and column of [offset]. A line ends at `\n`; a `\r`
-  /// before it belongs to the line.
-  Position _position(int offset) {
-    final starts = _lineStarts ??= [
-      0,
-      for (var i = 0; i < _s.length; i++)
-        if (_s.codeUnitAt(i) == 0x0A) i + 1,
-    ];
-    var low = 0;
-    var high = starts.length - 1;
-    while (low < high) {
-      final mid = (low + high + 1) ~/ 2;
-      if (starts[mid] <= offset) {
-        low = mid;
-      } else {
-        high = mid - 1;
-      }
-    }
-    return Position(low + 1, offset - starts[low] + 1);
-  }
+  Location _location(int start, int end) =>
+      Location(_path, _lines.positionOf(start), _lines.positionOf(end));
 
-  /// Reads annotations from [from]; returns the index after them, adding
-  /// each name as written to [names] and the offset where the first starts
-  /// and the last ends to [range].
-  int _annotations(int from, List<String> names, List<int> range) {
+  /// Reads annotations from [from], adding each to [annotations] in order;
+  /// returns the index after them.
+  int _annotations(int from, List<_Annotation> annotations) {
     var k = from;
     while (_isChar(k, _at)) {
-      if (range.isEmpty) range.add(_lexed.starts[k]);
+      final start = _lexed.starts[k];
       var j = k + 1;
       final buffer = StringBuffer();
       if (_isWord(j)) {
@@ -131,10 +147,11 @@ final class _Recognizer {
       if (_isChar(j, _openParen) && _lexed.closerOf(j) > 0) {
         j = _lexed.closerOf(j) + 1;
       }
-      names.add(buffer.toString());
-      range
-        ..length = 1
-        ..add(_lexed.ends[j - 1]);
+      annotations.add((
+        name: buffer.toString(),
+        start: start,
+        end: _lexed.ends[j - 1],
+      ));
       k = j;
     }
     return k;
@@ -162,20 +179,32 @@ final class _Recognizer {
         k++;
         continue;
       }
-      final names = <String>[];
-      final range = <int>[];
-      final a = _annotations(k, names, range);
+      final annotations = <_Annotation>[];
+      final a = _annotations(k, annotations);
       if (a >= _n) return;
       final end = _declarationEnd(a, _n);
-      final isDirective =
-          _isText(a, 'library') ||
-          _isText(a, 'import') ||
-          _isText(a, 'export') ||
-          _isText(a, 'part');
-      if (!isDirective) {
+      if (_isText(a, 'library')) {
+        for (final annotation in annotations) {
+          if (annotation.name == 'Skip') {
+            librarySkip ??= _location(annotation.start, annotation.end);
+          }
+        }
+      } else if (!_isText(a, 'import') &&
+          !_isText(a, 'export') &&
+          !_isText(a, 'part')) {
+        for (final annotation in annotations) {
+          if (annotation.name == 'Skip') {
+            skipScopes.add((
+              from: a,
+              to: end,
+              location: _location(annotation.start, annotation.end),
+            ));
+            break;
+          }
+        }
         final header = _header(a, end, owner: null);
         if (header != null) {
-          _record(k, end, names, range, header.name);
+          _record(k, end, annotations, header.name);
           if (header.bodyOpen >= 0) {
             _members(header.name, header.bodyOpen, isEnum: header.isEnum);
           }
@@ -192,9 +221,8 @@ final class _Recognizer {
     if (isEnum) {
       // Constants, up to a `;` at depth 0 or the end of the body.
       while (k < close) {
-        final names = <String>[];
-        final range = <int>[];
-        final a = _annotations(k, names, range);
+        final annotations = <_Annotation>[];
+        final a = _annotations(k, annotations);
         if (a >= close) return;
         if (_isChar(a, _semicolon)) {
           k = a + 1;
@@ -209,7 +237,7 @@ final class _Recognizer {
         if (_isChar(j, _openBrace) && _lexed.closerOf(j) > 0) {
           j = _lexed.closerOf(j) + 1;
         }
-        _record(k, j - 1, names, range, '$owner.${_text(a)}');
+        _record(k, j - 1, annotations, '$owner.${_text(a)}');
         if (_isChar(j, _comma)) j++;
         k = j;
       }
@@ -219,27 +247,20 @@ final class _Recognizer {
         k++;
         continue;
       }
-      final names = <String>[];
-      final range = <int>[];
-      final a = _annotations(k, names, range);
+      final annotations = <_Annotation>[];
+      final a = _annotations(k, annotations);
       if (a >= close) return;
       final end = _declarationEnd(a, close);
       final header = _header(a, end, owner: owner);
-      if (header != null) _record(k, end, names, range, header.name);
+      if (header != null) _record(k, end, annotations, header.name);
       k = end + 1;
     }
   }
 
-  void _record(
-    int first,
-    int end,
-    List<String> names,
-    List<int> range,
-    String name,
-  ) {
+  void _record(int first, int end, List<_Annotation> annotations, String name) {
     final relevant = [
-      for (final annotation in names)
-        if (!_ignoredAnnotations.contains(annotation)) annotation,
+      for (final annotation in annotations)
+        if (!_ignoredAnnotations.contains(annotation.name)) annotation.name,
     ]..sort();
     if (relevant.isEmpty) return;
     final last = end >= _n ? _n - 1 : end;
@@ -251,11 +272,7 @@ final class _Recognizer {
         tokenHash: crypto.sha256
             .convert(utf8.encode(lexemes.join(' ')))
             .toString(),
-        location: Location(
-          _path,
-          _position(range.first),
-          _position(range.last),
-        ),
+        location: _location(annotations.first.start, annotations.last.end),
       ),
     );
   }

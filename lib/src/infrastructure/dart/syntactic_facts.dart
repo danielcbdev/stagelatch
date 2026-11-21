@@ -7,6 +7,8 @@ import 'package:stagelatch/src/domain/location.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/infrastructure/dart/dart_lexer.dart';
 import 'package:stagelatch/src/infrastructure/dart/declaration_facts.dart';
+import 'package:stagelatch/src/infrastructure/dart/line_index.dart';
+import 'package:stagelatch/src/infrastructure/dart/test_call_facts.dart';
 
 /// Extracts the facts of one Dart file with hand-written scanners, without a
 /// parser (ADR-0017).
@@ -27,8 +29,12 @@ import 'package:stagelatch/src/infrastructure/dart/declaration_facts.dart';
 /// It never throws, and every loop advances through the source, so the cost
 /// is linear in its length (security S6).
 final class SyntacticFacts {
-  /// Creates the extractor.
-  const new();
+  /// Creates the extractor. [testFunctions] are the functions whose calls
+  /// become `testCalls` (`tests.functions` of the configuration).
+  const new({this.testFunctions = defaultTestFunctions});
+
+  /// The functions `testCalls` are collected for.
+  final Set<String> testFunctions;
 
   /// The facts of [source], the content of [path].
   DartFileFacts extract(String source, RepoPath path) {
@@ -37,12 +43,19 @@ final class SyntacticFacts {
     if (!lexed.balanced) {
       return DartFileFacts(directives: directives, isWellFormed: false);
     }
+    final lines = LineIndex(source);
+    final scan = scanDeclarations(lexed, path, lines);
     return DartFileFacts(
       directives: directives,
-      annotatedDeclarations: extractDeclarations(lexed, path),
+      annotatedDeclarations: scan.declarations,
+      testCalls: extractTestCalls(lexed, path, testFunctions, scan, lines),
     );
   }
 }
+
+/// The functions inspected when `tests.functions` is not configured
+/// (docs/specs/config.md, section 3).
+const Set<String> defaultTestFunctions = {'test', 'testWidgets', 'group'};
 
 final class _Scanner {
   new(this._s, this._path);

@@ -23,6 +23,17 @@ void main() {
     'class bodies with annotated members': 'class A { @a int x; ' * (mib ~/ 18),
     'initializer lists': 'A() : x = ' * (mib ~/ 10),
     'annotation arguments': '@a(' * (mib ~/ 3),
+    // Balanced shapes: these are the ones that would cost the square of the
+    // file if a call or declaration copied what encloses it.
+    'balanced nested groups': "group('a', () {" * 30000 + '});' * 30000,
+    'balanced nested test calls': 'test(' * 100000 + ')' * 100000,
+    'balanced nested groups with long descriptions':
+        "group('${'x' * 100}', () {" * 6000 + '});' * 6000,
+    'huge non-literal description inside nested calls':
+        'test(' * 10000 + 'x' * 500000 + ')' * 10000,
+    'balanced parentheses': '(' * 400000 + ')' * 400000,
+    'balanced annotated classes': '@a class A {' * 40000 + '}' * 40000,
+    'balanced annotation arguments': '@a(' * 100000 + ')' * 100000,
   };
 
   for (final MapEntry(key: name, value: source) in shapes.entries) {
@@ -32,6 +43,31 @@ void main() {
       expect(facts, isNotNull);
     }, timeout: timeout);
   }
+
+  test('a call remembers at most the 64 outermost groups', () {
+    final opening = "group('g', () {" * 100;
+    final source =
+        "void main() {\n${opening}test('t', () {});${'});' * 100}\n}\n";
+    final calls = const SyntacticFacts()
+        .extract(source, RepoPath('a_test.dart'))
+        .testCalls;
+
+    expect(calls, hasLength(101));
+    expect(calls.last.groups, hasLength(64));
+    expect(calls[99].groups, hasLength(64));
+    expect(calls[10].groups, hasLength(10));
+  });
+
+  test('the source text of a description is cut at 4,096 characters', () {
+    final source = "void main() { test('${'x' * 10000}' + y, () {}); }";
+    final call = const SyntacticFacts()
+        .extract(source, RepoPath('a_test.dart'))
+        .testCalls
+        .single;
+
+    expect(call.description, hasLength(4096));
+    expect(call.description, startsWith("'xxx"));
+  });
 
   test('every prefix of a real file is extracted without throwing', () {
     const source = r'''

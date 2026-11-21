@@ -19,7 +19,7 @@ import 'dart:math';
 import 'package:stagelatch_bench/corpus.dart';
 import 'package:stagelatch_bench/facts_model.dart';
 import 'package:stagelatch_bench/facts_parse.dart';
-import 'package:stagelatch_bench/facts_scanner.dart';
+import 'package:stagelatch_bench/facts_shipped.dart';
 import 'package:stagelatch_bench/input.dart';
 import 'package:stagelatch_bench/proc.dart';
 import 'package:stagelatch_bench/workspace.dart';
@@ -76,12 +76,12 @@ Future<void> _fuzz() async {
     for (final v in variants) {
       total++;
       try {
-        factsByScanner(v);
+        factsByShipped(v);
       } on Object {
         threw++;
       }
       final hasError = parsedHasErrors(v);
-      final flagged = !lex(v).balanced;
+      final flagged = !shippedIsWellFormed(v);
       if (hasError) parserErrors++;
       if (flagged) scannerFlagged++;
       if (hasError && flagged) both++;
@@ -126,7 +126,7 @@ Future<void> _corpus(String mode) async {
   if (mode == 'parse' || mode == 'scan') {
     final FactsResult? Function(String) f = mode == 'parse'
         ? factsByParser
-        : factsByScanner;
+        : factsByShipped;
     final cold = Stopwatch()..start();
     tenIndexes.map((i) => sources[i]).forEach(f);
     cold.stop();
@@ -143,15 +143,15 @@ Future<void> _corpus(String mode) async {
   }
 
   final parsed = [for (final s in sources) factsByParser(s)!];
-  final scanned = [for (final s in sources) factsByScanner(s)!];
+  final scanned = [for (final s in sources) factsByShipped(s)!];
   var disagree = 0;
   var decls = 0;
   var calls = 0;
   for (var i = 0; i < entries.length; i++) {
     decls += parsed[i].declarations.length;
     calls += parsed[i].calls.length;
-    final a = parsed[i].canonical;
-    final b = scanned[i].canonical;
+    final a = parsed[i].canonical(withIdentifiers: false);
+    final b = scanned[i].canonical(withIdentifiers: false);
     if (a.join('\n') == b.join('\n')) continue;
     disagree++;
     stdout.writeln('disagree: ${entries[i].path}');
@@ -171,7 +171,7 @@ Future<void> _corpus(String mode) async {
       stdout.writeln('  parser error in ${entries[i].path}: $e');
     }
   }
-  final unbalanced = sources.where((s) => !lex(s).balanced).length;
+  final unbalanced = sources.where((s) => !shippedIsWellFormed(s)).length;
   stdout
     ..writeln('files with syntax errors (parser): $broken')
     ..writeln('files the lexical check flags (scanner): $unbalanced')
@@ -312,10 +312,10 @@ class V<T extends List<List<int>>> {
 void _edges() {
   var bad = 0;
   for (final MapEntry(key: name, value: source) in _edgeCases.entries) {
-    final a = factsByParser(source)!.canonical;
-    final b = factsByScanner(source)!.canonical;
+    final a = factsByParser(source)!.canonical(withIdentifiers: false);
+    final b = factsByShipped(source)!.canonical(withIdentifiers: false);
     if (a.join('\n') == b.join('\n')) {
-      stdout.writeln('agree: $name (${a.length - 1} facts)');
+      stdout.writeln('agree: $name (${a.length} facts)');
     } else {
       bad++;
       stdout.writeln('DISAGREE: $name');
@@ -356,7 +356,7 @@ void _adversarial(List<String> args) {
   final name = names[int.parse(args[0])];
   final source = inputs[name]!;
   final result = args[1] == 'scan'
-      ? _time(() => factsByScanner(source))
+      ? _time(() => factsByShipped(source))
       : _time(() => factsByParser(source));
   stdout.writeln('$name | ${args[1]} | $result');
 }

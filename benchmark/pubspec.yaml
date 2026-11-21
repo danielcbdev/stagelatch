@@ -21,6 +21,9 @@ dependencies:
   dart_style: 3.1.14
   path: ^1.9.1
   pub_semver: ^2.2.1
+  # The shipped fact extractor, compared with the parser (ADR-0017).
+  stagelatch:
+    path: ..
   yaml: ^3.1.4
 
 dev_dependencies:
