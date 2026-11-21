@@ -162,7 +162,7 @@ final class SpawnedCheckProcessFactory implements CheckProcessFactory {
     final unsafe = _unsafeBatchArgument(executable, arguments);
     if (unsafe != null) {
       throw InternalException(
-        'custom check: unsafe argument for batch executable: '
+        'unsafe argument for batch executable: '
         '${_truncate(sanitizeForTerminal(unsafe))}',
       );
     }

@@ -96,19 +96,51 @@ void main() {
 
     test('a missing bare PATH name fails before start', () async {
       final calls = <Start>[];
+      // Avoid /usr/bin: CI hosts often ship python there.
       final factory = SpawnedCheckProcessFactory(
         repoRoot: '/repo',
         starter: fakeStarter([FakeProcess()], calls),
         isWindows: false,
-        pathEnv: '/usr/bin:/opt/bin',
+        pathEnv: '/stagelatch-no-such-path:/also-missing-bin',
         context: p.posix,
       );
 
       expect(
         () => factory.start(const ['python'], workingDirectory: '/repo'),
-        throwsA(isA<InternalException>()),
+        throwsA(
+          isA<InternalException>().having(
+            (e) => e.message,
+            'message',
+            contains('not found on PATH'),
+          ),
+        ),
       );
       expect(calls, isEmpty);
+    });
+
+    test('a bare PATH hit is started by absolute path', () async {
+      final bin = await Directory.systemTemp.createTemp('sl-path-');
+      addTearDown(() => bin.delete(recursive: true));
+      final executable = File(p.join(bin.path, 'tool'));
+      await executable.writeAsString('#!/bin/sh\n');
+      final calls = <Start>[];
+      final factory = SpawnedCheckProcessFactory(
+        repoRoot: '/repo',
+        starter: fakeStarter([FakeProcess()], calls),
+        isWindows: false,
+        pathEnv: bin.path,
+        context: p.context,
+      );
+
+      await factory.start(const ['tool'], workingDirectory: '/repo');
+
+      expect(calls, hasLength(1));
+      expect(p.isAbsolute(calls.single.executable), isTrue);
+      expect(
+        File(calls.single.executable).resolveSymbolicLinksSync(),
+        executable.resolveSymbolicLinksSync(),
+      );
+      expect(calls.single.runInShell, isFalse);
     });
 
     test('on Windows refuses batch metacharacters in arguments', () async {
@@ -186,6 +218,28 @@ void main() {
       process.send('{"type":"init"}');
       await process.closeStdin();
       expect(child.stdinClosed, isTrue);
+      await process.kill();
+    });
+
+    test('standardError keeps only the first 64 KiB', () async {
+      final oversized = 'x' * (maxCustomCheckStandardError + 2048);
+      final child = FakeProcess(
+        stdoutLines: const ['{"type":"done"}'],
+        standardError: oversized,
+      );
+      final factory = SpawnedCheckProcessFactory(
+        repoRoot: '/repo',
+        sdk: sdk(),
+        starter: fakeStarter([child], []),
+        isWindows: false,
+      );
+
+      final process = await factory.start(const [
+        'dart',
+        'x.dart',
+      ], workingDirectory: '/repo');
+      final stderr = await process.standardError;
+      expect(stderr.length, maxCustomCheckStandardError);
       await process.kill();
     });
   });

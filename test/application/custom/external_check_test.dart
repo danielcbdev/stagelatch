@@ -67,6 +67,26 @@ void main() {
       expect(sut.hasDynamicRules, isTrue);
       expect(sut.rules, isEmpty);
     });
+
+    test('rejects an empty sourceClosure at construction', () {
+      expect(
+        () => ExternalCheck(
+          id: 'team',
+          command: const ['dart', 'tool/check.dart'],
+          factory: FakeCheckProcessFactory(),
+          timeout: const Duration(seconds: 60),
+          sourceClosure: {},
+          workingDirectory: '/repo',
+        ),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('must be non-empty'),
+          ),
+        ),
+      );
+    });
   });
 
   group('handshake and findings', () {

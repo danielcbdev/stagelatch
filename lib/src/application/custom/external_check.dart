@@ -35,7 +35,15 @@ final class ExternalCheck implements Check {
     this.settings = const {},
     this.all = false,
   }) : _command = List.unmodifiable(command),
-       _sourceClosure = Set.unmodifiable(sourceClosure);
+       _sourceClosure = Set.unmodifiable(sourceClosure) {
+    if (_sourceClosure.isEmpty) {
+      throw ArgumentError.value(
+        sourceClosure,
+        'sourceClosure',
+        'must be non-empty; an empty closure skips the divergence test',
+      );
+    }
+  }
 
   @override
   final String id;
@@ -96,12 +104,15 @@ final class ExternalCheck implements Check {
         );
       }
 
-      final findings = await _speak(process, context).timeout(
-        timeout,
-        onTimeout: () {
-          throw TimeoutException('custom check "$id" timed out');
-        },
-      );
+      final speak = _speak(process, context);
+      List<Finding> findings;
+      try {
+        findings = await speak.timeout(timeout);
+      } on TimeoutException {
+        // Kill is in finally; ignore late errors from the orphaned speak.
+        speak.ignore();
+        throw TimeoutException('custom check "$id" timed out');
+      }
 
       final after = await context.divergentAmong(_sourceClosure);
       if (after.isNotEmpty) {
