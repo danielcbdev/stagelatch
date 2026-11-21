@@ -527,13 +527,15 @@ String normalizeSnippet(List<String> lines);
 Future<String> fingerprintOf(Finding finding, SnapshotFiles snapshot);       // SHA-256 (package:crypto) of rule, path and normalized snippet
 final class BaselineEntry { RuleId get rule; RepoPath get path; String get fingerprint; int get count; }
 final class Baseline { const Baseline(List<BaselineEntry> entries); static const Baseline empty; List<BaselineEntry> get entries; }
-Baseline decodeBaseline(String json);                                        // ConfigException on malformed input
+Baseline decodeBaseline(String json, {RepoPath? path});                      // ConfigException on malformed input; `path` is where it points
 String encodeBaseline(Baseline baseline);                                    // sorted by (path, rule, fingerprint)
 final class BaselineOutcome { List<Finding> get kept; int get baselined; }
 Future<BaselineOutcome> applyBaseline(List<Finding> findings, Baseline baseline, SnapshotFiles snapshot);   // findings already globally sorted
+final class CurrentBaseline { Baseline get baseline; RepoPath get path; }    // what a baseline written now holds, and the config's baseline path
 final class BaselineCommands { BaselineCommands(Pipeline pipeline, WorkingTree workingTree); Future<String> create({required bool force}); Future<String> prune(); }
 ```
 
+- `RunRequest` also carries `hook` (the `hooks` key whose selectors decide which checks run; `create` and `prune` pass `ci`) and `useBaseline` (false when the baseline is being written). `Pipeline.currentBaseline(request)` judges the request with those settings and returns its findings counted by rule, path and fingerprint, plus the configured baseline path.
 - The baseline filter is not part of the per-check chain: `Pipeline` sorts all findings, applies the baseline, then appends `stagelatch/invalid-ignore` findings and sorts again.
 - `GitRepository.resolve(entry, all: true)` is implemented (plan 03 Task 8); it no longer throws.
 

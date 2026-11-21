@@ -401,7 +401,7 @@ test('ci --all and run pre-push --all resolve every file of their snapshot', () 
 - **`create` and `prune`.** Their run is `RunRequest(entry: PreCommitEntry, all: true, allowFixes: false, hook: 'ci', useBaseline: false)`: the index, every file, the selectors of `hooks.ci` and no baseline. `create` refuses to overwrite when the working-tree file exists; `prune` reads the working-tree file, because it is the one the developer is editing. Both write through `WorkingTree.writeText` to `Config.baselinePath`, which is a `RepoPath` and so cannot leave the repository.
 - A path-based finding on a file with no text (binary) has an empty snippet; the fingerprint then depends on rule and path only.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('normalization trims, collapses inner whitespace and joins lines', () {
@@ -434,10 +434,10 @@ test('the report counts baselined findings in the console summary and the JSON',
 
 AC-23 (`test/acceptance/ac23_baseline_test.dart`, pattern of `ac22_*`, helper `test/support/acceptance.dart`): a legacy violation is baselined and staged: commit passes. A second, new violation in the same file: commit blocked, only the new one reported. Insert lines above the old violation: still baselined. Rename the file: the old violation is reported again; `baseline prune` drops the stale entry. It uses `pubspec/path-dependency`, which exists since `0.1.0`.
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/baseline-and-suppression.md` section 4 and the decisions above.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(baseline): add fingerprinted baseline with create and prune`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/baseline-and-suppression.md` section 4 and the decisions above.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(baseline): add fingerprinted baseline with create and prune`
 
 ### Task 9: Config JSON Schema
 
