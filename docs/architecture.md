@@ -69,7 +69,7 @@ lib/
         dart_toolchain.dart          # DartToolchain, DartDiagnostic, DiagnosticSeverity, FormatOutcome
         dart_file_facts.dart         # DartFileFacts, Directive, AnnotatedDeclaration, TestCall
         import_graph.dart            # ImportGraph
-        test_runner.dart             # TestRunner, TestRunResult, TestFailure (0.3.0)
+        test_runner.dart             # TestRunner, TestRunResult, FailedTest (0.3.0)
     checks/
       pubspec/  format/  analyze/  sensitive_files/
       codegen/  l10n/  assets/  tests/       # tests/: affected_tests.dart, affected_rule.dart (0.3.0)
@@ -254,8 +254,8 @@ final class ImportGraph {
 }
 
 /// What a test run reports (0.3.0). Implemented only by the process adapter.
-final class TestFailure {
-  const TestFailure({required this.file, required this.line, required this.column, required this.name});   // 1-based; name is the tool's full name
+final class FailedTest {
+  const FailedTest({required this.file, required this.line, required this.column, required this.name});   // 1-based; name is the tool's full name
 }
 final class TestRunResult {
   const TestRunResult({this.failures = const [], this.startupError});   // startupError: a run that failed before any test executed
@@ -685,3 +685,16 @@ Details: [`specs/git.md`](specs/git.md), [`specs/dart-toolchain.md`](specs/dart-
 - No daemon in `0.1.0`. The spike missed its latency target and the owner chose one-shot runs with `analyze` off the default `pre-commit` list (ADR-0008); a daemon needs its own ADR.
 - No dependency injection framework, code generation or reflection.
 - No abstraction over git itself: the git CLI is the only supported backend.
+
+
+## ProcessStarter (0.3.0)
+
+```dart
+typedef ProcessStarter = Future<RunningProcess> Function(
+  String executable,
+  List<String> arguments, {
+  String? workingDirectory,
+});
+```
+
+Used only from `lib/src/infrastructure/dart/`.

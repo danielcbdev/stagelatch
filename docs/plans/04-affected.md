@@ -282,11 +282,11 @@ test('results are sorted, and grouped by package with the repository root first'
 - Create: `lib/src/domain/dart/test_runner.dart`, `lib/src/application/ports/test_runner_factory.dart`, `lib/src/infrastructure/dart/test_command.dart`, `lib/src/infrastructure/dart/test_event_parser.dart`, `lib/src/infrastructure/dart/process_test_runner.dart`, `test/support/fake_test_runner.dart`, `test/support/fake_process.dart`
 - Create: `test/fixtures/test_events/all_pass.jsonl`, `one_failure.jsonl`, `error_result.jsonl`, `compile_error.jsonl`, `helper_location.jsonl`, `flutter_noise.jsonl`, `README.md` (the SDK versions, the date and the exact commands the recordings were made with)
 - Modify: `test/architecture/layering_test.dart` (a second spawn rule, like the language-server and format one), `test/support/fixture_package.dart` (`copyFixturePackage({bool withTestPackage = false})` writes a `dev_dependencies: test` constraint into the copy before `pub get`; `pubGetOffline(String root)` for acceptance repositories)
-- Test: `test/infrastructure/dart/test_event_parser_test.dart`, `test_command_test.dart`, `process_test_runner_test.dart`; `test/domain/dart/test_runner_test.dart` (equality of `TestFailure`)
+- Test: `test/infrastructure/dart/test_event_parser_test.dart`, `test_command_test.dart`, `process_test_runner_test.dart`; `test/domain/dart/test_runner_test.dart` (equality of `FailedTest`)
 
 **Interfaces:**
 - Consumes: `ResolvedSdk`, `DartPackage`, `RepoPath`.
-- Produces: `TestFailure { RepoPath file; int line; int column; String name }` with `==`; `TestRunResult { List<TestFailure> failures; String? startupError }`; `TestRunner { Future<TestRunResult> run(DartPackage package, List<RepoPath> files) }`; `TestRunnerFactory { TestRunner create({required ResolvedSdk sdk, required String repoRoot}) }`; `TestCommand { String executable; List<String> arguments; RepoPath? directory }`; `List<TestCommand> testCommands({required ResolvedSdk sdk, required DartPackage package, required List<RepoPath> files})`; `TestEventParser({required String repoRoot, required RepoPath fallbackFile, p.Context? context})` with `add(String line)` and `TestRunResult finish({required int exitCode, String standardError = ''})`; `ProcessTestRunner({required ResolvedSdk sdk, required String repoRoot})` and `ProcessTestRunnerFactory`.
+- Produces: `FailedTest { RepoPath file; int line; int column; String name }` with `==`; `TestRunResult { List<FailedTest> failures; String? startupError }`; `TestRunner { Future<TestRunResult> run(DartPackage package, List<RepoPath> files) }`; `TestRunnerFactory { TestRunner create({required ResolvedSdk sdk, required String repoRoot}) }`; `TestCommand { String executable; List<String> arguments; RepoPath? directory }`; `List<TestCommand> testCommands({required ResolvedSdk sdk, required DartPackage package, required List<RepoPath> files})`; `TestEventParser({required String repoRoot, required RepoPath fallbackFile, p.Context? context})` with `add(String line)` and `TestRunResult finish({required int exitCode, String standardError = ''})`; `ProcessTestRunner({required ResolvedSdk sdk, required String repoRoot})` and `ProcessTestRunnerFactory`.
 
 **Decisions fixed here** (`rules.md` `tests/affected`, `security.md` S14):
 - **Confirm before recording.** Run the commands below against the SDKs on the machine, compare with "What 0.2.0 already has" and record every fixture from a real run (the `helper_location` fixture needs a test declared by a helper in another file, to see `root_url`, `root_line`, `root_column`). Write the versions into the fixtures README. CI runners have no Flutter: the Flutter path is covered by inspecting the command and by the recorded `flutter_noise` fixture; end-to-end tests use Dart only.
@@ -304,7 +304,7 @@ test('results are sorted, and grouped by package with the repository root first'
 test('all passing produces no failure and no startup error', () { expect(parse('all_pass.jsonl', exitCode: 0), const TestRunResult()); });
 test('a failing test is reported with file, line, column and full name', () {
   expect(parse('one_failure.jsonl', exitCode: 1).failures.single,
-      TestFailure(file: RepoPath('test/b_test.dart'), line: 2, column: 29, name: 'g fails'));
+      FailedTest(file: RepoPath('test/b_test.dart'), line: 2, column: 29, name: 'g fails'));
 });
 test('a test with result error is a failure, counted once however many error events it had', () { /* error_result.jsonl */ });
 test('hidden loading tests and skipped tests are not failures', () { /* the skipped test of one_failure.jsonl */ });
@@ -362,7 +362,7 @@ test('the fixture package: a compile error is a startup error', () async { /* ..
 - Produces: `CheckContext.tests`, `CheckContext.divergentAmong`; `GitRepository.divergentAmong(SnapshotRef, Set<RepoPath>)`; `affectedRule` (default `error`); `Future<List<Finding>> affectedFindings(CheckContext context)`; `LazyTestRunner`; `Pipeline` taking `required TestRunnerFactory testRunners`.
 
 **Decisions fixed here** (ADR-0018, `rules.md` `tests/affected`, `git.md` 5):
-- **Sequence of `affectedFindings`.** (1) Return nothing when `context.entry` is `preCommit` or the rule is not enabled. (2) Return nothing unless a present or deleted change, or a `previousPath`, is a `.dart`, `pubspec.yaml`, `pubspec.lock` or `analysis_options.yaml` file. (3) `selectAffectedTests` over `context.importGraph`, `context.changes`, `context.packages` and the set of `context.snapshot.list()` paths; no test files: return nothing, without asking `divergentAmong`. (4) `divergentAmong(closure)`; a non-empty answer is the skip warning, no process. (5) Run each package of `byPackage`, one after the other, `context.tests.run(package, files)`. (6) `divergentAmong(closure)` again, with the same closure; non-empty: discard every result and report the skip warning. (7) Findings: one error per `TestFailure`, one error per startup error.
+- **Sequence of `affectedFindings`.** (1) Return nothing when `context.entry` is `preCommit` or the rule is not enabled. (2) Return nothing unless a present or deleted change, or a `previousPath`, is a `.dart`, `pubspec.yaml`, `pubspec.lock` or `analysis_options.yaml` file. (3) `selectAffectedTests` over `context.importGraph`, `context.changes`, `context.packages` and the set of `context.snapshot.list()` paths; no test files: return nothing, without asking `divergentAmong`. (4) `divergentAmong(closure)`; a non-empty answer is the skip warning, no process. (5) Run each package of `byPackage`, one after the other, `context.tests.run(package, files)`. (6) `divergentAmong(closure)` again, with the same closure; non-empty: discard every result and report the skip warning. (7) Findings: one error per `FailedTest`, one error per startup error.
 - **Findings.** `Test failed: <name>.` at `Location(file, Position(line, column), Position(line, column))`; `Tests could not be run: <startupError>.` at `Location.wholeFile(<first file of that package>)`; the skip warning, severity `warning`, message `Affected tests were not run: <n> file(s) they execute differ from the working tree (uncommitted changes, untracked files, or another checked-out commit).` with `<n>` the size of the divergent set. Its location: the first divergent path in path order; when that path is absent from the snapshot and some file of the closure imports it, at `graph.directiveOf(importer, path)` of the first such importer in path order; otherwise `Location.wholeFile(path)`.
 - **`GitCliRepository.divergentAmong`.** `divergingFromWorktree(ref)` once; of the remaining candidates, those absent from `files(ref)` for which `FileSystemEntity.typeSync(..., followLinks: false)` is a regular file go through one `git check-ignore --stdin -z` (exit 0 and 1 are both fine, 128 is an `InternalException`); the result is the intersection with the first list, plus the non-ignored existing ones.
 - **`LazyTestRunner`** locates the SDK and creates the runner through `TestRunnerFactory` on the first `run`, like `LazyToolchain`; a run that never asks locates nothing.
@@ -564,6 +564,10 @@ test('ci --reporter junit prints the document; on a usage error stdout is empty'
 
 - [ ] **Step 2: Run.** Expected: FAIL.
 - [ ] **Step 3: Implement.** Elements go through `xml_writer.dart`; the reporter never concatenates repository text.
+
+- The dirty-skip finding is severity-locked to `warning`; `rules: tests/affected: error` does not elevate it. Failed-test findings follow the configured severity of `tests/affected`.
+- Loader pseudo-tests from `dart test --reporter json` have name exactly `loading <suite path>`, empty `groupIDs`, and no `url`/`line`. Only those count as startup/loading; a real test whose name starts with `loading ` must still be reported as a failed test.
+
 - [ ] **Step 4: Run** all four commands. Expected: PASS.
 - [ ] **Step 5: Commit.** `feat(reporters): add JUnit reporter`
 
@@ -622,6 +626,8 @@ test('the lock of a member is looked for at the workspace root', () { /* closure
 - [ ] **Step 3: Implement** per `specs/dart-toolchain.md` section 2 and the decisions above.
 - [ ] **Step 4: Run** all four commands. Expected: PASS.
 - [ ] **Step 5: Commit.** `feat(packages): support pub workspaces`
+
+- [ ] **Step: Dogfood prep.** Update `.github/workflows/ci.yaml` so the dogfood job runs `dart pub get --directory test/fixtures/workspace` when that fixture is part of the selected packages (or before `stagelatch ci` if the job always materializes it).
 
 ### Task 10: Documentation and 0.3.0
 
