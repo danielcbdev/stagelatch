@@ -239,7 +239,7 @@ test('the rule can be off or an error through rules:', () async { /* isEnabled f
 - **Closure.** `graph.dependenciesOf(testFiles)` (forward closure, edge targets absent from the snapshot included), plus for each package that owns a selected test its `pubspec.yaml` and `analysis_options.yaml` (whether or not they are in the snapshot, so that the divergence test can look at an untracked one) and its `pubspec.lock` only when that path is in `snapshotPaths`.
 - Sorting: every list is sorted by path; `byPackage` by package root, repository root first.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // import_graph_test.dart
@@ -269,10 +269,10 @@ test('the closure does not hold files that merely depend on a selected test', ()
 test('results are sorted, and grouped by package with the repository root first', () { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, the functions do not exist.
-- [ ] **Step 3: Implement.** `ImportGraph.build` keeps, per importing file, its edges `(target, directive location)` in source order, next to the reverse map; `dependenciesOf` is an iterative walk over them (no recursion, security S6). `selectAffectedTests` is pure.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(checks): select tests affected by a changeset`
+- [x] **Step 2: Run.** Expected: FAIL, the functions do not exist.
+- [x] **Step 3: Implement.** `ImportGraph.build` keeps, per importing file, its edges `(target, directive location)` in source order, next to the reverse map; `dependenciesOf` is an iterative walk over them (no recursion, security S6). `selectAffectedTests` is pure.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(checks): select tests affected by a changeset`
 
 ### Task 4: Test runner
 
