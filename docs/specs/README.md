@@ -10,7 +10,7 @@ Status: **Approved (2026-11-12).** Specs say what the software must do, with exa
 | [`git.md`](git.md) | Snapshots, changesets, index fixes, hook script, hook installer |
 | [`dart-toolchain.md`](dart-toolchain.md) | SDK resolution, packages, the materialized snapshot, diagnostics, formatting, facts, test runner |
 | [`baseline-and-suppression.md`](baseline-and-suppression.md) | Inline ignores, `exclude`, baseline file and fingerprint |
-| [`custom-checks.md`](custom-checks.md) | Draft of the 1.0.0 public API |
+| [`custom-checks.md`](custom-checks.md) | Proposed 1.0.0 custom-check protocol (awaiting owner approval) |
 
 ## Feature to version map
 
@@ -44,7 +44,8 @@ Writing the specs forced decisions that `CLAUDE.md` leaves open or states loosel
 | R13 | Console output is ASCII only. | `cli.md` |
 | R14 | `tests/affected` does not run when files it executes differ from the working tree (uncommitted, untracked or another checked-out commit); it reports a warning instead. Refined by ADR-0018. | `rules.md`, `git.md` |
 | R15 | Dart SDK floor of the tool itself: `^3.13.0`. | `coding-standards.md` |
-| R16 | Custom checks (1.0.0) run as external processes speaking a JSON protocol. Draft only. | `custom-checks.md` |
+| R16 | Custom checks (1.0.0) run as external processes speaking a JSON protocol. **Proposed** (ADR-0019); awaiting owner approval. | `custom-checks.md`, ADR-0019 |
+| R18 | Custom checks: no `stagelatch_core` in 1.0.0; text-only `read`; one process per invocation; timeout 60s → exit 70; working-tree sources with diverge → exit 70; default pre-push/ci only; public Dart API remains `packageVersion` only. | `custom-checks.md`, `stability.md`, ADR-0019 |
 | R17 | Missing `.dart_tool/package_config.json` when Dart analysis is needed is a usage error (exit 64) asking for `dart pub get`. | `dart-toolchain.md` |
 
 ## Open questions for the owner

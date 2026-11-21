@@ -88,6 +88,13 @@ Each scenario is one test file under `test/acceptance/`. IDs are stable and refe
 | AC-26 | `tests/affected` on a pre-push of a branch that is not checked out: the closure diverges, tests are skipped with the warning, the push is not failed | 0.3.0 |
 | AC-27 | `tests/affected` and package configuration: a change to `analysis_options.yaml` or `pubspec.lock` selects all tests of the package; an unstaged edit to a committed `pubspec.lock`, or an untracked non-ignored `analysis_options.yaml`, skips tests; a gitignored `pubspec.lock` present only on disk does not; an unstaged edit to a fixture, `dart_test.yaml` or `build.yaml` alone does not | 0.3.0 |
 | AC-28 | Pub workspace: a member's files are analyzed with the workspace root's package config; `pubspec/lockfile-out-of-sync` reads the root lock; `tests/affected` selects and runs the tests of a member when a file of another member changes; `why` explains it | 0.3.0 |
+| AC-29 | Custom check well-behaved: handshake, `read` sees snapshot not working tree, finding reported with rule id, exit 0 when severity allows | 1.0.0 |
+| AC-30 | Custom check noisy stdout / undeclared rule / path outside repo: exit 70, protocol error names the check | 1.0.0 |
+| AC-31 | Custom check hang: timeout kills child, exit 70, no orphan; `time_budget` notice may also appear but does not skip | 1.0.0 |
+| AC-32 | `--no-custom-checks` on `run` and `ci`: no child, notice printed; fork documentation covered | 1.0.0 |
+| AC-33 | Custom check on Windows with `.bat` / `.cmd` and a metacharacter in an argument: startup error naming the check (also run on Ubuntu and macOS for the happy path) | 1.0.0 |
+| AC-34 | Example under `example/custom_check/` speaks protocol 1 end to end against the host | 1.0.0 |
+| AC-35 | Source closure diverges (unstaged edit to the check entry): exit 70, child not started; after commit of the same tree, the check runs | 1.0.0 |
 
 ## 5. Determinism test
 

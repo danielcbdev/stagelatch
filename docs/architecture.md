@@ -85,12 +85,14 @@ lib/
       packages/                      # buildPackageMap, buildImportGraph
       why/                           # Why, WhyResult, renderWhy (0.3.0)
       doctor/                        # Doctor, ProbeResult
-      ports/                         # GitRepository, Reporter, HookStore, WorkingTree, Clock, Cache, TestRunnerFactory, ...
+      custom/                        # protocol messages, codec, ExternalCheck (1.0.0)
+      ports/                         # GitRepository, Reporter, HookStore, WorkingTree, Clock, Cache, TestRunnerFactory, CheckProcessFactory, ...
     infrastructure/
       git/                           # GitProcess, CatFileBatch, GitCliRepository, GitSnapshotFiles
       dart/                          # FileSdkLocator, SdkDartToolchain(+Factory), MaterializedSnapshot,
                                      # AnalysisServerClient, SyntacticFacts (lexer and recognizers, ADR-0017),
                                      # CachedFacts, facts codec, ProcessTestRunner, test event parser (0.3.0)
+      custom/                        # SpawnedCheckProcess (1.0.0)
       documents/                     # YamlDocuments, JsonDocuments
       reporters/                     # ConsoleReporter, ansi, console format, JsonReporter, GithubReporter,
                                      # SarifReporter, JunitReporter, xml writer (0.3.0)
@@ -651,6 +653,58 @@ final class WhyCommand extends Command<int> {}                             // Co
 - `testFunctions` is not an argument of `Cache`: the key already carries it.
 - `PackageMap.workspaceRoots` is filled by `buildPackageMap` from the `workspace:` lists of root pubspecs and the `resolution: workspace` marker of members (`dart-toolchain.md` section 2).
 
+### 5.8 Custom checks (1.0.0)
+
+Signatures binding for plan 05. Full behaviour: [`specs/custom-checks.md`](specs/custom-checks.md).
+
+```
+lib/src/
+  application/custom/     # protocol messages, codec, ExternalCheck
+  application/ports/check_process.dart
+  infrastructure/custom/  # SpawnedCheckProcess
+example/custom_check/     # reference peer (not a published package)
+```
+
+```dart
+// application/custom/ — see plan 05 Tasks 2–3 for the full sealed hierarchies
+String encodeToCheck(ToCheck message);
+FromCheck decodeFromCheck(String line);
+const int maxProtocolLineBytes = 1 << 20;
+const int maxFindingsPerCustomCheck = 10000;
+
+abstract interface class CheckProcess {
+  Stream<String> get lines;
+  void send(String line);
+  Future<void> kill();
+  Future<int> get exitCode;
+}
+abstract interface class CheckProcessFactory {
+  Future<CheckProcess> start(List<String> command, {required String workingDirectory});
+}
+final class ExternalCheck implements Check {
+  ExternalCheck({
+    required String id,
+    required List<String> command,
+    required CheckProcessFactory factory,
+    required Duration timeout,
+    required Set<RepoPath> sourceClosure,
+    Map<String, Object?> settings = const {},
+  });
+}
+final class CustomCheckConfig {
+  String get id;
+  List<String> get run;
+  Duration get timeout;           // default 60s
+  List<RepoPath> get sources;
+  Map<String, RuleLevel> get rules;
+  Map<String, Object?> get settings;
+}
+```
+
+- `ExternalCheck.phase` is `CheckPhase.verify`. Rules come from the child's `ready` (`hasDynamicRules` true for the run).
+- Composition resolves `dart`/`flutter` in `run` to the project SDK, builds the source closure, and registers one `ExternalCheck` per `Config.customChecks` entry when the hook selector includes it.
+- Custom checks are concurrent with other verify checks; each has its own process.
+
 ## 6. Infrastructure decisions that shape everything else
 
 - **Snapshots are addressed by blob id.** `git ls-files -s -z` (index) or `git ls-tree -r -z` (commit) gives `path -> (mode, blob id)` once. Content is then read from one persistent `git cat-file --batch` by blob id. This avoids path quoting problems and gives every file a free content hash for caching.
@@ -681,11 +735,11 @@ Details: [`specs/git.md`](specs/git.md), [`specs/dart-toolchain.md`](specs/dart-
 
 ## 9. What this architecture deliberately does not have
 
-- No plugin loading before 1.0.0 ([`specs/custom-checks.md`](specs/custom-checks.md)).
+- No in-process plugin loading. Custom checks (1.0.0) are out-of-process only ([`specs/custom-checks.md`](specs/custom-checks.md), ADR-0019). There is no `stagelatch_core` package in 1.0.0.
+- No public Dart authoring API beyond `packageVersion` (`lib/stagelatch.dart`).
 - No daemon in `0.1.0`. The spike missed its latency target and the owner chose one-shot runs with `analyze` off the default `pre-commit` list (ADR-0008); a daemon needs its own ADR.
 - No dependency injection framework, code generation or reflection.
 - No abstraction over git itself: the git CLI is the only supported backend.
-
 
 ## ProcessStarter (0.3.0)
 
