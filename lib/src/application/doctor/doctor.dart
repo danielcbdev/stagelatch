@@ -8,6 +8,7 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:stagelatch/src/application/config/check_catalog.dart';
 import 'package:stagelatch/src/application/config/config.dart';
 import 'package:stagelatch/src/application/config/config_loader.dart';
+import 'package:stagelatch/src/application/config/custom_check_config.dart';
 import 'package:stagelatch/src/application/doctor/probe_result.dart';
 import 'package:stagelatch/src/application/environment.dart';
 import 'package:stagelatch/src/application/errors.dart';
@@ -22,7 +23,7 @@ import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/domain/snapshot.dart';
 
-/// Runs probes D1 to D9 in order. Each probe is independent: one that
+/// Runs probes D1 to D10 in order. Each probe is independent: one that
 /// throws becomes a `fail` line and the others still run.
 final class Doctor {
   /// Creates the doctor.
@@ -72,6 +73,7 @@ final class Doctor {
       ),
       ('D8', () async => [await _resolvedSdk(config)]),
       ('D9', _packageConfigs),
+      ('D10', () => _customChecks(config)),
     ];
     // D4 needs the config, so the config is loaded first, without a line.
     try {
@@ -326,6 +328,68 @@ final class Doctor {
             ProbeStatus.warn,
             'Missing $path. Run: dart pub get',
           );
+  }
+
+  /// One line per configured custom check: id, resolved command, sources,
+  /// and whether the executable resolves (docs/specs/custom-checks.md §12).
+  /// Never prints environment variable values (S5/S11).
+  Future<List<ProbeResult>> _customChecks(Config? config) async {
+    final checks = config?.customChecks ?? const [];
+    if (checks.isEmpty) return const [];
+    ResolvedSdk? sdk;
+    try {
+      sdk = await _sdk.locate(config ?? (await _defaults()).config);
+    } on Object {
+      sdk = null;
+    }
+    return [for (final check in checks) await _customCheck(check, sdk)];
+  }
+
+  Future<ProbeResult> _customCheck(
+    CustomCheckConfig check,
+    ResolvedSdk? sdk,
+  ) async {
+    final resolved = await _resolveCustomCommand(check.run, sdk);
+    final sources = check.sources.map((path) => path.value).join(', ');
+    final command = resolved.argv.join(' ');
+    final ok = resolved.executableFound;
+    return ProbeResult(
+      'D10',
+      ok ? ProbeStatus.ok : ProbeStatus.warn,
+      'custom check "${check.id}": $command '
+          '(sources: $sources; '
+          '${ok ? 'executable ok' : 'executable not found'})',
+    );
+  }
+
+  Future<({List<String> argv, bool executableFound})> _resolveCustomCommand(
+    List<String> run,
+    ResolvedSdk? sdk,
+  ) async {
+    if (run.isEmpty) {
+      return (argv: const <String>[], executableFound: false);
+    }
+    final head = run.first;
+    final rest = run.skip(1).toList();
+    if (head == 'dart') {
+      final dart = sdk?.dartExecutable;
+      return (argv: [dart ?? 'dart', ...rest], executableFound: dart != null);
+    }
+    if (head == 'flutter') {
+      final flutter = sdk?.flutterExecutable;
+      return (
+        argv: [flutter ?? 'flutter', ...rest],
+        executableFound: flutter != null,
+      );
+    }
+    if (head.contains('/') || head.contains(r'\')) {
+      return (argv: run, executableFound: true);
+    }
+    final absolute = await _probes.resolveOnPath(head);
+    return (
+      argv: [absolute ?? head, ...rest],
+      executableFound: absolute != null,
+    );
   }
 }
 

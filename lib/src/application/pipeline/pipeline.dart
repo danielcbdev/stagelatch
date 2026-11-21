@@ -9,6 +9,7 @@ import 'package:stagelatch/src/application/baseline/fingerprint.dart';
 import 'package:stagelatch/src/application/config/config.dart';
 import 'package:stagelatch/src/application/config/config_loader.dart';
 import 'package:stagelatch/src/application/config/default_hooks.dart';
+import 'package:stagelatch/src/application/config/hook_selector.dart';
 import 'package:stagelatch/src/application/custom/external_check.dart';
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/application/packages/package_map_builder.dart';
@@ -103,7 +104,9 @@ final class Pipeline {
       catalog: _registry,
     );
     final config = loaded.config;
-    final registry = await _registryWithCustom(config, all: request.all);
+    final registry = request.noCustomChecks
+        ? _registry
+        : await _registryWithCustom(config, all: request.all);
     final selection = Selection.of(
       config.hooks[request.hook ?? _hookOf(entry)] ?? const [],
     );
@@ -275,11 +278,33 @@ final class Pipeline {
 
     // Unknown ids in ignore comments of changed files. They belong to no
     // check and bypass selection, but `rules:` and `exclude` still apply.
+    // Custom-check prefixes: with --no-custom-checks any configured id is
+    // trusted; otherwise only config/selector/handshake rules count (§12).
+    final customIds = {for (final check in config.customChecks) check.id};
+    final trustedCustomCheckIds = request.noCustomChecks
+        ? customIds
+        : const <String>{};
+    final additionalKnownRules = <RuleId>{
+      if (!request.noCustomChecks) ...[
+        for (final check in config.customChecks)
+          for (final name in check.rules.keys) RuleId(check.id, name),
+        for (final selector
+            in config.hooks[request.hook ?? _hookOf(entry)] ??
+                const <HookSelector>[])
+          if (selector.ruleId case final RuleId rule
+              when customIds.contains(rule.check))
+            rule,
+        for (final check in registry.checks)
+          if (check is ExternalCheck) ...check.handshakeRules,
+      ],
+    };
     final ignores = await applyInlineIgnores(
       const [],
       snapshot: verifyContext.snapshot,
       changes: run.changes,
       catalog: registry,
+      trustedCustomCheckIds: trustedCustomCheckIds,
+      additionalKnownRules: additionalKnownRules,
     );
     final invalidIgnores = applyExclude(
       applyLevels(ignores.invalid, config.rules),
@@ -337,7 +362,10 @@ final class Pipeline {
       budgetExceeded: total > config.timeBudget,
       suppressed: suppressed,
       baselined: accepted.baselined,
-      notices: loaded.notices,
+      notices: List.unmodifiable([
+        ...loaded.notices,
+        if (request.noCustomChecks) noCustomChecksNotice,
+      ]),
     );
   }
 
@@ -442,6 +470,14 @@ final class Pipeline {
           timeout: entry.timeout,
           sourceClosure: entry.sources.toSet(),
           workingDirectory: root,
+          knownRules: [
+            for (final MapEntry(:key, :value) in entry.rules.entries)
+              RuleDescriptor(
+                id: RuleId(entry.id, key),
+                defaultSeverity: value.severity ?? Severity.error,
+                summary: 'Custom rule $key',
+              ),
+          ],
           settings: entry.settings,
           all: all,
         ),
