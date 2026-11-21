@@ -12,6 +12,7 @@ import 'package:stagelatch/src/cli/scope.dart';
 import 'package:stagelatch/src/infrastructure/reporters/console_reporter.dart';
 import 'package:stagelatch/src/infrastructure/reporters/github_reporter.dart';
 import 'package:stagelatch/src/infrastructure/reporters/json_reporter.dart';
+import 'package:stagelatch/src/infrastructure/reporters/junit_reporter.dart';
 import 'package:stagelatch/src/infrastructure/reporters/sarif_reporter.dart';
 import 'package:stagelatch/src/version.dart';
 
@@ -26,7 +27,7 @@ final class CiCommand extends Command<int> {
       ..addFlag('all', negatable: false, help: 'Check every file.')
       ..addOption(
         'reporter',
-        help: 'console (default), json, github or sarif.',
+        help: 'console (default), json, github, junit or sarif.',
       );
   }
 
@@ -48,10 +49,16 @@ final class CiCommand extends Command<int> {
     }
     final head = argResults?.option('head') ?? 'HEAD';
     final reporter = argResults?.option('reporter') ?? 'console';
-    if (!const {'console', 'json', 'github', 'sarif'}.contains(reporter)) {
+    if (!const {
+      'console',
+      'json',
+      'github',
+      'junit',
+      'sarif',
+    }.contains(reporter)) {
       throw UsageException(
-        'Unknown reporter "$reporter". Expected console, json, github or '
-        'sarif.',
+        'Unknown reporter "$reporter". Expected console, json, github, junit '
+        'or sarif.',
       );
     }
     final composition = await _open(io);
@@ -76,6 +83,7 @@ final class CiCommand extends Command<int> {
       switch (name) {
         'json' => JsonReporter(io.stdout, toolVersion: packageVersion),
         'github' => GithubReporter(io.stdout),
+        'junit' => JunitReporter(io.stdout),
         'sarif' => SarifReporter(
           io.stdout,
           toolVersion: packageVersion,

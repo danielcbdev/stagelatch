@@ -143,14 +143,15 @@ void main() {
         '--base',
         'main',
         '--reporter',
-        'junit',
+        'xml',
       ]);
 
       expect(result.exitCode, 64);
       expect(
         result.stderr,
         contains(
-          'Unknown reporter "junit". Expected console, json, github or sarif.',
+          'Unknown reporter "xml". Expected console, json, github, junit or '
+          'sarif.',
         ),
       );
     },
@@ -205,6 +206,56 @@ void main() {
     expect(result.stdout, isEmpty);
     expect(
       result.stderr,
+      'Cannot find a merge base between origin/main and HEAD. If this is a '
+      'shallow clone, fetch full history (actions/checkout: '
+      'fetch-depth: 0).\n',
+    );
+  });
+
+  test('--reporter junit prints the document; on a usage error stdout is '
+      'empty', () async {
+    await commitFile('pubspec.yaml', badPubspec);
+
+    final ok = await repo.stagelatch([
+      'ci',
+      '--base',
+      'main',
+      '--reporter',
+      'junit',
+    ]);
+    expect(ok.exitCode, 1);
+    expect(ok.stdout, contains('<testsuite name="stagelatch"'));
+    expect(ok.stdout, contains('name="pubspec"'));
+    expect(ok.stdout, contains('<failure '));
+    expect(ok.stdout, endsWith('\n'));
+
+    final clones = await Directory.systemTemp.createTemp('stagelatch_junit_');
+    addTearDown(() => clones.delete(recursive: true));
+    final clone = p.join(clones.path, 'clone');
+    await repo.git([
+      'clone',
+      '-q',
+      '--depth',
+      '1',
+      '--branch',
+      'feature',
+      Uri.directory(repo.root).toString(),
+      clone,
+    ]);
+
+    final usage = await repo.stagelatch([
+      '-C',
+      clone,
+      'ci',
+      '--base',
+      'origin/main',
+      '--reporter',
+      'junit',
+    ]);
+    expect(usage.exitCode, 64);
+    expect(usage.stdout, isEmpty);
+    expect(
+      usage.stderr,
       'Cannot find a merge base between origin/main and HEAD. If this is a '
       'shallow clone, fetch full history (actions/checkout: '
       'fetch-depth: 0).\n',

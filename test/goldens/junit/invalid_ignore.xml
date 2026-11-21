@@ -1,0 +1,1 @@
+<testsuite name="stagelatch" tests="2" failures="0" errors="0" time="0.100"><testcase classname="stagelatch" name="format" time="0.100"/><testcase classname="stagelatch" name="stagelatch" time="0.000"><system-out>stagelatch/invalid-ignore: Unknown rule "foo/bar" in stagelatch:ignore. (lib/a.dart:1:4)</system-out></testcase></testsuite>
