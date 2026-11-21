@@ -95,7 +95,8 @@ Since `0.1.0-dev.1`. For each git hook name: remove the script if it carries the
 Since `0.1.0` (`junit`, `sarif` since `0.3.0`).
 
 - `--base` is required. `--head` defaults to `HEAD`.
-- `--reporter` accepts `console`, `json` and `github` (default `console`). Another value is a usage error: `Unknown reporter "<value>". Expected console, json or github.`
+- `--reporter` accepts `console`, `json`, `github`, `junit` and `sarif` (default `console`). Another value is a usage error: `Unknown reporter "<value>". Expected console, json, github, junit or sarif.` `run` accepts `console` and `json` only.
+- `junit` and `sarif` print one document on stdout (section 7). On exit 64, 70 or 78 they print nothing on stdout and the human message goes to stderr; only `json` has an error document.
 - Selectors come from `hooks.ci`, or the union of `hooks.pre-commit` and `hooks.pre-push`.
 - Fixes are never applied.
 - No merge base (typically a shallow clone), exit 64: `Cannot find a merge base between <base> and <head>. If this is a shallow clone, fetch full history (actions/checkout: fetch-depth: 0).`
@@ -114,9 +115,9 @@ Since `0.1.0`. Runs these probes in order and prints one line each, prefixed `ok
 | D6 | running version vs `min_version` | running version is older |
 | D7 | `stagelatch.yaml` is valid | invalid |
 | D8 | resolved SDK: path, version, source | no SDK found, or SDK inside the repository |
-| D9 | `.dart_tool/package_config.json` per package | never (`warn` when missing) |
+| D9 | `.dart_tool/package_config.json` per package, at its resolution root | never (`warn` when missing) |
 
-Line format: the status padded with spaces to six characters, the probe ID, one space, the message. D4 prints one line per configured git hook and D9 one line per package, each with the same ID. Messages, `<x>` substituted and sanitized (S5):
+Line format: the status padded with spaces to six characters, the probe ID, one space, the message. D4 prints one line per configured git hook and D9 one line per distinct package config location (packages of one pub workspace share the root's), each with the same ID. Messages, `<x>` substituted and sanitized (S5):
 
 | ID | `ok` | `warn` | `fail` |
 |---|---|---|---|
@@ -130,7 +131,7 @@ Line format: the status padded with spaces to six characters, the probe ID, one 
 | D8 | `Dart SDK <version> at <root> (<source>)`, where `<source>` is `sdk_path`, `fvm` or `PATH` | | the `ConfigException` message of [`dart-toolchain.md`](dart-toolchain.md#1-sdk-resolution) section 1 |
 | D9 | `<path> found.` | `Missing <path>. Run: dart pub get` | |
 
-`<path>` in D9 is the repository-relative location of `.dart_tool/package_config.json` for that package. A probe that throws unexpectedly becomes `fail` with the message `Probe failed: <first line of the error>`, and the remaining probes still run. No environment variable value is printed.
+`<path>` in D9 is the repository-relative location of `.dart_tool/package_config.json` at the package's resolution root ([`dart-toolchain.md`](dart-toolchain.md#2-packages)). A probe that throws unexpectedly becomes `fail` with the message `Probe failed: <first line of the error>`, and the remaining probes still run. No environment variable value is printed.
 
 With `--reporter json`, one JSON object instead of the lines, keys in this order: `{"schemaVersion": 1, "probes": [{"id": "D1", "status": "ok", "message": "git 2.56.0"}, ...], "exitCode": 0}`, indented by two spaces, followed by a newline. Messages are not sanitized there; the encoder escapes them. Another `--reporter` value is a usage error: `Unknown reporter "<value>". Expected console or json.`
 
@@ -142,7 +143,7 @@ Since `0.2.0`. Specified in [`baseline-and-suppression.md`](baseline-and-suppres
 
 ### 3.8 `why <test-file> [--base <ref>]`
 
-Since `0.3.0`. Prints why `tests/affected` selects the test file for the changeset between `--base` (default: the upstream of the current branch, else its merge-base with the remote's default branch) and the index.
+Since `0.3.0`. Prints why `tests/affected` selects the test file for the changeset between the base and the index. The base is resolved as in [`git.md`](git.md#431-why): `--base`, else the upstream of the current branch, else the remote's default branch, and in each case the merge base of that ref with `HEAD`. With none of them: usage error `Cannot determine a base. Pass --base <ref>.` The index is the snapshot; a test file or a changed file that only exists in the working tree is not seen. `why` starts no test process (ADR-0018).
 
 ```
 test/checkout/cart_test.dart is affected by 1 changed file:
@@ -152,7 +153,7 @@ lib/checkout/cart.dart (changed)
   imported by test/checkout/cart_test.dart
 ```
 
-One shortest import chain per changed file that reaches the test. When none does: `test/x_test.dart is not affected by the current changes.` Exit 0 in both cases; exit 64 when the file is not a test file of any package.
+One shortest import chain per changed file that reaches the test, in path order of the changed files. The header counts the chains: `<test> is affected by <n> changed file(s):`. The first line of a chain is the changed path followed by `(changed)`, or `(deleted)` for a deleted file and for the old path of a rename, then one line `  imported by <path>` per step, ending at the test. A changed test file is its own chain: only its first line. When a change to a `pubspec.yaml`, `analysis_options.yaml` or `pubspec.lock` selects the test, the chain is the changed path with `(changed)` and one line `  configures every test of the package at <root>`, where `<root>` is the package's directory, or `.` for the repository root. When no change selects the test: `test/x_test.dart is not affected by the current changes.` Exit 0 in both cases; exit 64 when the file is not a test file of any package of the index, or is not in the index: `<test-file> is not a test file of any package.` The `<test-file>` argument is a repository-relative path with forward slashes.
 
 ## 4. Console reporter
 
@@ -239,7 +240,7 @@ One workflow command per finding, then the console summary line.
 
 ## 7. SARIF and JUnit reporters
 
-Since `0.3.0`.
+Since `0.3.0`. Only `ci` accepts them (section 3.5). `ci` resolves exactly one run, so each reporter writes one document for one run; with no run it writes a valid document with no results, and a second run is a programming error. Both documents are produced by an encoder or an XML writer, never by concatenating repository text (security S5), end with one newline, and carry no duration that varies between runs except JUnit's `time` attributes.
 
-- **SARIF 2.1.0:** one `run`; `tool.driver.name` is `stagelatch`; `rules` lists every rule that produced a result, with `id` and `shortDescription`; each finding is a `result` with `ruleId`, `level` (`error` or `warning`), `message.text` and one `physicalLocation` using 1-based `region`.
-- **JUnit XML:** one `<testsuite name="stagelatch">`; one `<testcase>` per check with `classname="stagelatch"` and `name="<check id>"`; each error finding is a `<failure>` whose `message` is `<rule>: <message>` and whose text is `<path>:<line>:<column>`. Warnings go to `<system-out>`.
+- **SARIF 2.1.0:** a JSON object with `"$schema"` (`https://json.schemastore.org/sarif-2.1.0.json`), `"version": "2.1.0"` and one `run`. `tool.driver` has `name` `stagelatch`, `version` (the tool version) and `rules`: every rule that produced a result, once, sorted by id, each with `id` and `shortDescription.text` (the rule's summary; the rule id for a rule no check declares, such as an analyzer code). `results` follow the pipeline's finding order. Each has `ruleId`, `level` (`error` or `warning`), `message.text` (the message, unsanitized) and one location: `physicalLocation.artifactLocation` with `uri` (the repository-relative path, percent-encoded per segment) and `uriBaseId` `%SRCROOT%`, and `region` with `startLine`, `startColumn`, `endLine` and `endColumn`, 1-based. `endColumn` is the exclusive end, which is what SARIF means by it. No `partialFingerprints`.
+- **JUnit XML:** one `<testsuite name="stagelatch" tests="<checks>" failures="<failed checks>" errors="0" time="<seconds>">`. One `<testcase classname="stagelatch" name="<check id>" time="<seconds>">` per check that ran, in registry order. Each finding with severity `error` is a `<failure message="<rule>: <message>">` whose text is `<path>:<line>:<column>`; a testcase counts as failed when it has at least one. Findings with severity `warning` go to the testcase's `<system-out>`, one `<rule>: <message> (<path>:<line>:<column>)` per line. A finding whose rule belongs to no check of the report (`stagelatch/invalid-ignore`) goes to an extra last testcase named `stagelatch`, present only then. `time` has three decimals. Characters XML 1.0 forbids are dropped from every text and attribute.

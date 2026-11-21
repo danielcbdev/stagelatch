@@ -69,9 +69,10 @@ lib/
         dart_toolchain.dart          # DartToolchain, DartDiagnostic, DiagnosticSeverity, FormatOutcome
         dart_file_facts.dart         # DartFileFacts, Directive, AnnotatedDeclaration, TestCall
         import_graph.dart            # ImportGraph
+        test_runner.dart             # TestRunner, TestRunResult, TestFailure (0.3.0)
     checks/
       pubspec/  format/  analyze/  sensitive_files/
-      codegen/  l10n/  assets/  tests/
+      codegen/  l10n/  assets/  tests/       # tests/: affected_tests.dart, affected_rule.dart (0.3.0)
     application/
       errors.dart                    # StagelatchException and subtypes
       entry_point.dart               # EntryPoint and subtypes, PushedRef
@@ -81,21 +82,24 @@ lib/
       text/                          # sanitizeForTerminal (S5)
       baseline/                      # Baseline, Fingerprint, BaselineStore port
       hooks/                         # HookInstaller, hook script template, parsePushedRefs
-      packages/                      # buildPackageMap
+      packages/                      # buildPackageMap, buildImportGraph
+      why/                           # Why, WhyResult, renderWhy (0.3.0)
       doctor/                        # Doctor, ProbeResult
-      ports/                         # GitRepository, Reporter, HookStore, WorkingTree, Clock, ...
+      ports/                         # GitRepository, Reporter, HookStore, WorkingTree, Clock, Cache, TestRunnerFactory, ...
     infrastructure/
       git/                           # GitProcess, CatFileBatch, GitCliRepository, GitSnapshotFiles
       dart/                          # FileSdkLocator, SdkDartToolchain(+Factory), MaterializedSnapshot,
-                                     # AnalysisServerClient, SyntacticFacts (lexer and recognizers, ADR-0017)
+                                     # AnalysisServerClient, SyntacticFacts (lexer and recognizers, ADR-0017),
+                                     # CachedFacts, facts codec, ProcessTestRunner, test event parser (0.3.0)
       documents/                     # YamlDocuments, JsonDocuments
-      reporters/                     # ConsoleReporter, ansi, console format, JsonReporter, GithubReporter, ...
-      io/                            # LocalWorkingTree, FileHookStore, SystemClock, LocalDoctorProbes
+      reporters/                     # ConsoleReporter, ansi, console format, JsonReporter, GithubReporter,
+                                     # SarifReporter, JunitReporter, xml writer (0.3.0)
+      io/                            # LocalWorkingTree, FileHookStore, SystemClock, LocalDoctorProbes, FileCache (0.3.0)
     cli/
       runner.dart                    # StagelatchCommandRunner
       composition.dart               # the only place that wires adapters to ports
       exit_codes.dart                # ExitCode
-      commands/                      # one file per command
+      commands/                      # one file per command (why_command.dart from 0.3.0)
 test/
   architecture/  domain/  checks/  application/  infrastructure/  cli/
   acceptance/                        # real git repositories in temp directories
@@ -170,9 +174,13 @@ final class DartPackage {
 }
 
 final class PackageMap {
-  factory PackageMap(Iterable<DartPackage> packages);   // rejects a duplicate root
+  /// [workspaceRoots] maps each member of a pub workspace to its workspace root (0.3.0).
+  factory PackageMap(Iterable<DartPackage> packages, {Map<DartPackage, DartPackage> workspaceRoots = const {}});   // rejects a duplicate root
   final List<DartPackage> packages;        // sorted by root, repository root first
   DartPackage? packageOf(RepoPath path);   // deepest enclosing package
+  DartPackage resolutionPackageOf(DartPackage package);   // the workspace root of a member, else the package itself
+  RepoPath? resolutionRootOf(DartPackage package);        // its directory: where pubspec.lock and .dart_tool/package_config.json live; null at the repository root
+  List<DartPackage> workspaceMembersOf(DartPackage package);   // every package resolving at the same root, root included, sorted; just [package] outside a workspace
 }
 ```
 
@@ -240,7 +248,21 @@ abstract interface class DartToolchain {
 final class ImportGraph {
   factory ImportGraph.build({required Map<RepoPath, List<Directive>> directives, required PackageMap packages});
   Set<RepoPath> dependentsOf(Set<RepoPath> files);              // reverse transitive closure, inputs included, sorted
+  Set<RepoPath> dependenciesOf(Set<RepoPath> files);            // forward transitive closure, inputs and edge targets absent from the snapshot included, sorted (0.3.0)
   List<RepoPath>? shortestChain(RepoPath from, RepoPath to);    // breadth-first, ties by path order
+  Location? directiveOf(RepoPath importer, RepoPath target);    // first directive of [importer] that resolves to [target] (0.3.0)
+}
+
+/// What a test run reports (0.3.0). Implemented only by the process adapter.
+final class TestFailure {
+  const TestFailure({required this.file, required this.line, required this.column, required this.name});   // 1-based; name is the tool's full name
+}
+final class TestRunResult {
+  const TestRunResult({this.failures = const [], this.startupError});   // startupError: a run that failed before any test executed
+}
+abstract interface class TestRunner {
+  /// Runs [files] (repository paths of test files of [package]) and reports. Never throws for a failing test.
+  Future<TestRunResult> run(DartPackage package, List<RepoPath> files);
 }
 ```
 
@@ -274,8 +296,10 @@ abstract interface class CheckContext {
   Documents get documents;
   DartToolchain get dart;                // started lazily on first use
   Future<ImportGraph> get importGraph;   // added in plan 02; built lazily, once per run
-  TestRunner get tests;                  // since 0.3.0
-  Future<Set<RepoPath>> get diverging;   // since 0.3.0; paths that differ from the working tree
+  /// Since 0.3.0. Starts project code; only `tests/affected` may call it, on pre-push and ci (ADR-0018, S14).
+  TestRunner get tests;
+  /// Since 0.3.0. Of [closure], the paths on which the working tree is not the snapshot (ADR-0018; git.md section 5).
+  Future<Set<RepoPath>> divergentAmong(Set<RepoPath> closure);
   String? get targetBranch;
   bool isEnabled(RuleId rule);
   /// Typed parameters of the calling check, e.g. `AssetsSettings`.
@@ -321,6 +345,12 @@ abstract interface class GitRepository {
   Future<List<ResolvedRun>> resolve(EntryPoint entry, {required bool all});
   SnapshotFiles files(SnapshotRef ref);
   Future<Set<RepoPath>> divergingFromWorktree(SnapshotRef ref);
+  /// 0.3.0. Of [candidates], those divergent for `tests/affected` (git.md section 5): in the list above, or absent
+  /// from [ref], present on disk as a regular file and not ignored.
+  Future<Set<RepoPath>> divergentAmong(SnapshotRef ref, Set<RepoPath> candidates);
+  /// 0.3.0. The index against the merge base of [baseRef] (default: the upstream, else the remote's default
+  /// branch) and HEAD, for `why` (git.md section 4.3.1).
+  Future<ResolvedRun> resolveAgainstIndex({String? baseRef});
   /// Index snapshots only. Returns what was applied and whether the working
   /// tree copy was refreshed. Afterwards, files(IndexSnapshot()) is a view
   /// of the updated index.
@@ -404,7 +434,9 @@ final class RunReport {
 - `context.dart` creates a toolchain on first access through `DartToolchainFactory`, after `SdkLocator.locate`. A run in which no check touches it locates no SDK and starts nothing.
 - The fix phase and the verify phase each have their own context, so each has its own toolchain, bound to the snapshot view of that phase. Concurrent verify checks share one. Every toolchain is closed in a `finally` around the run.
 - `context.packages` is `buildPackageMap(snapshot, documents)`; `context.importGraph` is built once per context from `dart.facts` of every `.dart` file of the snapshot.
-- `dart.facts` takes the snapshot to read, so a check asks for the facts of the base through `context.base`. `LazyToolchain` passes `tests.functions` to `DartToolchainFactory.create` (plan 03 Task 6); there is no facts cache before plan 04.
+- `dart.facts` takes the snapshot to read, so a check asks for the facts of the base through `context.base`. `LazyToolchain` passes `tests.functions` to `DartToolchainFactory.create` (plan 03 Task 6). From plan 04, `SdkDartToolchainFactory` is built with an optional `Cache` and the toolchains it creates answer `facts` through `CachedFacts` (section 5.7); `create` keeps its signature.
+- `context.tests` is a `LazyTestRunner`: it locates the SDK and creates the process runner through `TestRunnerFactory` only when `tests/affected` calls it, so no other run pays for it. Nothing in it is closed; each `run` closes its own child process.
+- `context.divergentAmong` is `GitRepository.divergentAmong` bound to the run's snapshot.
 
 ### 5.3.2 Other application functions added in plan 02
 
@@ -538,6 +570,86 @@ final class BaselineCommands { BaselineCommands(Pipeline pipeline, WorkingTree w
 - `RunRequest` also carries `hook` (the `hooks` key whose selectors decide which checks run; `create` and `prune` pass `ci`) and `useBaseline` (false when the baseline is being written). `Pipeline.currentBaseline(request)` judges the request with those settings and returns its findings counted by rule, path and fingerprint, plus the configured baseline path.
 - The baseline filter is not part of the per-check chain: `Pipeline` sorts all findings, applies the baseline, then appends `stagelatch/invalid-ignore` findings and sorts again.
 - `GitRepository.resolve(entry, all: true)` is implemented (plan 03 Task 8); it no longer throws.
+
+### 5.7 Added in plan 04
+
+```dart
+// application/ports/cache.dart (dart-toolchain.md section 6.1)
+abstract interface class Cache {
+  Future<String?> read(String namespace, String key);                      // null: a miss, whatever the reason
+  Future<void> write(String namespace, String key, String value);          // never throws for an I/O failure
+}                                                                          // namespace [a-z0-9-]+, key [0-9a-f-]{2,}; anything else is an ArgumentError
+
+// application/ports/test_runner_factory.dart
+abstract interface class TestRunnerFactory {
+  TestRunner create({required ResolvedSdk sdk, required String repoRoot}); // starts nothing
+}
+
+// application/pipeline/lazy_test_runner.dart
+final class LazyTestRunner implements TestRunner {
+  LazyTestRunner({required SdkLocator locator, required TestRunnerFactory factory, required Config config, required Future<String> Function() repoRoot});
+}
+// Pipeline gains `required TestRunnerFactory testRunners`; PipelineCheckContext gains `required TestRunner tests`
+// and `required Future<Set<RepoPath>> Function(Set<RepoPath>) divergentAmong`.
+
+// application/packages/
+Future<PackageMap> buildPackageMap(SnapshotFiles snapshot, Documents documents);          // now also fills PackageMap.workspaceRoots
+Future<ImportGraph> buildImportGraph({required DartToolchain dart, required SnapshotFiles snapshot, required PackageMap packages});   // shared by the context and `why`
+
+// application/why/why.dart
+enum WhyOrigin { changed, deleted, configuration }
+final class WhyChain { WhyOrigin get origin; List<RepoPath> get files; DartPackage? get package; }   // files: the changed path first, the test last; configuration: just the changed path and the package it configures
+final class WhyResult { RepoPath get test; List<WhyChain> get chains; }
+final class Why {
+  Why({required GitRepository git, required ConfigLoader configLoader, required CheckRegistry registry, required Documents documents, required SdkLocator sdkLocator, required DartToolchainFactory toolchains, required Version toolVersion});
+  Future<WhyResult> explain(RepoPath testFile, {String? baseRef});     // UsageException when [testFile] is not a test file of a package of the index
+}
+String renderWhy(WhyResult result);                                    // cli.md section 3.8
+
+// checks/tests/affected_tests.dart (ADR-0018)
+final class AffectedTests {
+  List<RepoPath> get testFiles;                                        // sorted, existing in the snapshot
+  Map<DartPackage, List<RepoPath>> get byPackage;                      // sorted by package root; files sorted
+  Set<RepoPath> get sources;                                           // changed, deleted and previous paths whose dependents were walked
+  Map<RepoPath, List<DartPackage>> get widenedBy;                      // a changed pubspec.yaml, analysis_options.yaml or committed lock -> the packages whose tests it selects
+  Set<RepoPath> get closure;                                           // forward import closure of testFiles, plus the owning packages' pubspec.yaml, analysis_options.yaml and, when in the snapshot, lock
+}
+AffectedTests selectAffectedTests({required ImportGraph graph, required ChangeSet changes, required PackageMap packages, required Set<RepoPath> snapshotPaths});
+
+// checks/tests/affected_rule.dart
+const RuleId affectedRule = RuleId(testsCheckId, 'affected');
+Future<List<Finding>> affectedFindings(CheckContext context);
+
+// checks/l10n/unused_keys.dart
+const RuleId unusedKeyRule = RuleId(l10nCheckId, 'unused-key');            // in l10n_rules.dart; default warning
+Future<List<Finding>> unusedKeyFindings(CheckContext context, L10nSetup setup, ArbDocument template, DartPackage package);
+
+// infrastructure/io/file_cache.dart
+final class FileCache implements Cache { FileCache({required String commonDir}); }   // <commonDir>/stagelatch/cache
+
+// infrastructure/dart/
+const int factsFormatVersion = 1;                                          // encoding and extractor behaviour; see dart-toolchain.md section 6.1
+String encodeFacts(DartFileFacts facts);                                   // canonical JSON, positions only
+DartFileFacts? decodeFacts(String text, RepoPath path);                    // null: not decodable or another version
+final class CachedFacts { CachedFacts({required SyntacticFacts extractor, required Cache cache}); Future<DartFileFacts?> facts(SnapshotFiles files, RepoPath path); }
+final class SdkDartToolchainFactory implements DartToolchainFactory { const SdkDartToolchainFactory({Cache? cache}); }
+final class TestCommand { String get executable; List<String> get arguments; RepoPath? get directory; }   // directory: the package root; null at the repository root
+List<TestCommand> testCommands({required ResolvedSdk sdk, required DartPackage package, required List<RepoPath> files});   // batches of at most 20,000 characters
+final class TestEventParser { TestEventParser({required String repoRoot, required RepoPath fallbackFile}); void add(String line); TestRunResult finish({required int exitCode, String standardError = ''}); }
+final class ProcessTestRunner implements TestRunner { ProcessTestRunner({required ResolvedSdk sdk, required String repoRoot}); }
+final class ProcessTestRunnerFactory implements TestRunnerFactory { const ProcessTestRunnerFactory(); }
+
+// infrastructure/reporters/
+final class SarifReporter implements Reporter { SarifReporter(StringSink out, {required String toolVersion, required RuleDescriptor? Function(RuleId) describe}); }
+final class JunitReporter implements Reporter { JunitReporter(StringSink out); }
+String escapeXml(String text, {required bool attribute});                  // the five entities; drops characters XML 1.0 forbids
+
+// cli/
+final class WhyCommand extends Command<int> {}                             // Composition gains `Why? why`
+```
+
+- `testFunctions` is not an argument of `Cache`: the key already carries it.
+- `PackageMap.workspaceRoots` is filled by `buildPackageMap` from the `workspace:` lists of root pubspecs and the `resolution: workspace` marker of members (`dart-toolchain.md` section 2).
 
 ## 6. Infrastructure decisions that shape everything else
 
