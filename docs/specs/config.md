@@ -54,7 +54,7 @@ baseline: .stagelatch/baseline.json
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `min_version` | version | none | Exit 78 when the running tool is older |
-| `hooks.pre-commit` | list of selectors | all pre-commit checks of the running version, in the order shown above | What runs on commit |
+| `hooks.pre-commit` | list of selectors | all pre-commit checks of the running version, in the order shown above | What runs on commit. `tests/affected` is accepted here and does nothing: it never runs on commit (ADR-0018) |
 | `hooks.pre-push` | list of selectors | `[analyze, tests/affected]`, limited to what the running version implements | What runs on push |
 | `hooks.ci` | list of selectors | union of the two lists above, pre-commit order first | What `ci` runs |
 | `rules` | map of rule ID to level | `{}` | Severity override: `error`, `warning`, `off` |
@@ -71,7 +71,7 @@ baseline: .stagelatch/baseline.json
 | `assets.max_file_size` | size | `500KB` | Limit for `assets/max-file-size` |
 | `assets.roots` | list of directories | `[assets/]` | Where `assets/undeclared` and `assets/max-file-size` look, relative to each package |
 | `assets.ignore` | list of globs | `[]` | Asset paths exempt from all `assets` rules, matched against the path relative to the package (a directory is also exempt when `<dir>/x` would match) |
-| `tests.functions` | list of identifiers | `[test, testWidgets, group]` | Calls inspected by `tests/solo` and `tests/new-skip` |
+| `tests.functions` | list of identifiers | `[test, testWidgets, group]` | Calls inspected by `tests/solo` and `tests/new-skip`; also part of the facts cache key ([`dart-toolchain.md`](dart-toolchain.md#61-the-facts-cache)) |
 | `baseline` | path | `.stagelatch/baseline.json` | Baseline file; a missing file is an empty baseline |
 
 ## 4. Value syntax

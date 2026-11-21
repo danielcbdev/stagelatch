@@ -35,7 +35,7 @@ A path of the closure is **divergent** when any of these holds:
 
 1. It differs between the snapshot and the working tree: it is in `git diff --name-only -z --no-renames [<sha>]`.
 2. It is the target of an import edge of the closure, it is absent from the snapshot, a regular file of that path exists on disk under the repository root, **and git would track it**, i.e. it is not ignored (hole 1). The candidates are the edge targets missing from the snapshot; the ignored ones are then removed with one batched `git check-ignore --stdin -z`. A file that `.gitignore` hides is intentional local state (typically generated code), never a commit candidate, so it does not skip. An untracked, non-ignored `.dart` file does.
-3. It is `pubspec.yaml` or `analysis_options.yaml` of an owning package, it is absent from the snapshot, a file of that path exists on disk, and it is not ignored. `pubspec.lock` has no such case: absent from the snapshot, it is outside the closure. A committed `pubspec.lock` can still diverge by rule 1.
+3. It is `analysis_options.yaml` of an owning package, it is absent from the snapshot, a file of that path exists on disk, and it is not ignored. A package's `pubspec.yaml` is always in the snapshot when the package exists, so this rule does not apply to it. `pubspec.lock` has no such case when absent from the snapshot (outside the closure); a committed lock can still diverge by rule 1.
 
 When any path is divergent, no process is started. The check reports one `warning`; the skip does not fail the push or the CI run.
 

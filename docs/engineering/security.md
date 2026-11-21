@@ -45,7 +45,7 @@ The tool writes only to these places, and only after resolving symlinks and conf
 | Hook scripts and their backups | `HookInstaller` | hooks directory reported by git |
 | `stagelatch.yaml` | `init` | repository root |
 | Baseline file | `baseline create`, `baseline prune` | repository root |
-| Cache | cache adapter | `<git common dir>/stagelatch/` |
+| Cache | cache adapter | `<git common dir>/stagelatch/cache/` |
 | Materialized snapshot for Dart analysis (ADR-0001) | Dart toolchain adapter | its own directory from `Directory.systemTemp.createTemp` (S10), removed by `close()` |
 
 - `RepoPath` rejects absolute paths, `..` segments and NUL. Every path from git or config becomes a `RepoPath` before use.
@@ -120,7 +120,9 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 - It starts nothing unless the closure equals the snapshot (no divergent path; ignored files and a lock absent from the snapshot are out of scope), checked before the first process and again after the last one. Otherwise it reports the skip warning. Files outside the closure are a documented limitation.
 - Process execution follows S1: `dart test` or `flutter test` of the resolved SDK, an argument list, test paths after `--`, never a shell. A test path never reaches a shell.
 - The environment is inherited unchanged (S11). The tool never injects, forwards or logs a secret.
-- The process's stdout and stderr are untrusted input: parsed as machine-readable events (S6) and sanitized before display (S5).
+- The process's stdout and stderr are untrusted input: parsed as machine-readable events (S6) and sanitized before display (S5). Output is read as a stream of lines; a line longer than 1 MiB is dropped unparsed, and at most the first 64 KiB of standard error is kept.
+- The process is closed in a `finally`: a child that is still running when the tool stops (an error, an interrupt) is killed, never left behind. Its standard input is closed at once, so it cannot wait for a prompt (ADR-0011).
+- On Windows, an executable ending in `.bat` or `.cmd` (the Flutter SDK's `flutter.bat`) is started through the command interpreter, which interprets metacharacters in arguments. A test path that contains a control character or any of `"`, `&`, `|`, `<`, `>`, `^`, `%` or `!` is therefore never passed to one: the run is a startup error (`rules.md`) naming the path.
 - `stagelatch ci` with `tests/affected` executes the pull request's code like any `dart test` step. The README and `action.yml` state this, including the usual restrictions on secrets for pull requests from forks (S8).
 
 ## Security checklist for every pull request

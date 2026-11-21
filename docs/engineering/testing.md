@@ -86,11 +86,12 @@ Each scenario is one test file under `test/acceptance/`. IDs are stable and refe
 | AC-24 | `tests/affected` with uncommitted changes in the affected closure | 0.3.0 |
 | AC-25 | `tests/affected`: an affected test imports an untracked non-ignored `.dart` file: no process is started and the warning is reported; the same import of a gitignored `.dart` file (generated code) does not skip | 0.3.0 |
 | AC-26 | `tests/affected` on a pre-push of a branch that is not checked out: the closure diverges, tests are skipped with the warning, the push is not failed | 0.3.0 |
-| AC-27 | `tests/affected` and package configuration: a change to `pubspec.yaml` or `pubspec.lock` selects all tests of the package; an unstaged edit to a committed `pubspec.lock`, or an untracked non-ignored `pubspec.yaml` or `analysis_options.yaml`, skips tests; a gitignored `pubspec.lock` present only on disk does not; an unstaged edit to a fixture, `dart_test.yaml` or `build.yaml` alone does not | 0.3.0 |
+| AC-27 | `tests/affected` and package configuration: a change to `analysis_options.yaml` or `pubspec.lock` selects all tests of the package; an unstaged edit to a committed `pubspec.lock`, or an untracked non-ignored `analysis_options.yaml`, skips tests; a gitignored `pubspec.lock` present only on disk does not; an unstaged edit to a fixture, `dart_test.yaml` or `build.yaml` alone does not | 0.3.0 |
+| AC-28 | Pub workspace: a member's files are analyzed with the workspace root's package config; `pubspec/lockfile-out-of-sync` reads the root lock; `tests/affected` selects and runs the tests of a member when a file of another member changes; `why` explains it | 0.3.0 |
 
 ## 5. Determinism test
 
-`test/acceptance/determinism_test.dart` runs the same scenario twice with `--reporter json`, removes the duration fields, and asserts the two outputs are byte-identical. It also runs once with a shuffled check registry order and asserts the same.
+`test/acceptance/determinism_test.dart` runs the same scenario twice with `--reporter json`, removes the duration fields, and asserts the two outputs are byte-identical. It also runs once with a shuffled check registry order and asserts the same, and once with a cold and once with a warm facts cache ([`dart-toolchain.md`](../specs/dart-toolchain.md#61-the-facts-cache)): the three outputs must be identical.
 
 ## 6. Coverage
 
