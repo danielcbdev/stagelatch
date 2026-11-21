@@ -109,11 +109,11 @@ final class ProtocolException implements Exception {
 const int maxProtocolLineBytes = 1 << 20; // 1 MiB
 ```
 
-- [ ] **Step 1: Write the failing tests:** round trip of every message; unknown `type`; missing field; wrong field type; non-JSON; line over size limit; protocol version mismatch; rule id with wrong check segment rejected at host mapping time (codec accepts structurally valid JSON).
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** with pattern matching over decoded maps; no `as`.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(custom): add custom check protocol codec`
+- [x] **Step 1: Write the failing tests:** round trip of every message; unknown `type`; missing field; wrong field type; non-JSON; line over size limit; protocol version mismatch; rule id with wrong check segment rejected at host mapping time (codec accepts structurally valid JSON).
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** with pattern matching over decoded maps; no `as`.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(custom): add custom check protocol codec`
 
 ---
 
