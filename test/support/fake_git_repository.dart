@@ -14,6 +14,7 @@ final class FakeGitRepository implements GitRepository {
   /// By default it resolves every entry point to one run of the index
   /// against no base, with [changes]. Pass [_runs] to decide exactly what
   /// `resolve` returns, and [_commits] for the content of commit snapshots.
+  /// Pass [againstIndex] to control what [resolveAgainstIndex] returns.
   new({
     Map<String, Object> index = const {},
     this._commits = const {},
@@ -22,6 +23,7 @@ final class FakeGitRepository implements GitRepository {
     this._runs,
     this._diverging = const {},
     this._layout,
+    this.againstIndex,
   }) : index = {...index},
        _changes = changes ?? ChangeSet(const []);
 
@@ -30,6 +32,9 @@ final class FakeGitRepository implements GitRepository {
 
   /// The target branch of the default run.
   final String? targetBranch;
+
+  /// Override for [resolveAgainstIndex]; when null a default index run is used.
+  final ResolvedRun? againstIndex;
 
   final Map<String, Map<String, Object>> _commits;
   final ChangeSet _changes;
@@ -77,6 +82,22 @@ final class FakeGitRepository implements GitRepository {
             label: 'index',
           ),
         ];
+  }
+
+  /// The `baseRef` of the most recent [resolveAgainstIndex] call.
+  String? lastAgainstIndexBaseRef;
+
+  @override
+  Future<ResolvedRun> resolveAgainstIndex({String? baseRef}) async {
+    lastAgainstIndexBaseRef = baseRef;
+    return againstIndex ??
+        ResolvedRun(
+          snapshot: const IndexSnapshot(),
+          base: null,
+          changes: _changes,
+          targetBranch: targetBranch,
+          label: 'index',
+        );
   }
 
   @override

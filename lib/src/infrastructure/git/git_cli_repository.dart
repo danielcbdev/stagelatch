@@ -171,21 +171,7 @@ final class GitCliRepository implements GitRepository {
   /// The pull request's head against its fork point (docs/specs/git.md,
   /// section 4.3).
   Future<ResolvedRun> _resolveCi(CiEntry entry) async {
-    // Exit 1: no common ancestor. Exit 128: a ref git does not know, as
-    // when a shallow clone never fetched the base branch. Either way the
-    // diff would be wrong, so nothing is analyzed (ADR-0007).
-    final mergeBase = await _git.run(
-      ['merge-base', entry.baseRef, entry.headRef],
-      okExitCodes: {0, 1, 128},
-    );
-    if (mergeBase.exitCode != 0) {
-      throw UsageException(
-        'Cannot find a merge base between ${entry.baseRef} and '
-        '${entry.headRef}. If this is a shallow clone, fetch full history '
-        '(actions/checkout: fetch-depth: 0).',
-      );
-    }
-    final base = mergeBase.text.trim();
+    final base = await _mergeBase(entry.baseRef, entry.headRef);
     // ^{commit}: the commit a tag or branch name points at.
     final head = (await _git.run([
       'rev-parse',
@@ -209,6 +195,78 @@ final class GitCliRepository implements GitRepository {
       targetBranch: target,
       label: target,
     );
+  }
+
+  @override
+  Future<ResolvedRun> resolveAgainstIndex({String? baseRef}) async {
+    final resolved = baseRef ?? await _whyBaseRef();
+    if (resolved == null) {
+      throw const UsageException('Cannot determine a base. Pass --base <ref>.');
+    }
+    final base = await _mergeBase(resolved, 'HEAD');
+    final layout = await this.layout();
+    // --cached: the index against the merge base (docs/specs/git.md, 4.3.1).
+    final diff = await _git.run([
+      'diff',
+      '--cached',
+      '--name-status',
+      '-z',
+      '-M',
+      base,
+    ]);
+    return ResolvedRun(
+      snapshot: const IndexSnapshot(),
+      base: CommitSnapshot(base),
+      changes: ChangeSet(parseNameStatus(diff.nulSeparated)),
+      targetBranch: layout.branch,
+      label: 'index',
+    );
+  }
+
+  /// The merge base of [baseRef] and [headRef], or the usage error `ci`
+  /// and `why` share when there is none (ADR-0007).
+  Future<String> _mergeBase(String baseRef, String headRef) async {
+    // Exit 1: no common ancestor. Exit 128: a ref git does not know, as
+    // when a shallow clone never fetched the base branch. Either way the
+    // diff would be wrong, so nothing is analyzed.
+    final mergeBase = await _git.run(
+      ['merge-base', baseRef, headRef],
+      okExitCodes: {0, 1, 128},
+    );
+    if (mergeBase.exitCode != 0) {
+      throw UsageException(
+        'Cannot find a merge base between $baseRef and '
+        '$headRef. If this is a shallow clone, fetch full history '
+        '(actions/checkout: fetch-depth: 0).',
+      );
+    }
+    return mergeBase.text.trim();
+  }
+
+  /// Upstream of the current branch, else `refs/remotes/origin/HEAD`.
+  Future<String?> _whyBaseRef() async {
+    final layout = await this.layout();
+    final branch = layout.branch;
+    if (branch != null) {
+      // --verify --quiet: the upstream commit, or nothing when unset.
+      final upstream = await _git.run(
+        ['rev-parse', '--verify', '--quiet', '$branch@{upstream}'],
+        okExitCodes: {0, 1, 128},
+      );
+      if (upstream.exitCode == 0) {
+        final value = upstream.text.trim();
+        if (value.isNotEmpty) return value;
+      }
+    }
+    final remoteHead = await _git.run(
+      ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD'],
+      okExitCodes: {0, 1, 128},
+    );
+    if (remoteHead.exitCode == 0) {
+      final value = remoteHead.text.trim();
+      if (value.isNotEmpty) return value;
+    }
+    return null;
   }
 
   /// [ref] without a leading `origin/` or `refs/heads/`.

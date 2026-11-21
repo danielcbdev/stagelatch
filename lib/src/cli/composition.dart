@@ -11,6 +11,7 @@ import 'package:stagelatch/src/application/ports/git_repository.dart';
 import 'package:stagelatch/src/application/ports/hook_store.dart';
 import 'package:stagelatch/src/application/ports/sdk_locator.dart';
 import 'package:stagelatch/src/application/ports/working_tree.dart';
+import 'package:stagelatch/src/application/why/why.dart';
 import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
 import 'package:stagelatch/src/checks/assets/assets_check.dart';
 import 'package:stagelatch/src/checks/codegen/codegen_check.dart';
@@ -68,6 +69,7 @@ final class Composition {
     this.hookStore,
     this.sdkLocator,
     this.doctorProbes,
+    this.why,
   });
 
   /// Builds the real adapters for [io] and reads the repository layout.
@@ -98,6 +100,10 @@ final class Composition {
         hooksDirectory: layout.hooksDir,
         git: process,
       );
+      final toolVersion = Version.parse(packageVersion);
+      final toolchains = SdkDartToolchainFactory(
+        cache: FileCache(commonDir: layout.commonDir),
+      );
       return Composition(
         pipeline: Pipeline(
           git: git,
@@ -105,11 +111,9 @@ final class Composition {
           registry: registry,
           documents: documents,
           clock: SystemClock(),
-          toolVersion: Version.parse(packageVersion),
+          toolVersion: toolVersion,
           sdkLocator: sdkLocator,
-          toolchains: SdkDartToolchainFactory(
-            cache: FileCache(commonDir: layout.commonDir),
-          ),
+          toolchains: toolchains,
           testRunners: const ProcessTestRunnerFactory(),
         ),
         hookInstaller: HookInstaller(store),
@@ -124,6 +128,15 @@ final class Composition {
         doctorProbes: LocalDoctorProbes(
           repoRoot: layout.root,
           environment: io.environment,
+        ),
+        why: Why(
+          git: git,
+          configLoader: loader,
+          registry: registry,
+          documents: documents,
+          sdkLocator: sdkLocator,
+          toolchains: toolchains,
+          toolVersion: toolVersion,
         ),
       );
     } on Exception {
@@ -165,6 +178,9 @@ final class Composition {
   /// The machine-facing questions of `doctor`. Null in tests that need no
   /// doctor.
   final DoctorProbes? doctorProbes;
+
+  /// Explains affected-test selection. Null in tests that need no `why`.
+  final Why? why;
 
   /// Ends the persistent git processes.
   Future<void> close() => git.close();

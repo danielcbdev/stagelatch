@@ -2,10 +2,10 @@
 library;
 
 import 'package:stagelatch/src/application/config/config.dart';
+import 'package:stagelatch/src/application/packages/import_graph_builder.dart';
 import 'package:stagelatch/src/application/pipeline/selection.dart';
 import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/check.dart';
-import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
 import 'package:stagelatch/src/domain/dart/import_graph.dart';
 import 'package:stagelatch/src/domain/dart/test_runner.dart';
@@ -76,16 +76,11 @@ final class PipelineCheckContext implements CheckContext {
   /// Built once, from the directives of every `.dart` file of [snapshot].
   /// `facts` starts no process.
   @override
-  Future<ImportGraph> get importGraph => _importGraph ??= () async {
-    final directives = {
-      for (final entry in await snapshot.list())
-        if (entry.path.extension == '.dart' && entry.mode.isFile)
-          entry.path:
-              (await dart.facts(snapshot, entry.path))?.directives ??
-              const <Directive>[],
-    };
-    return ImportGraph.build(directives: directives, packages: packages);
-  }();
+  Future<ImportGraph> get importGraph => _importGraph ??= buildImportGraph(
+    dart: dart,
+    snapshot: snapshot,
+    packages: packages,
+  );
 
   Future<ImportGraph>? _importGraph;
 
