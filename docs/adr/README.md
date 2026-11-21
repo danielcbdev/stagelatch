@@ -22,8 +22,9 @@ One file per decision, numbered, never renumbered. A decision is changed by a ne
 | [0016](0016-branching-and-release-flow.md) | Branching and release flow | Accepted |
 | [0017](0017-hand-written-lexer-for-declaration-and-test-call-facts.md) | A hand-written lexer extracts declaration and test-call facts | Accepted |
 | [0018](0018-affected-tests-run-against-validated-snapshot.md) | Affected tests run against the validated snapshot, or not at all | Accepted |
+| [0019](0019-custom-checks-out-of-process.md) | Custom checks run out of process over a JSON protocol | Proposed |
 
-ADRs 0001–0011 record decisions already fixed in `CLAUDE.md`. ADRs 0012–0016 were added with the implementation documentation and approved by the owner on 2026-11-12. ADR-0017 was added on 2026-11-20 with the measurements of [`spike/facts-report.md`](../spike/facts-report.md); it refines ADR-0013 and does not supersede it. ADR-0018 was added on 2026-11-21, before `tests/affected` (the first feature that runs project code); it refines ADR-0001 and ADR-0007 for test execution and does not supersede them.
+ADRs 0001–0011 record decisions already fixed in `CLAUDE.md`. ADRs 0012–0016 were added with the implementation documentation and approved by the owner on 2026-11-12. ADR-0017 was added on 2026-11-20 with the measurements of [`spike/facts-report.md`](../spike/facts-report.md); it refines ADR-0013 and does not supersede it. ADR-0018 was added on 2026-11-21, before `tests/affected` (the first feature that runs project code); it refines ADR-0001 and ADR-0007 for test execution and does not supersede them. ADR-0019 is proposed with plan 05 Task 1; it amends S1/S14 for custom checks and does not supersede ADR-0004 or ADR-0018.
 
 ## Template
 
