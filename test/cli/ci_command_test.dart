@@ -4,6 +4,8 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'package:pub_semver/pub_semver.dart';
 import 'package:stagelatch/src/application/config/config_loader.dart';
 import 'package:stagelatch/src/application/environment.dart';
@@ -141,16 +143,73 @@ void main() {
         '--base',
         'main',
         '--reporter',
-        'sarif',
+        'junit',
       ]);
 
       expect(result.exitCode, 64);
       expect(
         result.stderr,
-        contains('Unknown reporter "sarif". Expected console, json or github.'),
+        contains(
+          'Unknown reporter "junit". Expected console, json, github or sarif.',
+        ),
       );
     },
   );
+
+  test('--reporter sarif prints the document and exits 1 on an error '
+      'finding', () async {
+    await commitFile('pubspec.yaml', badPubspec);
+
+    final result = await repo.stagelatch([
+      'ci',
+      '--base',
+      'main',
+      '--reporter',
+      'sarif',
+    ]);
+
+    expect(result.exitCode, 1);
+    expect(result.stdout, contains(r'"$schema"'));
+    expect(result.stdout, contains('"version": "2.1.0"'));
+    expect(result.stdout, contains('"name": "stagelatch"'));
+    expect(result.stdout, contains('"ruleId": "pubspec/path-dependency"'));
+    expect(result.stdout, endsWith('\n'));
+  });
+
+  test('--reporter sarif on a usage error prints nothing on stdout', () async {
+    final clones = await Directory.systemTemp.createTemp('stagelatch_clone_');
+    addTearDown(() => clones.delete(recursive: true));
+    final clone = p.join(clones.path, 'clone');
+    await repo.git([
+      'clone',
+      '-q',
+      '--depth',
+      '1',
+      '--branch',
+      'feature',
+      Uri.directory(repo.root).toString(),
+      clone,
+    ]);
+
+    final result = await repo.stagelatch([
+      '-C',
+      clone,
+      'ci',
+      '--base',
+      'origin/main',
+      '--reporter',
+      'sarif',
+    ]);
+
+    expect(result.exitCode, 64);
+    expect(result.stdout, isEmpty);
+    expect(
+      result.stderr,
+      'Cannot find a merge base between origin/main and HEAD. If this is a '
+      'shallow clone, fetch full history (actions/checkout: '
+      'fetch-depth: 0).\n',
+    );
+  });
 
   test('ci never applies fixes', () async {
     final git = FakeGitRepository(

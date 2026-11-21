@@ -12,6 +12,7 @@ import 'package:stagelatch/src/cli/scope.dart';
 import 'package:stagelatch/src/infrastructure/reporters/console_reporter.dart';
 import 'package:stagelatch/src/infrastructure/reporters/github_reporter.dart';
 import 'package:stagelatch/src/infrastructure/reporters/json_reporter.dart';
+import 'package:stagelatch/src/infrastructure/reporters/sarif_reporter.dart';
 import 'package:stagelatch/src/version.dart';
 
 /// Runs the same pipeline as the hooks over a pull request: the head
@@ -23,7 +24,10 @@ final class CiCommand extends Command<int> {
       ..addOption('base', help: 'The ref the change is to be merged into.')
       ..addOption('head', defaultsTo: 'HEAD', help: 'The ref to judge.')
       ..addFlag('all', negatable: false, help: 'Check every file.')
-      ..addOption('reporter', help: 'console (default), json or github.');
+      ..addOption(
+        'reporter',
+        help: 'console (default), json, github or sarif.',
+      );
   }
 
   final Io _io;
@@ -44,9 +48,10 @@ final class CiCommand extends Command<int> {
     }
     final head = argResults?.option('head') ?? 'HEAD';
     final reporter = argResults?.option('reporter') ?? 'console';
-    if (!const {'console', 'json', 'github'}.contains(reporter)) {
+    if (!const {'console', 'json', 'github', 'sarif'}.contains(reporter)) {
       throw UsageException(
-        'Unknown reporter "$reporter". Expected console, json or github.',
+        'Unknown reporter "$reporter". Expected console, json, github or '
+        'sarif.',
       );
     }
     final composition = await _open(io);
@@ -59,7 +64,7 @@ final class CiCommand extends Command<int> {
           allowFixes: false,
         ),
       );
-      _reporter(reporter, io).report(reports);
+      _reporter(reporter, io, composition).report(reports);
       final failed = reports.any((report) => report.verdict == Verdict.fail);
       return failed ? 1 : 0;
     } finally {
@@ -67,9 +72,15 @@ final class CiCommand extends Command<int> {
     }
   }
 
-  static Reporter _reporter(String name, Io io) => switch (name) {
-    'json' => JsonReporter(io.stdout, toolVersion: packageVersion),
-    'github' => GithubReporter(io.stdout),
-    _ => ConsoleReporter(io.stdout, color: io.environment.useColor),
-  };
+  static Reporter _reporter(String name, Io io, Composition composition) =>
+      switch (name) {
+        'json' => JsonReporter(io.stdout, toolVersion: packageVersion),
+        'github' => GithubReporter(io.stdout),
+        'sarif' => SarifReporter(
+          io.stdout,
+          toolVersion: packageVersion,
+          describe: composition.registry.descriptorOf,
+        ),
+        _ => ConsoleReporter(io.stdout, color: io.environment.useColor),
+      };
 }

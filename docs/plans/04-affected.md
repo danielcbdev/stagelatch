@@ -515,7 +515,7 @@ test('a path that is not a test file exits 64 with the message on stderr', () as
 - **Encoding.** `jsonEncode` of maps with keys in the documented order, two-space indent, one trailing newline; no string is built by hand. The `uri` is the repository-relative path with each segment percent-encoded (`Uri(pathSegments: ...)`). `describe` is `registry.descriptorOf` from `Composition`; a rule it does not know (an analyzer code) uses its id as `shortDescription.text`.
 - **Errors.** On exit 64, 70 or 78 nothing is written to stdout for `sarif` (no error document), and the human message goes to stderr; add that to the usage-error path of `ci_command.dart` and to its test.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('matches the golden: version 2.1.0, one run, the driver name, version and the schema', () { /* findings.sarif */ });
@@ -530,10 +530,10 @@ test('ci --reporter sarif on a usage error prints nothing on stdout', () async {
 test('run does not accept sarif', () async { expect(stderr, contains('Unknown reporter "sarif". Expected console or json.')); });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/cli.md` section 7.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(reporters): add SARIF reporter`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/cli.md` section 7.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(reporters): add SARIF reporter`
 
 ### Task 8: JUnit reporter
 
