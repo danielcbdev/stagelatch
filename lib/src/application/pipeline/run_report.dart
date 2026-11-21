@@ -78,6 +78,7 @@ final class RunReport {
     required this.suppressed,
     required this.baselined,
     required this.notices,
+    this.all = false,
   });
 
   /// Which entry point started the run.
@@ -86,8 +87,13 @@ final class RunReport {
   /// A short name for what was judged: `index`, or the pushed branch.
   final String label;
 
-  /// The number of changed paths.
+  /// The number of changed paths. With [all], the number of files judged.
   final int files;
+
+  /// Whether the run used `--all`, so every regular file of the snapshot
+  /// counted as changed. The reporters say so, because the count alone
+  /// would read as a very large change.
+  final bool all;
 
   /// Whether the change may proceed.
   final Verdict verdict;

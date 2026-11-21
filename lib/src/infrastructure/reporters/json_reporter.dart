@@ -56,6 +56,7 @@ final class JsonReporter implements Reporter {
     'verdict': run.verdict == Verdict.fail ? 'fail' : 'pass',
     'exitCode': run.verdict == Verdict.fail ? 1 : 0,
     'files': run.files,
+    'all': run.all,
     'findings': [for (final finding in run.findings) _finding(finding)],
     'fixes': [
       for (final fix in run.fixes)

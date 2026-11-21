@@ -259,6 +259,7 @@ final class Pipeline {
       entry: entry,
       label: run.label,
       files: run.changes.length,
+      all: request.all,
       verdict: findings.any((finding) => finding.severity == Severity.error)
           ? Verdict.fail
           : Verdict.pass,

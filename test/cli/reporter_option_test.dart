@@ -89,11 +89,4 @@ void main() {
       contains('Unknown reporter "github". Expected console or json.'),
     );
   });
-
-  test('--all is still a usage error', () async {
-    final result = await repo.stagelatch(['run', 'pre-commit', '--all']);
-
-    expect(result.exitCode, 64);
-    expect(result.stderr, contains('--all arrives in 0.2.0.'));
-  });
 }

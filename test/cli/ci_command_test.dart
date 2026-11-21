@@ -151,13 +151,6 @@ void main() {
     },
   );
 
-  test('--all is still a usage error', () async {
-    final result = await repo.stagelatch(['ci', '--base', 'main', '--all']);
-
-    expect(result.exitCode, 64);
-    expect(result.stderr, contains('--all arrives in 0.2.0.'));
-  });
-
   test('ci never applies fixes', () async {
     final git = FakeGitRepository(
       index: {'stagelatch.yaml': 'hooks:\n  ci: [fixer]\n', 'a.dart': 'x\n'},

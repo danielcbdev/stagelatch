@@ -342,15 +342,6 @@ void main() {
     });
   });
 
-  group('not yet supported', () {
-    test('--all arrives in 0.2.0', () {
-      expect(
-        () => git.resolve(const PreCommitEntry(), all: true),
-        throwsUnsupportedError,
-      );
-    });
-  });
-
   test('files returns the same view for the same snapshot', () {
     expect(
       git.files(const IndexSnapshot()),

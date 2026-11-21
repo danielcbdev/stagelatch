@@ -365,7 +365,7 @@ The determinism scenario gains a staged test file with a `solo: true`, so the by
 - JSON: a boolean `"all"` right after `"files"`, always present. This is additive, so `schemaVersion` stays 1.
 - `--all` applies to every entry point: the index for `pre-commit`, each pushed commit for `pre-push`, `HEAD` for `ci`. On a repository with no commit, the base is null.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 test('all lists every regular file of the snapshot as added', () async { /* symlinks and gitlinks excluded */ });
@@ -377,10 +377,10 @@ test('the JSON report has "all": true after "files", and false otherwise', () as
 test('ci --all and run pre-push --all resolve every file of their snapshot', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement.** Remove the three "arrives in 0.2.0" markers (`run_command.dart:61`, `ci_command.dart:53`, `git_cli_repository.dart:102`). List files with `git ls-tree -r -z` (commit snapshots) or `git ls-files -s -z` (index), skipping modes `120000` and `160000`.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(cli): add --all to run and ci`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement.** Remove the three "arrives in 0.2.0" markers (`run_command.dart:61`, `ci_command.dart:53`, `git_cli_repository.dart:102`). List files with `git ls-tree -r -z` (commit snapshots) or `git ls-files -s -z` (index), skipping modes `120000` and `160000`.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(cli): add --all to run and ci`
 
 ### Task 7: Baseline
 
