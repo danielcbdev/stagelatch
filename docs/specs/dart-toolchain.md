@@ -1,6 +1,6 @@
 # Dart toolchain specification
 
-Status: **Approved (2026-11-12); mechanism selected 2026-11-19 (ADR-0008).** Sections 4 and 5 describe a contract; section 8 records the mechanism that fulfils it. Sections 1–3, 6 and 7 do not depend on the mechanism.
+Status: **Approved (2026-11-12); mechanism selected 2026-11-19 (ADR-0008).** Sections 4 and 5 describe a contract; section 8 records the mechanism that fulfils it. Sections 1–3, 6 and 7 do not depend on the mechanism. Section 9 describes how tests are run.
 
 ## 1. SDK resolution
 
@@ -146,3 +146,9 @@ Selected by the spike ([`spike/report.md`](../spike/report.md)) and recorded in 
 | Coupling | The analysis server's legacy protocol, tested on Flutter 3.47.8 and 3.44.9. No `analyzer` or `dart_style` dependency. |
 
 The candidates that were measured and rejected (embedded `analyzer` with `OverlayResourceProvider`, and a long-lived server) are described in the spike report.
+
+## 9. Test runner
+
+Since `0.3.0`, `tests/affected` runs the resolved SDK's `dart test` or `flutter test` on the working tree (ADR-0018). The process is started with an argument list, stdin is closed at once, and a child still running when the tool stops is sent SIGTERM, then SIGKILL if it has not exited after 5 s.
+
+Killing that process does not kill its grandchildren. `flutter test` on Windows is `flutter.bat`, which starts `flutter_tester`; those descendants can outlive the process the tool waits for. The tool does not walk the process tree.

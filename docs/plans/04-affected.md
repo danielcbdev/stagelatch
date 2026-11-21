@@ -297,7 +297,7 @@ test('results are sorted, and grouped by package with the repository root first'
 - **Layering.** `layering_test.dart` fails when a file outside `lib/src/infrastructure/dart/` has `Process.` and either `'test'` or `'--machine'`.
 - **Seam.** `ProcessTestRunner` takes an optional `ProcessStarter` (`Process.start`'s shape) so tests inspect the command and use `FakeProcess`.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // test_event_parser_test.dart (values from the recorded fixtures)
@@ -343,10 +343,10 @@ test('the fixture package: one failing test is found end to end', () async { /* 
 test('the fixture package: a compile error is a startup error', () async { /* ... */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, none of the files exists.
-- [ ] **Step 3: Implement** as decided above. Keep `TestEventParser` synchronous and pure; `ProcessTestRunner` owns the process and the line stream.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(dart): add test runner over machine-readable output`
+- [x] **Step 2: Run.** Expected: FAIL, none of the files exists.
+- [x] **Step 3: Implement** as decided above. Keep `TestEventParser` synchronous and pure; `ProcessTestRunner` owns the process and the line stream.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(dart): add test runner over machine-readable output`
 
 ### Task 5: The `tests/affected` rule
 

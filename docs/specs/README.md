@@ -8,7 +8,7 @@ Status: **Approved (2026-11-12).** Specs say what the software must do, with exa
 | [`config.md`](config.md) | `stagelatch.yaml`: every key, default and validation rule |
 | [`rules.md`](rules.md) | Every rule: trigger, detection, message, location, severity |
 | [`git.md`](git.md) | Snapshots, changesets, index fixes, hook script, hook installer |
-| [`dart-toolchain.md`](dart-toolchain.md) | SDK resolution, packages, the materialized snapshot, diagnostics, formatting, facts |
+| [`dart-toolchain.md`](dart-toolchain.md) | SDK resolution, packages, the materialized snapshot, diagnostics, formatting, facts, test runner |
 | [`baseline-and-suppression.md`](baseline-and-suppression.md) | Inline ignores, `exclude`, baseline file and fingerprint |
 | [`custom-checks.md`](custom-checks.md) | Draft of the 1.0.0 public API |
 
