@@ -302,10 +302,15 @@ final class Doctor {
       _git.files(const IndexSnapshot()),
       _documents,
     );
-    return [
-      for (final package in packages.packages)
-        await _packageConfig(package.root),
-    ];
+    final seen = <String>{};
+    final results = <ProbeResult>[];
+    for (final package in packages.packages) {
+      final root = packages.resolutionRootOf(package);
+      final key = root?.value ?? '';
+      if (!seen.add(key)) continue;
+      results.add(await _packageConfig(root));
+    }
+    return results;
   }
 
   Future<ProbeResult> _packageConfig(RepoPath? root) async {

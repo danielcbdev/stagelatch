@@ -593,7 +593,7 @@ test('ci --reporter junit prints the document; on a usage error stdout is empty'
 - **`tests/affected`.** The package's lock for the closure and for widening is the one at its resolution root, in the closure only when it is in the snapshot; a change to it selects every test of every member (`workspaceMembersOf`). `ProcessTestRunner` keeps the member's directory as the working directory; Step 3 confirms with the workspace fixture and a real `dart test` that this resolves through the root config (it did when this plan was revised). If the SDK in use behaves differently, record the finding in the fixture's README and fix the runner.
 - **No ADR is added.** ADR-0018 does not mention workspaces; this extends "its `pubspec.lock`" to where the lock lives. Listed under Deviations of the pull request for the owner to confirm.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // workspace_test.dart
@@ -627,12 +627,12 @@ test('the lock of a member is looked for at the workspace root', () { /* closure
 
 test('a changed workspace root pubspec.yaml selects the tests of every member', () { /* ... */ });
 test('an unstaged workspace root pubspec.yaml skips affected tests', () { /* ... */ });
-- [ ] **Step 2: Run.** Expected: FAIL.
-- [ ] **Step 3: Implement** per `specs/dart-toolchain.md` section 2 and the decisions above.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(packages): support pub workspaces`
+- [x] **Step 2: Run.** Expected: FAIL.
+- [x] **Step 3: Implement** per `specs/dart-toolchain.md` section 2 and the decisions above.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(packages): support pub workspaces`
 
-- [ ] **Step: Dogfood prep.** Update `.github/workflows/ci.yaml` so the dogfood job runs `dart pub get --directory test/fixtures/workspace` when that fixture is part of the selected packages (or before `stagelatch ci` if the job always materializes it).
+- [x] **Step: Dogfood prep.** Update `.github/workflows/ci.yaml` so the dogfood job runs `dart pub get --directory test/fixtures/workspace` when that fixture is part of the selected packages (or before `stagelatch ci` if the job always materializes it).
 
 ### Task 10: Documentation and 0.3.0
 

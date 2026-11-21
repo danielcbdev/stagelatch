@@ -91,21 +91,32 @@ AffectedTests selectAffectedTests({
       if (selectable(path) && packages.packageOf(path) == package) path,
   ];
 
-  void widen(RepoPath path) {
+  void widen(RepoPath path, {required bool wholeWorkspace}) {
     final package = packages.packageOf(path);
     if (package == null) return;
-    widened[path] = [package];
-    selected.addAll(testsOf(package));
+    final targets = wholeWorkspace
+        ? packages.workspaceMembersOf(package)
+        : [package];
+    widened[path] = targets;
+    for (final target in targets) {
+      selected.addAll(testsOf(target));
+    }
   }
 
   for (final change in changes.changes) {
     final deleted = change.kind == ChangeKind.deleted;
     for (final path in [change.path, ?change.previousPath]) {
       switch (path.basename) {
-        case 'pubspec.yaml' || 'analysis_options.yaml':
-          widen(path);
+        case 'pubspec.yaml':
+          final package = packages.packageOf(path);
+          final atResolutionRoot =
+              package != null &&
+              packages.resolutionPackageOf(package) == package;
+          widen(path, wholeWorkspace: atResolutionRoot);
+        case 'analysis_options.yaml':
+          widen(path, wholeWorkspace: false);
         case 'pubspec.lock' when !deleted && path == change.path:
-          widen(path);
+          widen(path, wholeWorkspace: true);
       }
     }
   }
@@ -129,7 +140,21 @@ AffectedTests selectAffectedTests({
     closure
       ..add(inPackage('pubspec.yaml'))
       ..add(inPackage('analysis_options.yaml'));
-    final lock = inPackage('pubspec.lock');
+    final resolution = packages.resolutionPackageOf(package);
+    if (resolution != package) {
+      final resolutionRoot = resolution.root;
+      closure.add(
+        RepoPath(
+          resolutionRoot == null
+              ? 'pubspec.yaml'
+              : '${resolutionRoot.value}/pubspec.yaml',
+        ),
+      );
+    }
+    final lockRoot = packages.resolutionRootOf(package);
+    final lock = RepoPath(
+      lockRoot == null ? 'pubspec.lock' : '${lockRoot.value}/pubspec.lock',
+    );
     if (snapshotPaths.contains(lock)) closure.add(lock);
   }
 

@@ -21,10 +21,11 @@ AffectedTests select(
   Map<String, List<String>> files,
   List<String> changes, {
   List<DartPackage> packages = const [_app],
+  Map<DartPackage, DartPackage> workspaceRoots = const {},
   Set<String> extraSnapshot = const {},
   Set<String>? snapshot,
 }) {
-  final map = PackageMap(packages);
+  final map = PackageMap(packages, workspaceRoots: workspaceRoots);
   final graph = ImportGraph.build(
     directives: {
       for (final MapEntry(:key, :value) in files.entries)
@@ -427,4 +428,75 @@ void main() {
     final closure = values(selection.closure);
     expect(closure, [...closure]..sort());
   });
+
+  test('a changed workspace root lock selects the tests of every member', () {
+    final selection = select(
+      {
+        'packages/a/test/a_test.dart': <String>[],
+        'packages/b/test/b_test.dart': <String>[],
+      },
+      ['M pubspec.lock'],
+      packages: [_app, _a, _b],
+      workspaceRoots: {_a: _app, _b: _app},
+      extraSnapshot: {'pubspec.lock'},
+    );
+
+    expect(values(selection.testFiles), [
+      'packages/a/test/a_test.dart',
+      'packages/b/test/b_test.dart',
+    ]);
+    expect(selection.widenedBy[RepoPath('pubspec.lock')], [_app, _a, _b]);
+  });
+
+  test('a changed workspace root pubspec.yaml selects the tests of every '
+      'member', () {
+    final selection = select(
+      {
+        'packages/a/test/a_test.dart': <String>[],
+        'packages/b/test/b_test.dart': <String>[],
+      },
+      ['M pubspec.yaml'],
+      packages: [_app, _a, _b],
+      workspaceRoots: {_a: _app, _b: _app},
+      extraSnapshot: {'pubspec.yaml'},
+    );
+
+    expect(values(selection.testFiles), [
+      'packages/a/test/a_test.dart',
+      'packages/b/test/b_test.dart',
+    ]);
+  });
+
+  test('the lock of a member is looked for at the workspace root', () {
+    final withLock = select(
+      {
+        'packages/a/lib/a.dart': <String>[],
+        'packages/a/test/a_test.dart': ['../lib/a.dart'],
+      },
+      ['M packages/a/lib/a.dart'],
+      packages: [_app, _a, _b],
+      workspaceRoots: {_a: _app, _b: _app},
+      extraSnapshot: {'pubspec.lock'},
+    );
+    final withoutLock = select(
+      {
+        'packages/a/lib/a.dart': <String>[],
+        'packages/a/test/a_test.dart': ['../lib/a.dart'],
+      },
+      ['M packages/a/lib/a.dart'],
+      packages: [_app, _a, _b],
+      workspaceRoots: {_a: _app, _b: _app},
+    );
+
+    expect(values(withLock.closure), contains('pubspec.lock'));
+    expect(values(withLock.closure), contains('pubspec.yaml'));
+    expect(
+      values(withLock.closure),
+      isNot(contains('packages/a/pubspec.lock')),
+    );
+    expect(values(withoutLock.closure), isNot(contains('pubspec.lock')));
+  });
 }
+
+final _a = DartPackage(root: RepoPath('packages/a'), name: 'a');
+final _b = DartPackage(root: RepoPath('packages/b'), name: 'b');

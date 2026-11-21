@@ -95,6 +95,7 @@ jobs:
           dart pub get
           dart pub get --directory benchmark
           dart pub get --directory test/fixtures/dart_app
+          dart pub get --directory test/fixtures/workspace
 
       - name: Run stagelatch ci
         env:

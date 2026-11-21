@@ -302,6 +302,38 @@ void main() {
     );
   });
 
+  test('D9 prints one line per distinct package config location', () async {
+    final results = await _run(
+      index: {
+        'pubspec.yaml':
+            'name: root\nenvironment:\n  sdk: ^3.13.0\n'
+            'workspace:\n  - packages/a\n  - packages/b\n',
+        'packages/a/pubspec.yaml':
+            'name: a\nenvironment:\n  sdk: ^3.13.0\n'
+            'resolution: workspace\n',
+        'packages/b/pubspec.yaml':
+            'name: b\nenvironment:\n  sdk: ^3.13.0\n'
+            'resolution: workspace\n',
+        'solo/pubspec.yaml': 'name: solo\nenvironment:\n  sdk: ^3.13.0\n',
+      },
+      probes: _Probes(configs: {''}),
+    );
+
+    expect(
+      [
+        for (final r in results)
+          if (r.id == 'D9') (r.status, r.message),
+      ],
+      [
+        (ProbeStatus.ok, '.dart_tool/package_config.json found.'),
+        (
+          ProbeStatus.warn,
+          'Missing solo/.dart_tool/package_config.json. Run: dart pub get',
+        ),
+      ],
+    );
+  });
+
   test(
     'a probe that throws becomes a fail result and the others still run',
     () async {
