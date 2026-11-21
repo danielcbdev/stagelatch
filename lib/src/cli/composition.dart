@@ -27,6 +27,7 @@ import 'package:stagelatch/src/infrastructure/dart/sdk_dart_toolchain.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
 import 'package:stagelatch/src/infrastructure/git/git_cli_repository.dart';
 import 'package:stagelatch/src/infrastructure/git/git_process.dart';
+import 'package:stagelatch/src/infrastructure/io/file_cache.dart';
 import 'package:stagelatch/src/infrastructure/io/file_hook_store.dart';
 import 'package:stagelatch/src/infrastructure/io/local_doctor_probes.dart';
 import 'package:stagelatch/src/infrastructure/io/local_working_tree.dart';
@@ -105,7 +106,9 @@ final class Composition {
           clock: SystemClock(),
           toolVersion: Version.parse(packageVersion),
           sdkLocator: sdkLocator,
-          toolchains: const SdkDartToolchainFactory(),
+          toolchains: SdkDartToolchainFactory(
+            cache: FileCache(commonDir: layout.commonDir),
+          ),
         ),
         hookInstaller: HookInstaller(store),
         git: git,

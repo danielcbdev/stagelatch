@@ -1,0 +1,6 @@
+import 'a.dart';
+
+void main() {
+  test('a', () {
+    expect(1, 1);
+  }, solo: true);

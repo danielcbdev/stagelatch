@@ -105,7 +105,7 @@ Tasks touch overlapping files (`composition.dart`, `pipeline_check_context.dart`
 - **Validation.** `namespace` must match `[a-z0-9-]+` and `key` `[0-9a-f-]{2,}`; anything else is an `ArgumentError` (a bug, not an I/O failure).
 - **Codec.** Canonical JSON with `v`, `isWellFormed`, `directives`, `annotatedDeclarations` (with `tokenHash`), `testCalls`, `identifiers` (sorted), positions only. `DartFileFacts` has no `==`; tests compare `encodeFacts` of both sides and spot-check fields.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
 
 ```dart
 // file_cache_test.dart
@@ -155,11 +155,11 @@ test('the facts of the fixed corpus equal the golden of this version', () {
 test('a cold cache, a warm cache and a deleted cache give the same JSON report', () async { /* tests/solo scenario; stabilize durations; the cache directory exists after the first run */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, the new files do not exist.
-- [ ] **Step 3: Implement** as decided above. `Composition.create` builds `FileCache` from `layout.commonDir`; a hook run with `GIT_DIR` set already has the right `commonDir`.
-- [ ] **Step 4: Measure.** `benchmark/bin/cache.dart` (the benchmark depends on `stagelatch` by path, ADR-0017) times `facts` over every `.dart` file of the 2,435-file corpus with an empty cache, then with a warm one, in the same process and in fresh processes. Put both numbers in the pull request. If the warm run is not faster than the cold one, stop and ask: the cache must pay for itself, and Task 2 adds the identifier sets to every entry.
-- [ ] **Step 5: Run** all four commands. Expected: PASS.
-- [ ] **Step 6: Commit.** `feat(cache): cache syntactic facts by blob id`
+- [x] **Step 2: Run.** Expected: FAIL, the new files do not exist.
+- [x] **Step 3: Implement** as decided above. `Composition.create` builds `FileCache` from `layout.commonDir`; a hook run with `GIT_DIR` set already has the right `commonDir`.
+- [x] **Step 4: Measure.** `benchmark/bin/cache.dart` (the benchmark depends on `stagelatch` by path, ADR-0017) times `facts` over every `.dart` file of the 2,435-file corpus with an empty cache, then with a warm one, in the same process and in fresh processes. Put both numbers in the pull request. If the warm run is not faster than the cold one, stop and ask: the cache must pay for itself, and Task 2 adds the identifier sets to every entry.
+- [x] **Step 5: Run** all four commands. Expected: PASS.
+- [x] **Step 6: Commit.** `feat(cache): cache syntactic facts by blob id`
 
 ### Task 2: Identifier facts and `l10n/unused-key`
 

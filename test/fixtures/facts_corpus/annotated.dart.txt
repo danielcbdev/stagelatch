@@ -1,0 +1,30 @@
+import 'package:json_annotation/json_annotation.dart';
+
+part 'annotated.g.dart';
+
+@JsonSerializable(explicitToJson: true)
+class Order {
+  const Order(this.id);
+
+  factory Order.fromJson(Map<String, dynamic> json) => _$OrderFromJson(json);
+
+  @JsonKey(name: 'order_id')
+  final int id;
+
+  @override
+  String toString() => 'Order';
+
+  Map<String, dynamic> toJson() => _$OrderToJson(this);
+}
+
+@freezed
+sealed class Shape with _$Shape {
+  const factory Shape.circle(@Default(1) double r) = Circle;
+}
+
+@JsonEnum()
+enum Color {
+  @JsonValue('r')
+  red,
+  green;
+}

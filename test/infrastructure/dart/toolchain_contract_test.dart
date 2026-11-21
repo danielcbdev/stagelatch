@@ -12,6 +12,7 @@ import 'package:stagelatch/src/application/config/config_loader.dart';
 import 'package:stagelatch/src/application/environment.dart';
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/application/pipeline/check_registry.dart';
+import 'package:stagelatch/src/application/ports/cache.dart';
 import 'package:stagelatch/src/application/ports/sdk_locator.dart';
 import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
@@ -23,6 +24,7 @@ import 'package:stagelatch/src/infrastructure/dart/syntactic_facts.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
 import 'package:test/test.dart';
 
+import '../../support/fake_cache.dart';
 import '../../support/fake_snapshot_files.dart';
 import '../../support/fake_working_tree.dart';
 import '../../support/fixture_package.dart';
@@ -101,8 +103,8 @@ void main() {
     return FakeSnapshotFiles(files);
   }
 
-  DartToolchain toolchain(FakeSnapshotFiles files) {
-    final created = const SdkDartToolchainFactory().create(
+  DartToolchain toolchain(FakeSnapshotFiles files, {Cache? cache}) {
+    final created = SdkDartToolchainFactory(cache: cache).create(
       sdk: sdk,
       repoRoot: root,
       snapshot: files,
@@ -316,6 +318,22 @@ void main() {
       expect(await dart.facts(files, RepoPath('lib/none.dart')), isNull);
     },
   );
+
+  test('facts go through the cache when there is one, and are the same '
+      'without it', () async {
+    final files = await snapshot({'lib/a.dart': "import 'b.dart';\n"});
+    final cache = FakeCache();
+    final path = RepoPath('lib/a.dart');
+
+    final first = await toolchain(files, cache: cache).facts(files, path);
+    final second = await toolchain(files, cache: cache).facts(files, path);
+    final plain = await toolchain(files).facts(files, path);
+
+    expect(cache.writes, hasLength(1));
+    expect(cache.reads, hasLength(2));
+    expect(second!.directives.single.uri, first!.directives.single.uri);
+    expect(plain!.directives.single.location, first.directives.single.location);
+  });
 
   test(
     'a package without .dart_tool/package_config.json is a usage error',

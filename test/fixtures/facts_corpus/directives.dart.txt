@@ -1,0 +1,13 @@
+#!/usr/bin/env dart
+// A header comment.
+@Deprecated('old')
+library app;
+
+import 'dart:io' if (dart.library.html) 'dart:html' if (dart.library.js_interop) 'dart:js_interop';
+import 'package:a/a.dart' as a show Foo;
+import "b.dart" 'c.dart';
+export 'src/d.dart' hide Bar;
+part 'e.part.dart';
+part of 'f.dart';
+
+void main() {}
