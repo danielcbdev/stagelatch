@@ -2,6 +2,7 @@
 library;
 
 import 'package:stagelatch/src/application/config/check_catalog.dart';
+import 'package:stagelatch/src/application/custom/external_check.dart';
 import 'package:stagelatch/src/application/pipeline/inline_ignore.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/rule_id.dart';
@@ -41,6 +42,13 @@ final class CheckRegistry implements CheckCatalog {
   final List<Check> checks;
 
   final Map<RuleId, RuleDescriptor> _descriptors;
+
+  /// A registry with [custom] appended after the built-ins.
+  ///
+  /// Throws [ArgumentError] when a custom id collides with a built-in or
+  /// with another custom check.
+  CheckRegistry withCustom(List<ExternalCheck> custom) =>
+      CheckRegistry([...checks, ...custom]);
 
   @override
   Set<String> get checkIds => {for (final check in checks) check.id};

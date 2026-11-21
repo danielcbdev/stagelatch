@@ -61,7 +61,7 @@ Validation at load time (exit 78):
 
 | Problem | Message |
 |---|---|
-| `custom_checks` present before 1.0.0 | `custom_checks requires stagelatch >= 1.0.0.` (unchanged reserved-key behaviour on older tools) |
+| ~~`custom_checks` present before 1.0.0~~ | Removed on develop: the feature lands before `packageVersion` is bumped to 1.0.0 via release-as; keeping the gate blocked tests. Published 1.0.0 tools accept the key; older published tools still reject it. |
 | Entry id shadows a built-in | `custom_checks."<id>" shadows the built-in check "<id>".` |
 | `run` missing, empty, or not a list of strings | `"custom_checks.<id>.run" must be a non-empty list of strings, found <actual>.` |
 | `timeout` invalid | `Invalid duration "<value>" in "custom_checks.<id>.timeout".` |

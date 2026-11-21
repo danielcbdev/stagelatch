@@ -3,6 +3,7 @@ library;
 
 import 'package:glob/glob.dart';
 import 'package:pub_semver/pub_semver.dart';
+import 'package:stagelatch/src/application/config/custom_check_config.dart';
 import 'package:stagelatch/src/application/config/hook_selector.dart';
 import 'package:stagelatch/src/application/config/settings.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
@@ -30,6 +31,7 @@ final class Config {
     required this.pubspec,
     required this.assets,
     required this.tests,
+    this.customChecks = const [],
   });
 
   /// The oldest tool version the repository accepts, or null.
@@ -72,6 +74,10 @@ final class Config {
 
   /// Parameters of the `tests` check.
   final TestsSettings tests;
+
+  /// Out-of-process checks declared under `custom_checks:`, in document
+  /// order. Empty when none are configured.
+  final List<CustomCheckConfig> customChecks;
 
   /// The settings object of type [T], for example `AssetsSettings`.
   ///

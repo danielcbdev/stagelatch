@@ -6,8 +6,10 @@ import 'package:stagelatch/src/application/baseline/baseline.dart';
 import 'package:stagelatch/src/application/baseline/baseline_codec.dart';
 import 'package:stagelatch/src/application/baseline/baseline_filter.dart';
 import 'package:stagelatch/src/application/baseline/fingerprint.dart';
+import 'package:stagelatch/src/application/config/config.dart';
 import 'package:stagelatch/src/application/config/config_loader.dart';
 import 'package:stagelatch/src/application/config/default_hooks.dart';
+import 'package:stagelatch/src/application/custom/external_check.dart';
 import 'package:stagelatch/src/application/errors.dart';
 import 'package:stagelatch/src/application/packages/package_map_builder.dart';
 import 'package:stagelatch/src/application/pipeline/check_registry.dart';
@@ -18,6 +20,7 @@ import 'package:stagelatch/src/application/pipeline/lazy_toolchain.dart';
 import 'package:stagelatch/src/application/pipeline/pipeline_check_context.dart';
 import 'package:stagelatch/src/application/pipeline/run_report.dart';
 import 'package:stagelatch/src/application/pipeline/selection.dart';
+import 'package:stagelatch/src/application/ports/check_process.dart';
 import 'package:stagelatch/src/application/ports/clock.dart';
 import 'package:stagelatch/src/application/ports/dart_toolchain_factory.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
@@ -55,6 +58,7 @@ final class Pipeline {
     required this._sdkLocator,
     required this._toolchains,
     required this._testRunners,
+    this._customProcessFactory,
   });
 
   final GitRepository _git;
@@ -66,6 +70,14 @@ final class Pipeline {
   final SdkLocator _sdkLocator;
   final DartToolchainFactory _toolchains;
   final TestRunnerFactory _testRunners;
+
+  /// Builds the process factory for [ExternalCheck] children. Null in tests
+  /// that never load `custom_checks:`.
+  final CheckProcessFactory Function({
+    required String repoRoot,
+    ResolvedSdk? sdk,
+  })?
+  _customProcessFactory;
 
   /// Resolves [request] to the snapshots it concerns and judges each one.
   ///
@@ -91,6 +103,7 @@ final class Pipeline {
       catalog: _registry,
     );
     final config = loaded.config;
+    final registry = await _registryWithCustom(config, all: request.all);
     final selection = Selection.of(
       config.hooks[request.hook ?? _hookOf(entry)] ?? const [],
     );
@@ -135,6 +148,7 @@ final class Pipeline {
         packages: packages,
         toolchain: toolchain,
         tests: tests,
+        registry: registry,
       );
     } finally {
       for (final created in toolchains) {
@@ -152,6 +166,7 @@ final class Pipeline {
     required PackageMap packages,
     required LazyToolchain Function() toolchain,
     required TestRunner tests,
+    required CheckRegistry registry,
   }) async {
     final entry = request.entry.kind;
     final config = loaded.config;
@@ -191,7 +206,7 @@ final class Pipeline {
         ),
         snapshot: snapshot,
         changes: _noChanges,
-        catalog: _registry,
+        catalog: registry,
       );
       suppressed += outcome.suppressed;
       return outcome.kept;
@@ -204,7 +219,7 @@ final class Pipeline {
     // so there the same checks only report.
     final mayFix = request.allowFixes && run.snapshot is IndexSnapshot;
     final fixDart = toolchain();
-    for (final check in _registry.checks) {
+    for (final check in registry.checks) {
       if (check.phase != CheckPhase.fix || !selection.runs(check)) continue;
       final fixContext = context(fixDart);
       final (result, duration) = await _timed(check, fixContext);
@@ -240,7 +255,7 @@ final class Pipeline {
     // Verify phase, against the snapshot as the fix phase left it, so that
     // every location refers to what will actually be published.
     final verifying = [
-      for (final check in _registry.checks)
+      for (final check in registry.checks)
         if (check.phase == CheckPhase.verify && selection.runs(check)) check,
     ];
     final verifyContext = context(toolchain());
@@ -264,7 +279,7 @@ final class Pipeline {
       const [],
       snapshot: verifyContext.snapshot,
       changes: run.changes,
-      catalog: _registry,
+      catalog: registry,
     );
     final invalidIgnores = applyExclude(
       applyLevels(ignores.invalid, config.rules),
@@ -272,7 +287,7 @@ final class Pipeline {
     );
 
     final ran = [
-      for (final check in _registry.checks)
+      for (final check in registry.checks)
         if (outcomes[check.id] case final outcome?) (check.id, outcome),
     ];
     // The baseline is the last filter and acts on the globally sorted list,
@@ -396,6 +411,41 @@ final class Pipeline {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  /// Built-ins plus one [ExternalCheck] per `custom_checks:` entry.
+  Future<CheckRegistry> _registryWithCustom(
+    Config config, {
+    required bool all,
+  }) async {
+    if (config.customChecks.isEmpty) return _registry;
+    final build = _customProcessFactory;
+    if (build == null) {
+      throw const InternalException(
+        'custom_checks are configured but no process factory was wired',
+      );
+    }
+    final root = (await _git.layout()).root;
+    final needsSdk = config.customChecks.any(
+      (check) =>
+          check.run.isNotEmpty &&
+          (check.run.first == 'dart' || check.run.first == 'flutter'),
+    );
+    final sdk = needsSdk ? await _sdkLocator.locate(config) : null;
+    final factory = build(repoRoot: root, sdk: sdk);
+    return _registry.withCustom([
+      for (final entry in config.customChecks)
+        ExternalCheck(
+          id: entry.id,
+          command: entry.run,
+          factory: factory,
+          timeout: entry.timeout,
+          sourceClosure: entry.sources.toSet(),
+          workingDirectory: root,
+          settings: entry.settings,
+          all: all,
+        ),
+    ]);
   }
 
   /// The key under `hooks` that holds the selectors of [entry].
