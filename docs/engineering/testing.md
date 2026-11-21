@@ -84,6 +84,9 @@ Each scenario is one test file under `test/acceptance/`. IDs are stable and refe
 | AC-22 | Symlink and submodule entries are skipped by content checks | 0.1.0 |
 | AC-23 | Baseline: old finding passes, new finding blocks, line shifts do not matter | 0.2.0 |
 | AC-24 | `tests/affected` with uncommitted changes in the affected closure | 0.3.0 |
+| AC-25 | `tests/affected`: an affected test imports an untracked `.dart` file (and, separately, an ignored one); no process is started and the warning is reported | 0.3.0 |
+| AC-26 | `tests/affected` on a pre-push of a branch that is not checked out: the closure diverges, tests are skipped with the warning, the push is not failed | 0.3.0 |
+| AC-27 | `tests/affected` and package configuration: a change to `pubspec.yaml` or `pubspec.lock` selects all tests of the package; an unstaged edit or an untracked copy of one of the three configuration files skips tests; an unstaged edit to a fixture alone does not | 0.3.0 |
 
 ## 5. Determinism test
 

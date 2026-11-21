@@ -202,10 +202,14 @@ Phase: verify. Trigger: a changed test file.
 
 ### `tests/affected`
 
-Phase: verify. Trigger: any changed `.dart` file. Entry points: pre-push and `ci`.
+Phase: verify. Trigger: any changed `.dart`, `pubspec.yaml`, `pubspec.lock` or `analysis_options.yaml` file. Entry points: pre-push and `ci` only; never `pre-commit` ([ADR-0018](../adr/0018-affected-tests-run-against-validated-snapshot.md)).
 
-- **Affected test files:** changed test files, plus test files that import a changed file directly or transitively.
-- **Dirty closure:** if any affected test file, or any file on an import chain from it to a changed file, differs between the snapshot and the working tree, tests are not run. One finding with severity `warning` at the first such file: `Affected tests were not run: <n> affected file(s) have uncommitted changes.`
+- **Affected test files:** changed test files, plus test files that import a changed or deleted file directly or transitively. When `pubspec.yaml`, `pubspec.lock` or `analysis_options.yaml` of a package changed, every test file of that package is affected.
+- **Closure:** the affected test files, every file in their transitive import closure (`import`, `export`, `part`; conditional branches included), and, for each package that owns an affected test, its `pubspec.yaml`, `pubspec.lock` and `analysis_options.yaml`.
+- **Dirty closure:** a path of the closure is divergent when (a) it differs between the snapshot and the working tree, (b) it is the target of an import edge of the closure, is absent from the snapshot and a regular file exists at that path on disk (an untracked or ignored file that the tests would load), or (c) it is one of the three configuration files, is absent from the snapshot and exists on disk. When any path is divergent, tests are not run. One finding with severity `warning` at the first divergent path in path order (for case (b), at the import directive in the first importing file in path order): `Affected tests were not run: <n> file(s) they execute differ from the working tree (uncommitted changes, untracked files, or another checked-out commit).`
+- **Branch that is not checked out:** the snapshot of a pre-push is the pushed commit. When the working tree is another commit, the closure diverges and tests are skipped with the warning above. This is intentional: `ci` is the guarantee. There is no special case.
+- **Re-check:** the divergence test runs again after the last test process exits. When the closure diverged during the run, the results are discarded and the warning is reported instead.
+- **Limitation:** fixtures, goldens, assets and other non-Dart files are not part of the closure. Selection ignores them and their divergence alone does not skip.
 - Otherwise run, per package, `flutter test` (when the package depends on the Flutter SDK) or `dart test`, with the affected files as arguments and machine-readable output.
 - One finding per failed test. Location: the test's line in its file. Message: `Test failed: <test name>.`
 - A run that fails before any test executes (compilation error, missing dependency) yields one finding at `<first affected file>:1:1`: `Tests could not be run: <first line of the tool's error>.`

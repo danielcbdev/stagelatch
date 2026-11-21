@@ -18,7 +18,7 @@ Status: **Approved (2026-11-12).** Rules are numbered so that reviews and code c
 **What we do not defend against**
 
 - A developer who chooses to bypass the hook. CI is the guarantee (ADR-0005).
-- Code the project itself asks us to run: `tests/affected` runs the project's tests by design.
+- Code the project itself asks us to run: `tests/affected` runs the project's tests by design, under S14.
 
 ## Rules
 
@@ -78,7 +78,7 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 ### S7. Network
 
 - The tool opens no sockets. No telemetry, no update check, no remote config.
-- `tests/affected` is the only feature that runs project code; what that code does is the project's responsibility.
+- `tests/affected` is the only feature that runs project code; what that code does is the project's responsibility (S14). The tool itself opens no sockets.
 
 ### S8. CI and release
 
@@ -112,6 +112,17 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 - A pull request can change `stagelatch.yaml`, add `stagelatch:ignore` comments or extend the baseline, and is then judged by its own rules (ADR-0015). The tool cannot prevent that.
 - Mitigation is process: protect these files with code owners, and tell agents not to change them unless asked.
 
+### S14. Running project code
+
+[ADR-0018](../adr/0018-affected-tests-run-against-validated-snapshot.md). `tests/affected` is the only feature that starts project code, and the only one allowed to.
+
+- It may start test processes only on `pre-push` and `ci`. `pre-commit`, `doctor`, `why`, `init`, `install`, `uninstall` and `baseline` never do.
+- It starts nothing unless the closure equals the snapshot (no divergent path), checked before the first process and again after the last one. Otherwise it reports the skip warning.
+- Process execution follows S1: `dart test` or `flutter test` of the resolved SDK, an argument list, test paths after `--`, never a shell. A test path never reaches a shell.
+- The environment is inherited unchanged (S11). The tool never injects, forwards or logs a secret.
+- The process's stdout and stderr are untrusted input: parsed as machine-readable events (S6) and sanitized before display (S5).
+- `stagelatch ci` with `tests/affected` executes the pull request's code like any `dart test` step. The README and `action.yml` state this, including the usual restrictions on secrets for pull requests from forks (S8).
+
 ## Security checklist for every pull request
 
 - [ ] No new process execution, or it follows S1.
@@ -120,6 +131,7 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 - [ ] Repository-derived strings pass through the sanitizer before output (S5).
 - [ ] New parsers have size bounds and an adversarial-input test (S6).
 - [ ] No network access, no new dependency without an ADR (S7, S9).
+- [ ] Nothing starts project code outside `tests/affected` on `pre-push` and `ci`, and only after the divergence test (S14).
 
 ## Reporting
 

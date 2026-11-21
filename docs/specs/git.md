@@ -100,7 +100,15 @@ git diff --name-only -z --no-renames            # index snapshot
 git diff --name-only -z --no-renames <sha>      # commit snapshot
 ```
 
-Untracked files are not part of any snapshot and are invisible to the tool: Dart analysis runs on a materialized copy of the snapshot (ADR-0001), so it never sees them either. This list is used from `0.3.0` by `tests/affected`, which refuses to run tests while an affected file differs from the working tree.
+Untracked files are not part of any snapshot and are invisible to this list and to Dart analysis, which runs on a materialized copy of the snapshot (ADR-0001).
+
+**Divergent, for `tests/affected` (ADR-0018).** From `0.3.0`, tests run on the working tree, so the check needs the whole picture. A path of the test closure (rules.md `tests/affected`) is divergent when:
+
+- it is in the list above, which also covers a commit snapshot that is not the checked-out commit; or
+- it is the target of an import edge of the closure, absent from the snapshot, and a regular file of that path exists on disk. This is a file system test on those targets, not `git ls-files --others`, so untracked and ignored files both count; or
+- it is one of the package's `pubspec.yaml`, `pubspec.lock` and `analysis_options.yaml`, absent from the snapshot and present on disk.
+
+The list is computed once before the test processes start and again after they exit. Files outside the closure never make a path divergent.
 
 ## 6. Applying fixes
 
