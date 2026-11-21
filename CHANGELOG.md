@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/danielcbdev/stagelatch/compare/v0.2.0...v0.3.0) (2026-11-21)
+
+
+### Features
+
+* **cache:** cache syntactic facts by blob id ([#73](https://github.com/danielcbdev/stagelatch/issues/73)) ([fc56630](https://github.com/danielcbdev/stagelatch/commit/fc56630b47652f4a1c2bffc25412d4165ae22ec4))
+* **checks:** add l10n/unused-key ([#76](https://github.com/danielcbdev/stagelatch/issues/76)) ([4d27963](https://github.com/danielcbdev/stagelatch/commit/4d27963bb5d3aa6a800b6314c4fd30d9faa0970b))
+* **checks:** add tests/affected ([#77](https://github.com/danielcbdev/stagelatch/issues/77)) ([9e3c90b](https://github.com/danielcbdev/stagelatch/commit/9e3c90b8fe3e8178723a92b6d0080f426fd5b420))
+* **checks:** select tests affected by a changeset ([#74](https://github.com/danielcbdev/stagelatch/issues/74)) ([dda2d90](https://github.com/danielcbdev/stagelatch/commit/dda2d90294608b1b374f1f59e9373617c9f6c683))
+* **cli:** add why command ([#80](https://github.com/danielcbdev/stagelatch/issues/80)) ([693ec24](https://github.com/danielcbdev/stagelatch/commit/693ec240612da2c498630e2af1fc76b9c5dd8681))
+* **dart:** add test runner over machine-readable output ([#75](https://github.com/danielcbdev/stagelatch/issues/75)) ([818774c](https://github.com/danielcbdev/stagelatch/commit/818774c632380617b88fbfdef22d2b42ba288a44))
+* **packages:** support pub workspaces ([#81](https://github.com/danielcbdev/stagelatch/issues/81)) ([93bdc33](https://github.com/danielcbdev/stagelatch/commit/93bdc331057f9be6a13676dcdc25cebf14af6433))
+* **reporters:** add JUnit reporter ([#79](https://github.com/danielcbdev/stagelatch/issues/79)) ([1a60452](https://github.com/danielcbdev/stagelatch/commit/1a60452343722e427e3c5692c8bb734dee952cb1))
+* **reporters:** add SARIF reporter ([#78](https://github.com/danielcbdev/stagelatch/issues/78)) ([809411f](https://github.com/danielcbdev/stagelatch/commit/809411f8576b38f2b2417f79c63c6e520c907bf6))
+
 ## [0.2.0](https://github.com/danielcbdev/stagelatch/compare/v0.1.0...v0.2.0) (2026-11-21)
 
 
