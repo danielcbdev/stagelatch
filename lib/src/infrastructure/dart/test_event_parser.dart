@@ -8,9 +8,9 @@ import 'package:path/path.dart' as p;
 import 'package:stagelatch/src/domain/dart/test_runner.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 
-/// The longest line read as an event: 1 MiB. Longer lines are dropped
-/// unparsed, so hostile output cannot make the parser allocate without
-/// bound.
+/// The longest line decoded as an event: 1 MiB, inclusive. Longer lines
+/// are skipped without [jsonDecode]; the splitter has already allocated
+/// the string.
 const int _maxLineLength = 1024 * 1024;
 
 /// The longest startup error: it ends up in one finding message.

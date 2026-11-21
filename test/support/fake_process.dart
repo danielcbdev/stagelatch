@@ -10,13 +10,15 @@ final class FakeProcess implements Process {
   /// with [exitCodeValue] once its output is delivered, unless
   /// [hangsUntilKilled] is set: then it never exits on its own and [kill]
   /// ends it. When [stdoutError] is set, the standard output stream fails
-  /// with it after the lines.
+  /// with it after the lines. The first [ignoredKills] calls of [kill] are
+  /// recorded and otherwise ignored, so a test can reach SIGKILL.
   new({
     this.stdoutLines = const [],
     this.standardError = '',
     this.exitCodeValue = 0,
     this.hangsUntilKilled = false,
     this.stdoutError,
+    this.ignoredKills = 0,
   }) {
     unawaited(_stdin.stream.drain<void>());
     unawaited(_play());
@@ -36,6 +38,9 @@ final class FakeProcess implements Process {
 
   /// An error the standard output stream ends with, instead of closing.
   final Object? stdoutError;
+
+  /// How many [kill] calls to record without exiting.
+  final int ignoredKills;
 
   final _stdout = StreamController<List<int>>();
   final _stderr = StreamController<List<int>>();
@@ -83,9 +88,12 @@ final class FakeProcess implements Process {
   @override
   bool kill([ProcessSignal signal = ProcessSignal.sigterm]) {
     signals.add(signal);
+    if (signals.length <= ignoredKills) return true;
     if (!_stdout.isClosed) unawaited(_stdout.close());
     if (!_stderr.isClosed) unawaited(_stderr.close());
-    if (!_exit.isCompleted) _exit.complete(-15);
+    if (!_exit.isCompleted) {
+      _exit.complete(signal == ProcessSignal.sigkill ? -9 : -15);
+    }
     return true;
   }
 }

@@ -99,5 +99,7 @@ abstract interface class TestRunner {
   ///
   /// [files] are repository paths inside the package. A problem of the tests
   /// or of the tool is a [TestRunResult.startupError], not an exception.
+  /// A failure of the output stream or of the event parser is rethrown
+  /// after the child is killed; it is not turned into a startup error.
   Future<TestRunResult> run(DartPackage package, List<RepoPath> files);
 }

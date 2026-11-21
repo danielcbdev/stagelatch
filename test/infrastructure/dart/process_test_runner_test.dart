@@ -97,11 +97,15 @@ ProcessTestRunner runnerFor(
   String repoRoot = '/repo',
   bool isWindows = false,
   List<Start>? calls,
+  Duration? killGrace,
+  TestLineConsumer? consumeLine,
 }) => ProcessTestRunner(
   sdk: resolved ?? sdk(),
   repoRoot: repoRoot,
   starter: fakeStarter(processes, calls ?? []),
   isWindows: isWindows,
+  killGrace: killGrace,
+  consumeLine: consumeLine,
 );
 
 void main() {
@@ -408,6 +412,50 @@ void main() {
       );
 
       expect(child.killed, isTrue);
+      expect(child.signals, [ProcessSignal.sigterm]);
+      await expectLater(child.exitCode, completes);
+    });
+
+    test('the child is killed and awaited when the parser throws', () async {
+      final child = FakeProcess(
+        stdoutLines: const ['{"type":"start"}'],
+        hangsUntilKilled: true,
+      );
+      final runner = runnerFor(
+        [child],
+        consumeLine: (parser, line) {
+          parser.add(line);
+          throw StateError('parser broke');
+        },
+      );
+
+      await expectLater(
+        runner.run(dartPackage(), paths(['test/a_test.dart'])),
+        throwsA(isA<StateError>()),
+      );
+
+      expect(child.killed, isTrue);
+      expect(child.signals, [ProcessSignal.sigterm]);
+      await expectLater(child.exitCode, completes);
+    });
+
+    test('a child that ignores SIGTERM is killed with SIGKILL', () async {
+      final child = FakeProcess(
+        stdoutLines: const ['{"type":"start"}'],
+        stdoutError: StateError('pipe broke'),
+        hangsUntilKilled: true,
+        ignoredKills: 1,
+      );
+      final runner = runnerFor([
+        child,
+      ], killGrace: const Duration(milliseconds: 30));
+
+      await expectLater(
+        runner.run(dartPackage(), paths(['test/a_test.dart'])),
+        throwsA(isA<StateError>()),
+      );
+
+      expect(child.signals, [ProcessSignal.sigterm, ProcessSignal.sigkill]);
       await expectLater(child.exitCode, completes);
     });
 

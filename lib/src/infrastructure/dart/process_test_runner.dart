@@ -1,5 +1,5 @@
 /// Runs test files with the resolved SDK's `dart test` or `flutter test`
-/// (ADR-0018, docs/specs/dart-toolchain.md, section 6, security S14).
+/// (ADR-0018, docs/specs/dart-toolchain.md, section 9, security S14).
 library;
 
 import 'dart:async';
@@ -32,7 +32,10 @@ typedef ProcessStarter = Future<Process> Function(
 const int _maxStandardError = 64 * 1024;
 
 /// How long a killed child gets to exit before it is killed for good.
-const _killGrace = Duration(seconds: 5);
+const _defaultKillGrace = Duration(seconds: 5);
+
+/// How each stdout line is fed to the parser. Tests replace it to throw.
+typedef TestLineConsumer = void Function(TestEventParser parser, String line);
 
 /// Characters a Windows batch file (`.bat`, `.cmd`) would read as shell
 /// syntax even in a quoted argument.
@@ -48,14 +51,20 @@ final class ProcessTestRunner implements TestRunner {
   /// [repoRoot].
   ///
   /// [starter] defaults to [Process.start]. [isWindows] defaults to the
-  /// platform.
+  /// platform. [killGrace] is how long a killed child has to exit before
+  /// SIGKILL; the default is 5 seconds. [consumeLine] feeds each stdout
+  /// line to the parser; tests replace it to throw.
   new({
     required this.sdk,
     required this.repoRoot,
     ProcessStarter? starter,
     bool? isWindows,
+    Duration? killGrace,
+    TestLineConsumer? consumeLine,
   }) : _start = starter ?? Process.start,
        _isWindows = isWindows ?? Platform.isWindows,
+       _killGrace = killGrace ?? _defaultKillGrace,
+       _consumeLine = consumeLine ?? _addLine,
        _context = switch (isWindows) {
          null => p.context,
          true => p.windows,
@@ -70,7 +79,11 @@ final class ProcessTestRunner implements TestRunner {
 
   final ProcessStarter _start;
   final bool _isWindows;
+  final Duration _killGrace;
+  final TestLineConsumer _consumeLine;
   final p.Context _context;
+
+  static void _addLine(TestEventParser parser, String line) => parser.add(line);
 
   /// The root with symlinks resolved, computed once: the tools report real
   /// paths, and on macOS a temporary directory is `/private/tmp/...`.
@@ -164,7 +177,7 @@ final class ProcessTestRunner implements TestRunner {
       final lines = process.stdout
           .transform(const Utf8Decoder(allowMalformed: true))
           .transform(const LineSplitter());
-      await lines.forEach(parser.add);
+      await lines.forEach((line) => _consumeLine(parser, line));
       final exitCode = await process.exitCode;
       exited = true;
       return parser.finish(
@@ -205,6 +218,9 @@ final class ProcessTestRunner implements TestRunner {
   }
 
   /// Stops [process] and waits until it has exited.
+  ///
+  /// SIGTERM first, then SIGKILL if it has not exited after [_killGrace].
+  /// Grandchildren are not killed (docs/specs/dart-toolchain.md, section 9).
   Future<void> _kill(Process process) async {
     process.kill();
     try {
