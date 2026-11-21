@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/danielcbdev/stagelatch/compare/v0.1.0...v0.2.0) (2026-11-21)
+
+
+### Features
+
+* **baseline:** add fingerprinted baseline with create and prune ([#65](https://github.com/danielcbdev/stagelatch/issues/65)) ([12c98d1](https://github.com/danielcbdev/stagelatch/commit/12c98d1136e2cb50848471224c4c5e07d308acc9))
+* **checks:** add assets check ([#59](https://github.com/danielcbdev/stagelatch/issues/59)) ([12c98d1](https://github.com/danielcbdev/stagelatch/commit/12c98d1136e2cb50848471224c4c5e07d308acc9))
+* **checks:** add codegen/stale from annotated-declaration facts ([#61](https://github.com/danielcbdev/stagelatch/issues/61)) ([12c98d1](https://github.com/danielcbdev/stagelatch/commit/12c98d1136e2cb50848471224c4c5e07d308acc9))
+* **checks:** add ICU argument scanner ([#56](https://github.com/danielcbdev/stagelatch/issues/56)) ([12c98d1](https://github.com/danielcbdev/stagelatch/commit/12c98d1136e2cb50848471224c4c5e07d308acc9))
+* **checks:** add l10n missing-key, placeholder-mismatch and unparseable ([#60](https://github.com/danielcbdev/stagelatch/issues/60)) ([12c98d1](https://github.com/danielcbdev/stagelatch/commit/12c98d1136e2cb50848471224c4c5e07d308acc9))
+* **checks:** add tests/solo and tests/new-skip ([#62](https://github.com/danielcbdev/stagelatch/issues/62)) ([12c98d1](https://github.com/danielcbdev/stagelatch/commit/12c98d1136e2cb50848471224c4c5e07d308acc9))
+* **checks:** add unpinned-git, build-number-regression and lockfile-out-of-sync ([#57](https://github.com/danielcbdev/stagelatch/issues/57)) ([12c98d1](https://github.com/danielcbdev/stagelatch/commit/12c98d1136e2cb50848471224c4c5e07d308acc9))
+* **cli:** add --all to run and ci ([#63](https://github.com/danielcbdev/stagelatch/issues/63)) ([12c98d1](https://github.com/danielcbdev/stagelatch/commit/12c98d1136e2cb50848471224c4c5e07d308acc9))
+* **config:** publish JSON Schema for stagelatch.yaml ([#64](https://github.com/danielcbdev/stagelatch/issues/64)) ([12c98d1](https://github.com/danielcbdev/stagelatch/commit/12c98d1136e2cb50848471224c4c5e07d308acc9))
+
 ## [0.1.0](https://github.com/danielcbdev/stagelatch/compare/v0.1.0-dev.1...v0.1.0) (2026-11-20)
 
 
