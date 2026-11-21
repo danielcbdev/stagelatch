@@ -14,19 +14,17 @@ void main() async {
     final message = jsonDecode(line) as Map<String, Object?>;
     switch (message['type']) {
       case 'init':
-        stdout.writeln(
-          jsonEncode({
-            'type': 'ready',
-            'protocol': 1,
-            'rules': [
-              {
-                'id': 'example/no-print',
-                'summary': 'Disallow print() in changed Dart files',
-                'defaultSeverity': 'error',
-              },
-            ],
-          }),
-        );
+        await _emit({
+          'type': 'ready',
+          'protocol': 1,
+          'rules': [
+            {
+              'id': 'example/no-print',
+              'summary': 'Disallow print() in changed Dart files',
+              'defaultSeverity': 'error',
+            },
+          ],
+        });
         expectingRun = true;
       case 'run':
         if (!expectingRun) {
@@ -43,17 +41,15 @@ void main() async {
           }
           final id = nextReadId++;
           pending[id] = path;
-          stdout.writeln(
-            jsonEncode({
-              'type': 'read',
-              'id': id,
-              'path': path,
-              'side': 'snapshot',
-            }),
-          );
+          await _emit({
+            'type': 'read',
+            'id': id,
+            'path': path,
+            'side': 'snapshot',
+          });
         }
         if (pending.isEmpty) {
-          stdout.writeln(jsonEncode({'type': 'done'}));
+          await _emit({'type': 'done'});
           return;
         }
       case 'content':
@@ -66,22 +62,26 @@ void main() async {
         if (text is String) {
           final hit = findPrintCall(text);
           if (hit != null) {
-            stdout.writeln(
-              jsonEncode({
-                'type': 'finding',
-                'rule': 'example/no-print',
-                'path': path,
-                'line': hit.line,
-                'column': hit.column,
-                'message': 'Avoid print(); use a logger or remove the call.',
-              }),
-            );
+            await _emit({
+              'type': 'finding',
+              'rule': 'example/no-print',
+              'path': path,
+              'line': hit.line,
+              'column': hit.column,
+              'message': 'Avoid print(); use a logger or remove the call.',
+            });
           }
         }
         if (pending.isEmpty) {
-          stdout.writeln(jsonEncode({'type': 'done'}));
+          await _emit({'type': 'done'});
           return;
         }
     }
   }
+}
+
+/// Writes one protocol line and flushes (piped stdout can buffer on Windows).
+Future<void> _emit(Map<String, Object?> message) async {
+  stdout.writeln(jsonEncode(message));
+  await stdout.flush();
 }

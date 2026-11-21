@@ -23,7 +23,7 @@ hooks:
 
 custom_checks:
   example:
-    run: [dart, run, example/custom_check/bin/check.dart]
+    run: [dart, example/custom_check/bin/check.dart]
     sources:
       - example/custom_check/bin/check.dart
       - example/custom_check/lib/no_print.dart

@@ -14,8 +14,11 @@ import '../support/temp_repo.dart';
 /// AC-34: the reference check under `example/custom_check/` speaks protocol 1
 /// end to end against the real host (init/ready/run/done; optional finding).
 ///
-/// Timeout is 2 minutes: Windows CI cold-starts `dart run` of the multi-file
-/// example package, and setUp (copy + pub get) counts toward the same budget.
+/// Spawn path matches the well_behaved fixture: `dart <file.dart>` (no
+/// `dart run`). The temp copy flattens `bin/check.dart` + `lib/no_print.dart`
+/// into one script so Windows CI does not need `pub get` / package_config
+/// and does not hang on a cold multi-package `dart run`. TearDown kills
+/// leftover children (taskkill tree on Windows).
 void main() {
   TempRepo? repo;
   late Directory exampleSrc;
@@ -31,7 +34,7 @@ void main() {
     final created = await TempRepo.create();
     repo = created;
     await _copyExampleInto(created, exampleSrc);
-    await _pubGetExample(created);
+    await _flattenExampleEntry(created);
 
     await created.write('lib/a.dart', 'void hello() {}\n');
     await created.write('stagelatch.yaml', '''
@@ -40,7 +43,7 @@ hooks:
   pre-push: [example]
 custom_checks:
   example:
-    run: [dart, run, example/custom_check/bin/check.dart]
+    run: [dart, example/custom_check/bin/check.dart]
     sources:
       - example/custom_check/bin/check.dart
       - example/custom_check/lib/no_print.dart
@@ -122,15 +125,23 @@ Future<void> _copyExampleInto(TempRepo repo, Directory source) async {
   }
 }
 
-Future<void> _pubGetExample(TempRepo repo) async {
-  final process = await Process.start(
-    Platform.resolvedExecutable,
-    const ['pub', 'get'],
-    workingDirectory: p.join(repo.root, 'example', 'custom_check'),
-    environment: repo.environment,
-    includeParentEnvironment: false,
+/// Inlines `lib/no_print.dart` into `bin/check.dart` so `dart <file>` works
+/// without a package_config (same spawn shape as well_behaved on Windows).
+Future<void> _flattenExampleEntry(TempRepo repo) async {
+  final root = p.join(repo.root, 'example', 'custom_check');
+  final entry = File(p.join(root, 'bin', 'check.dart'));
+  final rule = await File(p.join(root, 'lib', 'no_print.dart')).readAsString();
+  // Drop the library directive; it cannot sit after the entry's imports.
+  final ruleBody = rule.replaceFirst(
+    RegExp(r'^library;\s*', multiLine: true),
+    '',
   );
-  final stderr = await process.stderr.transform(utf8.decoder).join();
-  final code = await process.exitCode;
-  expect(code, 0, reason: stderr);
+  final script = await entry.readAsString();
+  const packageImport = "import 'package:example_custom_check/no_print.dart';";
+  expect(
+    script.contains(packageImport),
+    isTrue,
+    reason: 'example bin/check.dart must import the rule package',
+  );
+  await entry.writeAsString(script.replaceFirst(packageImport, ruleBody));
 }

@@ -32,6 +32,10 @@ The process entry point (`bin/check.dart`) only speaks the protocol:
    `side: "snapshot"`, inspect the `content` text, emit zero or more
    `finding` messages, then `done`.
 
+Flush stdout after every protocol line (`await stdout.flush()`). Piped
+stdout on Windows can otherwise buffer `ready` and deadlock the host,
+which waits for handshake before sending `run`.
+
 Content you analyze must come from `read`. Do not open the working tree
 for source under review; the host serves the **snapshot**.
 
@@ -62,7 +66,7 @@ hooks:
 
 custom_checks:
   example:
-    run: [dart, run, example/custom_check/bin/check.dart]
+    run: [dart, example/custom_check/bin/check.dart]
     # timeout: 60s
     sources:
       - example/custom_check/bin/check.dart
@@ -75,10 +79,11 @@ custom_checks:
 Notes:
 
 - The map key (`example`) is the check id. Rule ids are `example/no-print`.
-- Prefer `run: [dart, run, <path-to-.dart>]` so the host can infer a
-  single entry when the check is one file. For a multi-file package,
-  set `sources` to the files that must match the snapshot (exit 78 if
-  the closure would be empty).
+- Prefer `run: [dart, <path-to-.dart>]` (VM runs the file directly).
+  `dart run` also works but cold-starts a package compile on Windows.
+  Flush stdout after each protocol line. For a multi-file check, set
+  `sources` to the files that must match the snapshot (exit 78 if the
+  closure would be empty).
 - Put the check id (or a rule id) on the hook lists that should run it.
   Declaring `custom_checks:` alone does not schedule anything.
 - Opt into `pre-commit` only if you accept the extra latency.
