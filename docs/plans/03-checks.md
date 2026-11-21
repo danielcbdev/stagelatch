@@ -449,7 +449,7 @@ AC-23 (`test/acceptance/ac23_baseline_test.dart`, pattern of `ac22_*`, helper `t
 
 The loader keeps each section's allowed keys inside its readers and does not expose them. The test therefore compares by behavior and against the spec, and Task 9 does not change `config_loader.dart`.
 
-- [ ] **Step 1: Write the failing test.**
+- [x] **Step 1: Write the failing test.**
 
 ```dart
 test('every key of the schema is accepted by the loader, at its place, with a value from the schema\'s examples', () async {
@@ -462,10 +462,10 @@ test('enumerations match: levels, scopes, fail_on values, hook names', () { /* .
 test('rules accepts only names matching the rule id pattern', () { /* patternProperties */ });
 ```
 
-- [ ] **Step 2: Run.** Expected: FAIL, file missing.
-- [ ] **Step 3: Write the schema** by hand from `specs/config.md` section 3, with a `description` and an `examples` entry per key. `rules` is an object whose property names match the rule ID pattern.
-- [ ] **Step 4: Run** all four commands. Expected: PASS.
-- [ ] **Step 5: Commit.** `feat(config): publish JSON Schema for stagelatch.yaml`
+- [x] **Step 2: Run.** Expected: FAIL, file missing.
+- [x] **Step 3: Write the schema** by hand from `specs/config.md` section 3, with a `description` and an `examples` entry per key. `rules` is an object whose property names match the rule ID pattern.
+- [x] **Step 4: Run** all four commands. Expected: PASS.
+- [x] **Step 5: Commit.** `feat(config): publish JSON Schema for stagelatch.yaml`
 
 ### Task 10: `init` detection, documentation and 0.2.0
 

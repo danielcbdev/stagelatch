@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/danielcbdev/stagelatch/main/schema/stagelatch.schema.json",
+  "title": "stagelatch.yaml",
+  "description": "Configuration of stagelatch, the change-aware quality gate for Flutter and Dart repositories.",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "selector": {
+      "type": "string",
+      "description": "A check (`format`) or one rule of a check (`tests/solo`).",
+      "pattern": "^[a-z0-9][a-z0-9_-]*(/[a-z0-9][a-z0-9_-]*)?$",
+      "examples": ["pubspec", "tests/solo"]
+    },
+    "glob": {
+      "type": "string",
+      "description": "A package:glob pattern matched against the repository-relative path, with forward slashes.",
+      "minLength": 1,
+      "examples": ["lib/generated/**"]
+    }
+  },
+  "properties": {
+    "min_version": {
+      "type": "string",
+      "description": "The oldest stagelatch version this repository accepts. An older tool exits with code 78.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+      "examples": ["0.2.0"]
+    },
+    "hooks": {
+      "type": ["object", "null"],
+      "description": "The checks each entry point runs. A hook left out keeps its default list.",
+      "examples": [{ "pre-commit": ["format", "pubspec"], "pre-push": ["analyze"] }],
+      "additionalProperties": false,
+      "properties": {
+        "pre-commit": {
+          "type": ["array", "null"],
+          "description": "What runs on commit, against the index. Defaults to every pre-commit check of the running version.",
+          "items": { "$ref": "#/$defs/selector" },
+          "examples": [["format", "pubspec", "tests/solo"]]
+        },
+        "pre-push": {
+          "type": ["array", "null"],
+          "description": "What runs on push, against the commit being pushed. Defaults to analyze and tests/affected, limited to what the running version implements.",
+          "items": { "$ref": "#/$defs/selector" },
+          "examples": [["analyze"]]
+        },
+        "ci": {
+          "type": ["array", "null"],
+          "description": "What `stagelatch ci` runs. Defaults to the union of the two lists above, pre-commit first. `baseline create` and `baseline prune` also use it.",
+          "items": { "$ref": "#/$defs/selector" },
+          "examples": [["format", "analyze", "pubspec"]]
+        }
+      }
+    },
+    "rules": {
+      "type": ["object", "null"],
+      "description": "Severity per rule ID, `<check>/<rule>`: error, warning or off. A rule left out keeps its default.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "enum": ["error", "warning", "off", false]
+      },
+      "examples": [{ "tests/new-skip": "warning", "pubspec/unpinned-git": "off" }]
+    },
+    "exclude": {
+      "type": ["array", "null"],
+      "description": "Paths that never produce findings.",
+      "items": { "$ref": "#/$defs/glob" },
+      "examples": [["lib/generated/**"]]
+    },
+    "sdk_path": {
+      "type": ["string", "null"],
+      "description": "The SDK root, when it is not the FVM one or the dart on PATH. It must lie outside the repository's working tree.",
+      "minLength": 1,
+      "examples": ["/opt/flutter"]
+    },
+    "time_budget": {
+      "type": "string",
+      "description": "Time after which a run is reported as slow. It never skips or shortens a check. An integer plus `ms`, or a decimal plus `s`; greater than zero.",
+      "pattern": "^(\\d{1,9}ms|\\d{1,9}(\\.\\d{1,6})?s)$",
+      "default": "2s",
+      "examples": ["2s", "1500ms"]
+    },
+    "baseline": {
+      "type": ["string", "null"],
+      "description": "The baseline file, relative to the repository root. A missing file is an empty baseline.",
+      "minLength": 1,
+      "default": ".stagelatch/baseline.json",
+      "examples": [".stagelatch/baseline.json"]
+    },
+    "format": {
+      "type": ["object", "null"],
+      "description": "Parameters of the format check.",
+      "examples": [{ "fix": true }],
+      "additionalProperties": false,
+      "properties": {
+        "fix": {
+          "type": "boolean",
+          "description": "Apply formatting to the index on pre-commit.",
+          "default": true,
+          "examples": [true]
+        }
+      }
+    },
+    "analyze": {
+      "type": ["object", "null"],
+      "description": "Parameters of the analyze check.",
+      "examples": [{ "scope": "affected", "fail_on": ["error", "warning"] }],
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "enum": ["changed", "affected", "all"],
+          "description": "Which files are analyzed: the changed ones, those and the files that import them, or the whole package.",
+          "default": "affected",
+          "examples": ["affected"]
+        },
+        "fail_on": {
+          "type": ["array", "null"],
+          "description": "The analyzer severities that block.",
+          "items": { "enum": ["error", "warning", "info"] },
+          "default": ["error", "warning"],
+          "examples": [["error", "warning"]]
+        }
+      }
+    },
+    "codegen": {
+      "type": ["object", "null"],
+      "description": "Parameters of the codegen check.",
+      "examples": [{ "generated_files_committed": true }],
+      "additionalProperties": false,
+      "properties": {
+        "generated_files_committed": {
+          "type": "boolean",
+          "description": "Set to false when generated files are not versioned: it disables codegen/stale.",
+          "default": true,
+          "examples": [true]
+        },
+        "generated_suffixes": {
+          "type": ["array", "null"],
+          "description": "Suffixes that mark a generated part file.",
+          "items": { "type": "string", "minLength": 1 },
+          "default": [".g.dart", ".freezed.dart"],
+          "examples": [[".g.dart", ".freezed.dart"]]
+        }
+      }
+    },
+    "pubspec": {
+      "type": ["object", "null"],
+      "description": "Parameters of the pubspec check.",
+      "examples": [{ "monotonic_build_number": ["release/*"] }],
+      "additionalProperties": false,
+      "properties": {
+        "monotonic_build_number": {
+          "type": ["array", "null"],
+          "description": "Branch globs, matched against the short branch name, where pubspec/build-number-regression applies.",
+          "items": { "$ref": "#/$defs/glob" },
+          "default": [],
+          "examples": [["release/*"]]
+        },
+        "require_sha": {
+          "type": "boolean",
+          "description": "Make pubspec/unpinned-git also reject refs that are not a 40-character SHA.",
+          "default": false,
+          "examples": [false]
+        }
+      }
+    },
+    "assets": {
+      "type": ["object", "null"],
+      "description": "Parameters of the assets check.",
+      "examples": [{ "max_file_size": "500KB", "ignore": ["assets/videos/**"] }],
+      "additionalProperties": false,
+      "properties": {
+        "max_file_size": {
+          "type": "string",
+          "description": "The size limit for assets/max-file-size: a non-negative integer plus B, KB or MB. `1KB` is 1024 bytes.",
+          "pattern": "^\\d{1,15}(B|KB|MB)$",
+          "default": "500KB",
+          "examples": ["500KB"]
+        },
+        "roots": {
+          "type": ["array", "null"],
+          "description": "The directories, relative to each package, where assets/undeclared and assets/max-file-size look.",
+          "items": { "type": "string", "minLength": 1 },
+          "default": ["assets/"],
+          "examples": [["assets/"]]
+        },
+        "ignore": {
+          "type": ["array", "null"],
+          "description": "Asset paths exempt from every assets rule, matched against the path relative to the package.",
+          "items": { "$ref": "#/$defs/glob" },
+          "default": [],
+          "examples": [["assets/videos/**"]]
+        }
+      }
+    },
+    "tests": {
+      "type": ["object", "null"],
+      "description": "Parameters of the tests check.",
+      "examples": [{ "functions": ["test", "testWidgets", "group"] }],
+      "additionalProperties": false,
+      "properties": {
+        "functions": {
+          "type": ["array", "null"],
+          "description": "The calls inspected by tests/solo and tests/new-skip.",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$"
+          },
+          "default": ["test", "testWidgets", "group"],
+          "examples": [["test", "testWidgets", "group", "blocTest"]]
+        }
+      }
+    }
+  }
+}
