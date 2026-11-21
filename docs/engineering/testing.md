@@ -84,10 +84,14 @@ Each scenario is one test file under `test/acceptance/`. IDs are stable and refe
 | AC-22 | Symlink and submodule entries are skipped by content checks | 0.1.0 |
 | AC-23 | Baseline: old finding passes, new finding blocks, line shifts do not matter | 0.2.0 |
 | AC-24 | `tests/affected` with uncommitted changes in the affected closure | 0.3.0 |
+| AC-25 | `tests/affected`: an affected test imports an untracked non-ignored `.dart` file: no process is started and the warning is reported; the same import of a gitignored `.dart` file (generated code) does not skip | 0.3.0 |
+| AC-26 | `tests/affected` on a pre-push of a branch that is not checked out: the closure diverges, tests are skipped with the warning, the push is not failed | 0.3.0 |
+| AC-27 | `tests/affected` and package configuration: a change to `analysis_options.yaml` or `pubspec.lock` selects all tests of the package; an unstaged edit to a committed `pubspec.lock`, or an untracked non-ignored `analysis_options.yaml`, skips tests; a gitignored `pubspec.lock` present only on disk does not; an unstaged edit to a fixture, `dart_test.yaml` or `build.yaml` alone does not | 0.3.0 |
+| AC-28 | Pub workspace: a member's files are analyzed with the workspace root's package config; `pubspec/lockfile-out-of-sync` reads the root lock; `tests/affected` selects and runs the tests of a member when a file of another member changes; `why` explains it | 0.3.0 |
 
 ## 5. Determinism test
 
-`test/acceptance/determinism_test.dart` runs the same scenario twice with `--reporter json`, removes the duration fields, and asserts the two outputs are byte-identical. It also runs once with a shuffled check registry order and asserts the same.
+`test/acceptance/determinism_test.dart` runs the same scenario twice with `--reporter json`, removes the duration fields, and asserts the two outputs are byte-identical. It also runs once with a shuffled check registry order and asserts the same, and once with a cold and once with a warm facts cache ([`dart-toolchain.md`](../specs/dart-toolchain.md#61-the-facts-cache)): the three outputs must be identical.
 
 ## 6. Coverage
 
@@ -125,12 +129,14 @@ All four run on every pull request, on Dart stable and beta, on Ubuntu, macOS an
 
 **Symptom.** `dart test` reports `Failed to load "<suite>": Connection closed before full header was received, uri = http://127.0.0.1:<port>/<token>/ws`. It happens before any assertion of that suite counts, and it hits pure suites (`test/domain/rule_id_test.dart`) as well as suites that spawn `git`.
 
-**Where it was seen.** Windows jobs (pull request 12, which is why they run with `--concurrency=1`) and `ubuntu-latest / dart beta` on 2026-11-20 (run 44683972741, two suites, green on rerun). Every other red run in the history was a real failure and did not carry this message.
+**Where it was seen.** Windows jobs (pull request 12, which is why they run with `--concurrency=1`) and `ubuntu-latest / dart beta` on 2026-11-20 (run 44683972741, two suites, green on rerun). After PR #53, run 44848100638 (`ubuntu-latest / dart stable`, the coverage job, push of #66 onto develop) failed with `Failed to load "test/application/environment_test.dart": Connection closed before full header was received`. Every other red run in the history was a real failure and did not carry this message.
+
+**Coverage-job occurrences since PR #53.** Count: **1** — run 44848100638. That job is the only one that still passes `--coverage-path`, which matches the hypothesis from #53 (the failure only appears where `--coverage-path` is on). Three occurrences mean moving coverage to its own job with `--concurrency=1`.
 
 **What the evidence says.**
 
 - The URI is the VM service WebSocket (`/ws`). With `test_core` 0.6.x the runner opens it only for coverage (`vm/platform.dart` calls `_gatherCoverage` through `package:coverage`'s `collect`), or in `--debug` mode. A plain `dart test` never opens it.
-- Every occurrence had `--coverage-path` on, in jobs that did not read the report.
+- Every occurrence had `--coverage-path` on. Occurrences before PR #53 were in jobs that did not read the report; the one after #53 was on the coverage job itself.
 - It did not reproduce locally: 0 failures in 160 runs of `test/domain` (macOS, Dart stable), 80 with coverage and 80 without.
 - No upstream issue carries the exact message for this path. `dart-lang/sdk#56474` is the same `HttpException` text in an unrelated caller.
 

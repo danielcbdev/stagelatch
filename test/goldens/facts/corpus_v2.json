@@ -1,0 +1,661 @@
+{
+  "factsFormatVersion": 2,
+  "testFunctions": [
+    "group",
+    "myTest",
+    "test",
+    "testWidgets"
+  ],
+  "files": {
+    "annotated.dart.txt": {
+      "v": 2,
+      "isWellFormed": true,
+      "directives": [
+        {
+          "kind": "import",
+          "uri": "package:json_annotation/json_annotation.dart",
+          "start": [
+            1,
+            8
+          ],
+          "end": [
+            1,
+            54
+          ]
+        },
+        {
+          "kind": "part",
+          "uri": "annotated.g.dart",
+          "start": [
+            3,
+            6
+          ],
+          "end": [
+            3,
+            24
+          ]
+        }
+      ],
+      "annotatedDeclarations": [
+        {
+          "name": "Order",
+          "annotations": [
+            "JsonSerializable"
+          ],
+          "tokenHash": "2b8a74dc77659de7d098e6ac292481eb40dbebed9bbb6d300180a6929b84e3ab",
+          "start": [
+            5,
+            1
+          ],
+          "end": [
+            5,
+            40
+          ]
+        },
+        {
+          "name": "Order.id",
+          "annotations": [
+            "JsonKey"
+          ],
+          "tokenHash": "c6803d069a479e1294d2db888d7ecd2ec86d2fd805e3836a54db716c7fa9d1ea",
+          "start": [
+            11,
+            3
+          ],
+          "end": [
+            11,
+            29
+          ]
+        },
+        {
+          "name": "Shape",
+          "annotations": [
+            "freezed"
+          ],
+          "tokenHash": "9e40961ac0bc9557515e3f4edabba31136b25195fb5988606a5ace4a4ae12f22",
+          "start": [
+            20,
+            1
+          ],
+          "end": [
+            20,
+            9
+          ]
+        },
+        {
+          "name": "Color",
+          "annotations": [
+            "JsonEnum"
+          ],
+          "tokenHash": "052efcb979da7b2769f1522a96e2aab35f3f77419d8c5f8c491536981670f246",
+          "start": [
+            25,
+            1
+          ],
+          "end": [
+            25,
+            12
+          ]
+        },
+        {
+          "name": "Color.red",
+          "annotations": [
+            "JsonValue"
+          ],
+          "tokenHash": "9ac07f2765971598667e50532488cea2dc31ce46caeaf509d146256f6c93212f",
+          "start": [
+            27,
+            3
+          ],
+          "end": [
+            27,
+            18
+          ]
+        }
+      ],
+      "testCalls": [],
+      "identifiers": [
+        "Circle",
+        "Color",
+        "Default",
+        "JsonEnum",
+        "JsonKey",
+        "JsonSerializable",
+        "JsonValue",
+        "Map",
+        "Order",
+        "Shape",
+        "String",
+        "_$OrderFromJson",
+        "_$OrderToJson",
+        "_$Shape",
+        "circle",
+        "class",
+        "const",
+        "double",
+        "dynamic",
+        "enum",
+        "explicitToJson",
+        "factory",
+        "final",
+        "freezed",
+        "fromJson",
+        "green",
+        "id",
+        "import",
+        "int",
+        "json",
+        "name",
+        "override",
+        "part",
+        "r",
+        "red",
+        "sealed",
+        "this",
+        "toJson",
+        "toString",
+        "true",
+        "with"
+      ]
+    },
+    "directives.dart.txt": {
+      "v": 2,
+      "isWellFormed": true,
+      "directives": [
+        {
+          "kind": "import",
+          "uri": "dart:io",
+          "start": [
+            6,
+            8
+          ],
+          "end": [
+            6,
+            17
+          ]
+        },
+        {
+          "kind": "import",
+          "uri": "dart:html",
+          "start": [
+            6,
+            41
+          ],
+          "end": [
+            6,
+            52
+          ]
+        },
+        {
+          "kind": "import",
+          "uri": "dart:js_interop",
+          "start": [
+            6,
+            82
+          ],
+          "end": [
+            6,
+            99
+          ]
+        },
+        {
+          "kind": "import",
+          "uri": "package:a/a.dart",
+          "start": [
+            7,
+            8
+          ],
+          "end": [
+            7,
+            26
+          ]
+        },
+        {
+          "kind": "import",
+          "uri": "b.dartc.dart",
+          "start": [
+            8,
+            8
+          ],
+          "end": [
+            8,
+            25
+          ]
+        },
+        {
+          "kind": "export",
+          "uri": "src/d.dart",
+          "start": [
+            9,
+            8
+          ],
+          "end": [
+            9,
+            20
+          ]
+        },
+        {
+          "kind": "part",
+          "uri": "e.part.dart",
+          "start": [
+            10,
+            6
+          ],
+          "end": [
+            10,
+            19
+          ]
+        },
+        {
+          "kind": "partOf",
+          "uri": "f.dart",
+          "start": [
+            11,
+            9
+          ],
+          "end": [
+            11,
+            17
+          ]
+        }
+      ],
+      "annotatedDeclarations": [],
+      "testCalls": [],
+      "identifiers": [
+        "Bar",
+        "Deprecated",
+        "Foo",
+        "a",
+        "app",
+        "as",
+        "dart",
+        "export",
+        "hide",
+        "html",
+        "if",
+        "import",
+        "js_interop",
+        "library",
+        "main",
+        "of",
+        "part",
+        "show",
+        "void"
+      ]
+    },
+    "empty.dart.txt": {
+      "v": 2,
+      "isWellFormed": true,
+      "directives": [],
+      "annotatedDeclarations": [],
+      "testCalls": [],
+      "identifiers": []
+    },
+    "interpolation.dart.txt": {
+      "v": 2,
+      "isWellFormed": true,
+      "directives": [
+        {
+          "kind": "import",
+          "uri": "package:test/test.dart",
+          "start": [
+            1,
+            8
+          ],
+          "end": [
+            1,
+            32
+          ]
+        }
+      ],
+      "annotatedDeclarations": [],
+      "testCalls": [
+        {
+          "function": "test",
+          "description": "'adds $n and ${n + 1}'",
+          "groups": [],
+          "start": [
+            8,
+            5
+          ],
+          "end": [
+            8,
+            40
+          ],
+          "solo": null,
+          "skip": null
+        },
+        {
+          "function": "test",
+          "description": "describe()",
+          "groups": [],
+          "start": [
+            10,
+            3
+          ],
+          "end": [
+            10,
+            26
+          ],
+          "solo": null,
+          "skip": null
+        }
+      ],
+      "identifiers": [
+        "String",
+        "count",
+        "describe",
+        "final",
+        "for",
+        "greet",
+        "import",
+        "in",
+        "int",
+        "main",
+        "n",
+        "name",
+        "plural",
+        "test",
+        "toUpperCase",
+        "void"
+      ]
+    },
+    "tests.dart.txt": {
+      "v": 2,
+      "isWellFormed": true,
+      "directives": [
+        {
+          "kind": "import",
+          "uri": "package:test/test.dart",
+          "start": [
+            4,
+            8
+          ],
+          "end": [
+            4,
+            32
+          ]
+        }
+      ],
+      "annotatedDeclarations": [],
+      "testCalls": [
+        {
+          "function": "group",
+          "description": "cart",
+          "groups": [],
+          "start": [
+            7,
+            3
+          ],
+          "end": [
+            16,
+            5
+          ],
+          "solo": null,
+          "skip": {
+            "start": [
+              1,
+              1
+            ],
+            "end": [
+              1,
+              23
+            ]
+          }
+        },
+        {
+          "function": "group",
+          "description": "totals",
+          "groups": [
+            "cart"
+          ],
+          "start": [
+            8,
+            5
+          ],
+          "end": [
+            11,
+            7
+          ],
+          "solo": null,
+          "skip": {
+            "start": [
+              1,
+              1
+            ],
+            "end": [
+              1,
+              23
+            ]
+          }
+        },
+        {
+          "function": "test",
+          "description": "adds",
+          "groups": [
+            "cart",
+            "totals"
+          ],
+          "start": [
+            9,
+            7
+          ],
+          "end": [
+            9,
+            38
+          ],
+          "solo": {
+            "start": [
+              9,
+              27
+            ],
+            "end": [
+              9,
+              37
+            ]
+          },
+          "skip": {
+            "start": [
+              1,
+              1
+            ],
+            "end": [
+              1,
+              23
+            ]
+          }
+        },
+        {
+          "function": "test",
+          "description": "subtracts",
+          "groups": [
+            "cart",
+            "totals"
+          ],
+          "start": [
+            10,
+            7
+          ],
+          "end": [
+            10,
+            44
+          ],
+          "solo": null,
+          "skip": {
+            "start": [
+              1,
+              1
+            ],
+            "end": [
+              1,
+              23
+            ]
+          }
+        },
+        {
+          "function": "test",
+          "description": "skipped",
+          "groups": [
+            "cart"
+          ],
+          "start": [
+            12,
+            5
+          ],
+          "end": [
+            12,
+            39
+          ],
+          "solo": null,
+          "skip": {
+            "start": [
+              12,
+              28
+            ],
+            "end": [
+              12,
+              38
+            ]
+          }
+        },
+        {
+          "function": "test",
+          "description": "kept",
+          "groups": [
+            "cart"
+          ],
+          "start": [
+            13,
+            5
+          ],
+          "end": [
+            13,
+            37
+          ],
+          "solo": null,
+          "skip": {
+            "start": [
+              1,
+              1
+            ],
+            "end": [
+              1,
+              23
+            ]
+          }
+        },
+        {
+          "function": "testWidgets",
+          "description": "renders",
+          "groups": [
+            "cart"
+          ],
+          "start": [
+            14,
+            5
+          ],
+          "end": [
+            14,
+            61
+          ],
+          "solo": null,
+          "skip": {
+            "start": [
+              14,
+              47
+            ],
+            "end": [
+              14,
+              60
+            ]
+          }
+        },
+        {
+          "function": "myTest",
+          "description": "custom function",
+          "groups": [
+            "cart"
+          ],
+          "start": [
+            15,
+            5
+          ],
+          "end": [
+            15,
+            37
+          ],
+          "solo": null,
+          "skip": {
+            "start": [
+              1,
+              1
+            ],
+            "end": [
+              1,
+              23
+            ]
+          }
+        }
+      ],
+      "identifiers": [
+        "Skip",
+        "async",
+        "false",
+        "group",
+        "import",
+        "library",
+        "main",
+        "myTest",
+        "skip",
+        "solo",
+        "test",
+        "testWidgets",
+        "tester",
+        "true",
+        "void"
+      ]
+    },
+    "unbalanced.dart.txt": {
+      "v": 2,
+      "isWellFormed": false,
+      "directives": [
+        {
+          "kind": "import",
+          "uri": "a.dart",
+          "start": [
+            1,
+            8
+          ],
+          "end": [
+            1,
+            16
+          ]
+        }
+      ],
+      "annotatedDeclarations": [],
+      "testCalls": [],
+      "identifiers": []
+    },
+    "unterminated.dart.txt": {
+      "v": 2,
+      "isWellFormed": false,
+      "directives": [
+        {
+          "kind": "import",
+          "uri": "a.dart",
+          "start": [
+            1,
+            8
+          ],
+          "end": [
+            1,
+            16
+          ]
+        }
+      ],
+      "annotatedDeclarations": [],
+      "testCalls": [],
+      "identifiers": []
+    }
+  }
+}

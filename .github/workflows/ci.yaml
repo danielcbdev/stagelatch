@@ -89,12 +89,15 @@ jobs:
         with:
           sdk: stable
 
-      # Every package `analyze` may touch needs its package config.
+      # Packages whose tests `tests/affected` may select, and every package
+      # `analyze` may touch, need a package config (plan 04, Task 10): the
+      # root, benchmark, test/fixtures/dart_app, and the workspace fixture.
       - name: Install dependencies
         run: |
           dart pub get
           dart pub get --directory benchmark
           dart pub get --directory test/fixtures/dart_app
+          dart pub get --directory test/fixtures/workspace
 
       - name: Run stagelatch ci
         env:

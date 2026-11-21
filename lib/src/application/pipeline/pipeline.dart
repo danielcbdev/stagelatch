@@ -13,6 +13,7 @@ import 'package:stagelatch/src/application/packages/package_map_builder.dart';
 import 'package:stagelatch/src/application/pipeline/check_registry.dart';
 import 'package:stagelatch/src/application/pipeline/finding_filters.dart';
 import 'package:stagelatch/src/application/pipeline/inline_ignore.dart';
+import 'package:stagelatch/src/application/pipeline/lazy_test_runner.dart';
 import 'package:stagelatch/src/application/pipeline/lazy_toolchain.dart';
 import 'package:stagelatch/src/application/pipeline/pipeline_check_context.dart';
 import 'package:stagelatch/src/application/pipeline/run_report.dart';
@@ -21,9 +22,11 @@ import 'package:stagelatch/src/application/ports/clock.dart';
 import 'package:stagelatch/src/application/ports/dart_toolchain_factory.dart';
 import 'package:stagelatch/src/application/ports/git_repository.dart';
 import 'package:stagelatch/src/application/ports/sdk_locator.dart';
+import 'package:stagelatch/src/application/ports/test_runner_factory.dart';
 import 'package:stagelatch/src/domain/change_set.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/dart/dart_toolchain.dart';
+import 'package:stagelatch/src/domain/dart/test_runner.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/domain/finding.dart';
 import 'package:stagelatch/src/domain/package_map.dart';
@@ -51,6 +54,7 @@ final class Pipeline {
     required this._toolVersion,
     required this._sdkLocator,
     required this._toolchains,
+    required this._testRunners,
   });
 
   final GitRepository _git;
@@ -61,6 +65,7 @@ final class Pipeline {
   final Version _toolVersion;
   final SdkLocator _sdkLocator;
   final DartToolchainFactory _toolchains;
+  final TestRunnerFactory _testRunners;
 
   /// Resolves [request] to the snapshots it concerns and judges each one.
   ///
@@ -111,6 +116,15 @@ final class Pipeline {
       return created;
     }
 
+    // One runner for both phases; it locates the SDK on its first run, which
+    // only `tests/affected` on pre-push or ci ever asks for.
+    final tests = LazyTestRunner(
+      locator: _sdkLocator,
+      factory: _testRunners,
+      config: config,
+      repoRoot: () async => (await _git.layout()).root,
+    );
+
     try {
       return await _judgeWith(
         request,
@@ -120,6 +134,7 @@ final class Pipeline {
         selection: selection,
         packages: packages,
         toolchain: toolchain,
+        tests: tests,
       );
     } finally {
       for (final created in toolchains) {
@@ -136,6 +151,7 @@ final class Pipeline {
     required Selection selection,
     required PackageMap packages,
     required LazyToolchain Function() toolchain,
+    required TestRunner tests,
   }) async {
     final entry = request.entry.kind;
     final config = loaded.config;
@@ -154,6 +170,8 @@ final class Pipeline {
       targetBranch: run.targetBranch,
       packages: packages,
       dart: dart,
+      tests: tests,
+      divergentAmong: (paths) => _git.divergentAmong(run.snapshot, paths),
       selection: selection,
       config: config,
     );

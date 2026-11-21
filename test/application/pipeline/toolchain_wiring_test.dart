@@ -18,6 +18,7 @@ import '../../support/fake_clock.dart';
 import '../../support/fake_dart_toolchain_factory.dart';
 import '../../support/fake_git_repository.dart';
 import '../../support/fake_sdk_locator.dart';
+import '../../support/fake_test_runner.dart';
 import '../../support/fake_working_tree.dart';
 
 const _preCommit = RunRequest(entry: PreCommitEntry());
@@ -47,6 +48,7 @@ void main() {
         toolVersion: Version.parse('0.1.0'),
         sdkLocator: locator,
         toolchains: factory,
+        testRunners: FakeTestRunnerFactory(FakeTestRunner()),
       ).run(_preCommit)).single;
 
   FakeCheck usingDart(String id, {CheckPhase phase = CheckPhase.verify}) =>

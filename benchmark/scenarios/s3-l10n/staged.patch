@@ -1,0 +1,46 @@
+diff --git a/lib/features/badges/biz/bloc/badges_bloc.dart b/lib/features/badges/biz/bloc/badges_bloc.dart
+index 568d9ac6a..6143a818c 100644
+--- a/lib/features/badges/biz/bloc/badges_bloc.dart
++++ b/lib/features/badges/biz/bloc/badges_bloc.dart
+@@ -21,6 +21,7 @@ class BadgesBloc extends Bloc<BadgesEvent, BadgesState> {
+   Future<void> _onLoaded(BadgesLoaded event, Emitter<BadgesState> emit) async {
+     emit(state.copyWith(status: BadgesStatus.loading, earnedIds: _sessionIds()));
+     final result = await _repository.check();
++    emit(state.copyWith(status: 'checked'));
+     result.fold(
+       onSuccess: (List<Badge> badges) => emit(
+         state.copyWith(status: BadgesStatus.success, earnedIds: badges.map((Badge b) => b.id).toList(growable: false)),
+diff --git a/lib/features/badges/domain/badge_catalog.dart b/lib/features/badges/domain/badge_catalog.dart
+index 17cf62347..6e12ede68 100644
+--- a/lib/features/badges/domain/badge_catalog.dart
++++ b/lib/features/badges/domain/badge_catalog.dart
+@@ -52,6 +52,7 @@ const List<BadgeInfo> badgeCatalog = <BadgeInfo>[
+ 
+ /// The catalog entry for [id], or null for a badge this app version does not know.
+ BadgeInfo? badgeInfo(String id) {
++  final int known = badgeCatalog.length;
+   for (final BadgeInfo info in badgeCatalog) {
+     if (info.id == id) return info;
+   }
+diff --git a/lib/features/badges/views/widgets/badge_celebrate_sheet.dart b/lib/features/badges/views/widgets/badge_celebrate_sheet.dart
+index dc7806cb6..7f7c53236 100644
+--- a/lib/features/badges/views/widgets/badge_celebrate_sheet.dart
++++ b/lib/features/badges/views/widgets/badge_celebrate_sheet.dart
+@@ -24,7 +24,7 @@ class BadgeCelebrateSheet extends StatelessWidget {
+     final ColorScheme cs = Theme.of(context).colorScheme;
+     final BadgeInfo? info = badgeInfo(badge.id);
+     final bool inlineApproval = DailyMomentConfig.enabled && badge.id == 'creator';
+-    final bool small = MediaQuery.sizeOf(context).height < 700;
++    final bool small =   MediaQuery.sizeOf(context).height<700;
+     return PrismSheetBody(
+       title: context.l10n.economyNewBadge,
+       actions: <Widget>[
+@@ -40,7 +40,7 @@ class BadgeCelebrateSheet extends StatelessWidget {
+         mainAxisSize: MainAxisSize.min,
+         children: <Widget>[
+           Glint(mood: inlineApproval ? GlintMood.calm : GlintMood.celebrate, size: small ? 88 : 140),
+-          const SizedBox(height: PrismSpace.xs),
++          SizedBox(height: PrismSpace.xs),
+           Text(
+             info?.name(context.l10n) ?? context.l10n.economyBadgeEarned,
+             textAlign: TextAlign.center,

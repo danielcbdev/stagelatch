@@ -59,7 +59,7 @@ final class PubspecCheck implements Check {
         continue;
       }
       if (path.basename == _lockFileName) {
-        lockChanged.add(_sibling(path, pubspecFileName));
+        lockChanged.addAll(_pubspecsForLock(context, path));
         continue;
       }
       if (path.basename != pubspecFileName) continue;
@@ -160,25 +160,54 @@ final class PubspecCheck implements Check {
   }
 
   /// `pubspec/lockfile-out-of-sync` for the pubspec at [path]: silent when
-  /// the snapshot has no `pubspec.lock` beside it, or one that is not a
-  /// readable map.
+  /// the snapshot has no lock at the package's resolution root, or one that
+  /// is not a readable map.
   Future<List<Finding>> _lockfileFindings(
     CheckContext context,
     RepoPath path,
     PubspecDocument document,
   ) async {
-    final parsed = await context.documents.yaml(
-      context.snapshot,
-      _sibling(path, _lockFileName),
-    );
+    final package = context.packages.packageOf(path);
+    final lockPath = package == null
+        ? _sibling(path, _lockFileName)
+        : _fileAt(context.packages.resolutionRootOf(package), _lockFileName);
+    final parsed = await context.documents.yaml(context.snapshot, lockPath);
     if (parsed case DocumentParsed(:final LocatedMap root)) {
+      final members = package == null
+          ? const <String>{}
+          : {
+              for (final member in context.packages.workspaceMembersOf(package))
+                member.name,
+            };
+      final isWorkspaceMember =
+          package != null &&
+          context.packages.workspaceRoots.containsKey(package);
       return lockfileFindings(
         pubspec: document,
         lock: LockfileDocument(root),
         pubspecPath: path,
+        workspaceMemberNames: members,
+        checkDirectUndeclared: !isWorkspaceMember,
       );
     }
     return const [];
+  }
+
+  /// Every pubspec that shares the lock at [lockPath]: the sibling for a
+  /// lone package, every workspace member when it is a workspace root lock.
+  Iterable<RepoPath> _pubspecsForLock(CheckContext context, RepoPath lockPath) {
+    final package = context.packages.packageOf(lockPath);
+    if (package == null) return [_sibling(lockPath, pubspecFileName)];
+    final root = context.packages.resolutionPackageOf(package);
+    if (context.packages.resolutionRootOf(package) != lockPath.parent &&
+        !(lockPath.parent == null && root.root == null)) {
+      // Lock is not at the resolution root: fall back to the sibling.
+      return [_sibling(lockPath, pubspecFileName)];
+    }
+    return [
+      for (final member in context.packages.workspaceMembersOf(root))
+        _fileAt(member.root, pubspecFileName),
+    ];
   }
 
   void _addUnparseable(
@@ -214,3 +243,8 @@ RepoPath _sibling(RepoPath path, String name) {
   final parent = path.parent;
   return parent == null ? RepoPath(name) : RepoPath('${parent.value}/$name');
 }
+
+/// The file called [name] in [directory], or at the repository root when
+/// [directory] is null.
+RepoPath _fileAt(RepoPath? directory, String name) =>
+    directory == null ? RepoPath(name) : RepoPath('${directory.value}/$name');

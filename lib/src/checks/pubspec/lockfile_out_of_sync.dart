@@ -23,10 +23,18 @@ import 'package:stagelatch/src/domain/severity.dart';
 /// A dependency that is also under `dependency_overrides` is not compared:
 /// the override decides what the lock resolves, and has its own rule.
 /// [pubspecPath] is where [pubspec] lives, for the locations.
+///
+/// [workspaceMemberNames] are packages of the same pub workspace: they are
+/// not in the lock, so a dependency that names one is not compared. With
+/// [checkDirectUndeclared] false (a workspace member), direct lock entries
+/// that the pubspec does not declare are not reported: only the root
+/// pubspec's dependencies are marked `direct` in a workspace lock.
 List<Finding> lockfileFindings({
   required PubspecDocument pubspec,
   required LockfileDocument lock,
   required RepoPath pubspecPath,
+  Set<String> workspaceMemberNames = const {},
+  bool checkDirectUndeclared = true,
 }) {
   final findings = <Finding>[];
   final overridden = pubspec.overrideNames.toSet();
@@ -42,6 +50,7 @@ List<Finding> lockfileFindings({
   for (final dependency in pubspec.dependencies(includeDev: true)) {
     declared.add(dependency.name);
     if (overridden.contains(dependency.name)) continue;
+    if (workspaceMemberNames.contains(dependency.name)) continue;
     final location = dependency.entry.keyLocation;
     final locked = lock.packages[dependency.name];
     if (locked == null) {
@@ -81,18 +90,20 @@ List<Finding> lockfileFindings({
     }
   }
 
-  for (final MapEntry(key: name, value: locked) in lock.packages.entries) {
-    final direct =
-        locked.dependencyKind == 'direct main' ||
-        locked.dependencyKind == 'direct dev';
-    if (direct && !declared.contains(name)) {
-      findings.add(
-        finding(
-          'pubspec.lock lists "$name" as a direct dependency, but '
-          'pubspec.yaml does not declare it.',
-          Location.wholeFile(pubspecPath),
-        ),
-      );
+  if (checkDirectUndeclared) {
+    for (final MapEntry(key: name, value: locked) in lock.packages.entries) {
+      final direct =
+          locked.dependencyKind == 'direct main' ||
+          locked.dependencyKind == 'direct dev';
+      if (direct && !declared.contains(name)) {
+        findings.add(
+          finding(
+            'pubspec.lock lists "$name" as a direct dependency, but '
+            'pubspec.yaml does not declare it.',
+            Location.wholeFile(pubspecPath),
+          ),
+        );
+      }
     }
   }
   return findings;

@@ -171,21 +171,7 @@ final class GitCliRepository implements GitRepository {
   /// The pull request's head against its fork point (docs/specs/git.md,
   /// section 4.3).
   Future<ResolvedRun> _resolveCi(CiEntry entry) async {
-    // Exit 1: no common ancestor. Exit 128: a ref git does not know, as
-    // when a shallow clone never fetched the base branch. Either way the
-    // diff would be wrong, so nothing is analyzed (ADR-0007).
-    final mergeBase = await _git.run(
-      ['merge-base', entry.baseRef, entry.headRef],
-      okExitCodes: {0, 1, 128},
-    );
-    if (mergeBase.exitCode != 0) {
-      throw UsageException(
-        'Cannot find a merge base between ${entry.baseRef} and '
-        '${entry.headRef}. If this is a shallow clone, fetch full history '
-        '(actions/checkout: fetch-depth: 0).',
-      );
-    }
-    final base = mergeBase.text.trim();
+    final base = await _mergeBase(entry.baseRef, entry.headRef);
     // ^{commit}: the commit a tag or branch name points at.
     final head = (await _git.run([
       'rev-parse',
@@ -209,6 +195,78 @@ final class GitCliRepository implements GitRepository {
       targetBranch: target,
       label: target,
     );
+  }
+
+  @override
+  Future<ResolvedRun> resolveAgainstIndex({String? baseRef}) async {
+    final resolved = baseRef ?? await _whyBaseRef();
+    if (resolved == null) {
+      throw const UsageException('Cannot determine a base. Pass --base <ref>.');
+    }
+    final base = await _mergeBase(resolved, 'HEAD');
+    final layout = await this.layout();
+    // --cached: the index against the merge base (docs/specs/git.md, 4.3.1).
+    final diff = await _git.run([
+      'diff',
+      '--cached',
+      '--name-status',
+      '-z',
+      '-M',
+      base,
+    ]);
+    return ResolvedRun(
+      snapshot: const IndexSnapshot(),
+      base: CommitSnapshot(base),
+      changes: ChangeSet(parseNameStatus(diff.nulSeparated)),
+      targetBranch: layout.branch,
+      label: 'index',
+    );
+  }
+
+  /// The merge base of [baseRef] and [headRef], or the usage error `ci`
+  /// and `why` share when there is none (ADR-0007).
+  Future<String> _mergeBase(String baseRef, String headRef) async {
+    // Exit 1: no common ancestor. Exit 128: a ref git does not know, as
+    // when a shallow clone never fetched the base branch. Either way the
+    // diff would be wrong, so nothing is analyzed.
+    final mergeBase = await _git.run(
+      ['merge-base', baseRef, headRef],
+      okExitCodes: {0, 1, 128},
+    );
+    if (mergeBase.exitCode != 0) {
+      throw UsageException(
+        'Cannot find a merge base between $baseRef and '
+        '$headRef. If this is a shallow clone, fetch full history '
+        '(actions/checkout: fetch-depth: 0).',
+      );
+    }
+    return mergeBase.text.trim();
+  }
+
+  /// Upstream of the current branch, else `refs/remotes/origin/HEAD`.
+  Future<String?> _whyBaseRef() async {
+    final layout = await this.layout();
+    final branch = layout.branch;
+    if (branch != null) {
+      // --verify --quiet: the upstream commit, or nothing when unset.
+      final upstream = await _git.run(
+        ['rev-parse', '--verify', '--quiet', '$branch@{upstream}'],
+        okExitCodes: {0, 1, 128},
+      );
+      if (upstream.exitCode == 0) {
+        final value = upstream.text.trim();
+        if (value.isNotEmpty) return value;
+      }
+    }
+    final remoteHead = await _git.run(
+      ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD'],
+      okExitCodes: {0, 1, 128},
+    );
+    if (remoteHead.exitCode == 0) {
+      final value = remoteHead.text.trim();
+      if (value.isNotEmpty) return value;
+    }
+    return null;
   }
 
   /// [ref] without a leading `origin/` or `refs/heads/`.
@@ -406,6 +464,74 @@ final class GitCliRepository implements GitRepository {
     ]);
     final paths = result.nulSeparated.map(RepoPath.new).toList()..sort();
     return paths.toSet();
+  }
+
+  @override
+  Future<Set<RepoPath>> divergentAmong(
+    SnapshotRef ref,
+    Set<RepoPath> paths,
+  ) async {
+    final diverging = await divergingFromWorktree(ref);
+    final result = {
+      for (final path in paths)
+        if (diverging.contains(path)) path,
+    };
+
+    // The rest cannot differ from a snapshot file, so the only ones left to
+    // look at are the paths the snapshot lacks (ADR-0018, rule 2): those
+    // that exist on disk as a regular file, and not through a link.
+    final snapshot = files(ref);
+    final root = (await layout()).root;
+    final present = <RepoPath>[];
+    for (final path in [...paths]..sort()) {
+      if (result.contains(path) || await snapshot.entry(path) != null) {
+        continue;
+      }
+      final onDisk = p.joinAll([root, ...path.value.split('/')]);
+      if (FileSystemEntity.typeSync(onDisk, followLinks: false) ==
+          FileSystemEntityType.file) {
+        present.add(path);
+      }
+    }
+    if (present.isEmpty) return result;
+
+    // Git would track the ones that are not ignored: untracked files that a
+    // commit would pick up. One process answers for all of them.
+    final ignored = await _ignored(present);
+    return result..addAll(present.where((path) => !ignored.contains(path)));
+  }
+
+  /// Which of [paths] `git check-ignore` reports as ignored.
+  Future<Set<RepoPath>> _ignored(List<RepoPath> paths) async {
+    // check-ignore reads paths relative to the directory git runs in, which
+    // is not always the top of the work tree.
+    // --show-prefix: where that directory is under the top, with a final
+    //   slash, or empty at the top.
+    final prefix = (await _git.run(['rev-parse', '--show-prefix'])).text.trim();
+    final up =
+        '../' *
+        (prefix.isEmpty
+            ? 0
+            : prefix.split('/').where((s) => s.isNotEmpty).length);
+    final input = BytesBuilder(copy: false);
+    for (final path in paths) {
+      input
+        ..add(utf8.encode('$up${path.value}'))
+        ..addByte(0);
+    }
+    // --stdin: the paths come from us, so that their number is not bounded
+    //   by the length of a command line.
+    // -z: NUL-separated input and output.
+    // Exit code 0: something is ignored. 1: nothing is. Both are answers.
+    final result = await _git.run(
+      ['check-ignore', '--stdin', '-z'],
+      stdin: input.takeBytes(),
+      okExitCodes: {0, 1},
+    );
+    return {
+      for (final line in result.nulSeparated)
+        if (line.startsWith(up)) RepoPath(line.substring(up.length)),
+    };
   }
 
   /// Writes [fixes] to the index without losing unstaged work

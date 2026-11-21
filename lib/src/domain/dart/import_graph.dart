@@ -3,6 +3,7 @@
 library;
 
 import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
+import 'package:stagelatch/src/domain/location.dart';
 import 'package:stagelatch/src/domain/package_map.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 
@@ -22,23 +23,29 @@ final class ImportGraph {
     required PackageMap packages,
   }) {
     final reverse = <RepoPath, Set<RepoPath>>{};
+    final forward = <RepoPath, Map<RepoPath, Location>>{};
     for (final MapEntry(key: file, value: list) in directives.entries) {
       for (final directive in list) {
         final target = _resolve(directive.uri, file, packages);
         if (target == null || target == file) continue;
         (reverse[target] ??= {}).add(file);
+        (forward[file] ??= {}).putIfAbsent(target, () => directive.location);
       }
     }
     return ImportGraph._({
       for (final MapEntry(:key, :value) in reverse.entries)
         key: [...value]..sort(),
-    });
+    }, forward);
   }
 
-  const new _(this._dependents);
+  const new _(this._dependents, this._dependencies);
 
   /// The direct dependents of each file, sorted.
   final Map<RepoPath, List<RepoPath>> _dependents;
+
+  /// The direct dependencies of each file with the location of the first
+  /// directive that names each one; the map keeps source order.
+  final Map<RepoPath, Map<RepoPath, Location>> _dependencies;
 
   /// [files] and every file that depends on one of them, directly or
   /// transitively, sorted by path.
@@ -55,6 +62,32 @@ final class ImportGraph {
       ...[...seen]..sort(),
     };
   }
+
+  /// [files] and every file they depend on, directly or transitively,
+  /// sorted by path.
+  ///
+  /// A target that is not a key of the `directives` the graph was built
+  /// from (a deleted file, or one that was never read) is in the result;
+  /// it simply has no dependencies of its own.
+  Set<RepoPath> dependenciesOf(Set<RepoPath> files) {
+    final seen = <RepoPath>{...files};
+    final pending = [...files];
+    while (pending.isNotEmpty) {
+      final file = pending.removeLast();
+      for (final dependency
+          in _dependencies[file]?.keys ?? const <RepoPath>[]) {
+        if (seen.add(dependency)) pending.add(dependency);
+      }
+    }
+    return {
+      ...[...seen]..sort(),
+    };
+  }
+
+  /// Where [importer] first names [target] in a directive, in source
+  /// order. Null when [importer] has no direct edge to [target].
+  Location? directiveOf(RepoPath importer, RepoPath target) =>
+      _dependencies[importer]?[target];
 
   /// The shortest chain from [from] to [to] following dependents: [from],
   /// a file that depends on it, and so on up to [to]. Breadth-first with

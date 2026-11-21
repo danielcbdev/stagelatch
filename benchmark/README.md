@@ -112,3 +112,94 @@ lexer, the candidate that was chosen) and `lib/facts_parse.dart`
 lists the commands to reproduce them (`compare`, `edges`, `fuzz`,
 `adversarial`, `scan`, `parse`, `sha`). Nothing of stagelatch imports these
 files.
+
+## The facts cache (plan 04, Task 1)
+
+`bin/cache.dart` times `CachedFacts.facts` over every `.dart` file of the
+corpus at the pinned SHA: the extractor alone, an empty cache, a warm cache,
+and the cold and warm runs again in fresh processes.
+
+```bash
+dart run benchmark/bin/cache.dart
+```
+
+Measured on 2026-11-21 on an Apple M-series laptop, 2,462 `.dart` files:
+
+| Run | Time |
+|---|---|
+| extractor alone (no cache) | 636 ms |
+| empty cache, same process (extract and store) | 1,290 ms |
+| warm cache, same process | 218 ms |
+| empty cache, fresh process | 1,541 ms |
+| warm cache, fresh process | 264 ms |
+
+## `l10n/unused-key` on the commit hook (plan 04, Task 2)
+
+`l10n/unused-key` scans every non-generated `.dart` file of the package, so a
+staged `.dart` file makes it look at the whole package. The corpus has an
+`l10n.yaml` and a template of 4,156 keys, so `s3-l10n` and `s10-l10n` reuse the
+patches of `s3` and `s10` unchanged. `measure_cli.dart` deletes the corpus's
+facts cache (`.git/stagelatch/cache`) before each cold run, as well as using a
+fresh `HOME`:
+
+```bash
+dart pub global activate --source path .
+cd benchmark
+dart run bin/measure_cli.dart --hook pre-commit --scenario s3-l10n \
+  --scenario s10-l10n --cold 8 --warm 10 --out 19-cli-0.3.0-l10n-pre-commit.json
+```
+
+Measured on 2026-11-21 on the same laptop and SDK as above, with the default
+pre-commit list of 0.3.0 (format, codegen, pubspec, l10n, assets,
+sensitive-files, tests/solo, tests/new-skip). Cold: no facts cache and an empty
+analysis cache; warm: both populated.
+
+| Scenario | Cold p50 / p95 | Cold min-max | Warm p50 / p95 |
+|---|---|---|---|
+| s3-l10n | 1.79 / 1.88 s | 1.73-1.88 s | 1.20 / 1.29 s |
+| s10-l10n | 1.83 / 1.85 s | 1.80-1.85 s | 1.26 / 1.43 s |
+| 0.2.0 (no unused-key), s3 | 0.55 / 0.56 s | | 0.77 / 0.78 s |
+| 0.2.0 (no unused-key), s10 | 0.61 / 0.63 s | | 0.83 / 0.85 s |
+
+Both stay under the 2 s gate, with about 0.12 s of margin at the worst cold
+run. In a first measurement taken right after `dart pub global activate`, the
+very first cold run (s3) took 2.2 s, and the 9 cold runs after it stayed
+between 1.73 and 1.94 s; as in the 0.2.0 table above, that run is the
+activation warm-up. The table is a second, complete measurement (8 cold and
+10 warm runs per scenario) in which no run exceeded 1.89 s. Compared with 0.2.0, the rule adds about 1.2 s cold (extracting the
+identifiers of 2,462 files and storing them) and about 0.4 s warm (listing the
+snapshot and reading 2,462 cache entries); these are differences of medians,
+not a profile.
+
+## Default hooks of 0.3.0 (plan 04, Task 10)
+
+The default `pre-commit` list (including `l10n/unused-key` on this corpus,
+which has an `l10n.yaml`) and the default `pre-push` list (`analyze` and
+`tests/affected`) on `s3` and `s10`. Cold deletes the corpus facts cache and
+uses a fresh `HOME`; warm keeps both caches. On these scenarios the unstaged
+edit makes the affected-test closure diverge, so `tests/affected` reports the
+skip warning and starts no test process; the pre-push time is essentially
+`analyze` plus selection and the divergence check.
+
+```bash
+dart pub global activate --source path .
+cd benchmark
+dart run bin/measure_cli.dart --hook pre-commit --hook pre-push \
+  --scenario s3 --scenario s10 --cold 3 --warm 10 --out 19-cli-0.3.0.json
+```
+
+Measured on 2026-11-21 on the same laptop and SDK. Results are in
+`results/19-cli-0.3.0.json`.
+
+| Hook | Scenario | Cold p50 / p95 | Warm p50 / p95 |
+|---|---|---|---|
+| pre-commit | s3 | 1.82 / 2.20 s | 1.26 / 1.31 s |
+| pre-commit | s10 | 3.24 / 3.45 s | 1.59 / 1.65 s |
+| pre-push | s3 | 38.7 / 40.7 s | 30.2 / 47.1 s |
+| pre-push | s10 | 50.4 / 50.5 s | 30.9 / 31.4 s |
+
+The first cold pre-commit run of the session (s3, 2.20 s) is the
+activation warm-up, same disclosure as 0.2.0. Warm facts cache versus cold
+cuts about 0.5 s (s3) to 1.6 s (s10) on the commit hook. Pre-push stays
+near the analyze-only affected numbers of 0.1.0 because `tests/affected`
+skips under the scenario's unstaged edit.

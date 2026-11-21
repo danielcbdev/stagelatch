@@ -1,6 +1,6 @@
 # Dart toolchain specification
 
-Status: **Approved (2026-11-12); mechanism selected 2026-11-19 (ADR-0008).** Sections 4 and 5 describe a contract; section 8 records the mechanism that fulfils it. Sections 1–3, 6 and 7 do not depend on the mechanism.
+Status: **Approved (2026-11-12); mechanism selected 2026-11-19 (ADR-0008).** Sections 4 and 5 describe a contract; section 8 records the mechanism that fulfils it. Sections 1–3, 6 and 7 do not depend on the mechanism. Section 9 describes how tests are run.
 
 ## 1. SDK resolution
 
@@ -25,9 +25,10 @@ Status: **Approved (2026-11-12); mechanism selected 2026-11-19 (ADR-0008).** Sec
 - A file belongs to the package with the deepest root that contains it. Files outside every package belong to none and are skipped by Dart rules.
 - `DartPackage { root, name, usesFlutter }`; `usesFlutter` is true when the pubspec has a dependency with `sdk: flutter`.
 - A `pubspec.yaml` that does not parse, or has no string `name`, still defines a package. Its name is the empty string, so no `package:` URI resolves to it. The directory name is not used: it depends on where the repository was cloned (ADR-0003).
-- Pub workspaces (a root pubspec with `workspace:` and members with `resolution: workspace`) are recognized from `0.3.0`: members share the root's `pubspec.lock` and `.dart_tool/package_config.json`.
+- **Pub workspaces** are recognized from `0.3.0`. A root pubspec lists its members under `workspace:`, each entry a directory or, from language version 3.11, a glob; a member has `resolution: workspace`. The members of a root are the packages whose directory matches one of its entries (globs are matched against the directories of the snapshot's packages) and that declare `resolution: workspace`. A member belongs to the nearest enclosing package that lists it; a package that declares `resolution: workspace` and that no enclosing package lists belongs to none and resolves on its own.
+- `PackageMap.resolutionRootOf(DartPackage) -> RepoPath?` is the directory that holds the package's `pubspec.lock` and `.dart_tool/package_config.json`: the workspace root's directory for a member (null for the repository root, as for `DartPackage.root`), the package's own directory otherwise. Verified with Dart 3.13.4: after `pub get` a member has no `package_config.json` and no lock of its own; the root's config lists every member with a relative `rootUri`, and `dart test` run in a member's directory resolves through it.
 
-**Package config.** Dart analysis needs `.dart_tool/package_config.json` in the working tree for each package that has files to analyze (for workspace members, the root's). When it is missing: usage error `Missing <path>. Run: dart pub get`, where `<path>` is the repository-relative location of the file, for example `.dart_tool/package_config.json` or `packages/ui/.dart_tool/package_config.json`. Checks that do not use diagnostics are unaffected.
+**Package config.** Dart analysis needs `.dart_tool/package_config.json` in the working tree for each package that has files to analyze, found at the package's resolution root (for a workspace member, the workspace root's). Packages that share a resolution root share one copy. When it is missing: usage error `Missing <path>. Run: dart pub get`, where `<path>` is the repository-relative location of the file, for example `.dart_tool/package_config.json` or `packages/ui/.dart_tool/package_config.json`. Checks that do not use diagnostics are unaffected.
 
 ## 3. Import graph
 
@@ -39,7 +40,9 @@ Built in `0.1.0` for `analyze.scope: affected`, reused by `tests/affected` and `
 - An edge is kept even when its target is absent from the snapshot, so the importers of a deleted file can still be found.
 - `ImportGraph.dependentsOf(Set<RepoPath>) -> Set<RepoPath>`: the transitive reverse closure, including the inputs, sorted.
 - `ImportGraph.shortestChain(RepoPath from, RepoPath to) -> List<RepoPath>?`: breadth-first, ties broken by path order, so the result is deterministic.
-- From `0.3.0`, per-file directives are cached by blob id.
+- `ImportGraph.dependenciesOf(Set<RepoPath>) -> Set<RepoPath>`: the transitive forward closure, including the inputs, sorted. Edges to targets that are absent from the snapshot are followed, so the closure holds those targets (they have no further edges). `tests/affected` uses it for the divergence test ([ADR-0018](../adr/0018-affected-tests-run-against-validated-snapshot.md)).
+- `ImportGraph.directiveOf(RepoPath importer, RepoPath target) -> Location?`: the location of the first directive of `importer`, in source order, that resolves to `target`; null when there is none. Used to place the skip warning of `tests/affected`.
+- From `0.3.0`, the facts of every file, directives included, are cached by blob id ([section 6.1](#61-the-facts-cache)).
 
 ## 4. Diagnostics
 
@@ -108,13 +111,25 @@ final class DartFileFacts {
 - A member is named `Class.member`; a constructor is `Class.named`, or `Class.new` when it has no name; an enum constant is `Enum.value`; an unnamed extension is `<unnamed>`. A top-level variable declaration is named by its first variable. `annotations` are the annotation names as written (`JsonKey`, `pkg.Annotation`, `Foo.bar`), without type arguments or arguments, sorted.
 - The declaration's tokens run from its first `@` to its last token, annotations included. Tokens exclude comments and whitespace, so formatting never changes `tokenHash`. The token stream is the Dart scanner's own (`>>` is one token, `[]` and `[]=` are one token, an interpolated string is split at each `$`), because the hash is defined on it.
 - `testCalls` are collected only for calls to functions named in `tests.functions`; the adapter receives that list at construction, through `DartToolchainFactory.create`, and no new port exists for it. A call is unqualified (`test(...)`, not `obj.test(...)` or a cascade) and has at least one positional argument. A group is a call to the function named `group`, and `groups` lists the descriptions of the `group` calls that enclose the call. The description is the first positional argument: a string literal's value (escapes decoded, adjacent literals joined), or the argument's source text otherwise. `skip` is set by the call's own `skip:` argument (other than `false` and `null`), else by a `@Skip` annotation on the enclosing top-level function, else by one on the library; its location is that argument or annotation.
-- `identifiers` is filled from `0.3.0`; before that it is empty.
+- `identifiers` is filled from `0.3.0`; before that it is empty. It holds every identifier and keyword token of the file, interpolated expressions included, and nothing from comments or string contents. For a file that is not well formed it is empty, like `annotatedDeclarations` and `testCalls`; a rule that reads it must check `isWellFormed` first.
+
+### 6.1 The facts cache
+
+Since `0.3.0`, `DartToolchain.facts` is answered from a content-addressed cache when the file is in the snapshot as a regular or executable file and the cache has an entry for it. A cache hit is indistinguishable from recomputation; any failure of the cache is a miss, never an error.
+
+- **Port.** `Cache { Future<String?> read(String namespace, String key); Future<void> write(String namespace, String key, String value) }` in `application/ports`. No other port is added; the extractor and the codec live in `infrastructure/dart/`.
+- **Namespace** `facts-v<factsFormatVersion>`. `factsFormatVersion` is one integer that covers both the encoding of the entry and the behaviour of the extractor (lexer and recognizers). It is raised by any change that can alter the facts of some input, and a golden test over a fixed corpus fails when the facts change without it.
+- **Key** `<blob id>-<sha256 of the test functions>`: the blob id as git prints it, a hyphen, and the hexadecimal SHA-256 of the sorted `tests.functions` set joined by `\n` (ADR-0017: the facts depend on that set). The path is not part of the key.
+- **Value** a JSON document with a `v` member equal to `factsFormatVersion`. It holds every field of `DartFileFacts` with positions only; the path is attached on read, so the same blob at two paths shares one entry and a hit carries the requested path. `identifiers` are stored sorted. An entry that does not decode, or whose `v` differs, is a miss.
+- **Location** `<git common dir>/stagelatch/cache/<namespace>/<first two characters of the key>/<key>`. Linked worktrees share the common directory.
+- **Writes** go to a fresh temporary directory next to the target and are renamed into place, so a reader never sees a partial entry. Writers of one key store the same bytes, so a concurrent writer is harmless. Where renaming over an existing file fails (Windows), the write is abandoned silently: the entry is there already. A directory that cannot be created or written makes every write a no-op and every read a miss.
+- **Eviction** there is none; the directory is safe to delete at any time.
 
 ## 7. Lifecycle and cost
 
 - `DartToolchainFactory.create(ResolvedSdk, SnapshotFiles, ...) -> DartToolchain` is called by the pipeline the first time a check touches `context.dart`. A run that needs no Dart knowledge never pays for it. Creating starts no process and writes no file.
 - A toolchain is bound to one snapshot view. The fix phase and the verify phase each get their own, created on first access, because fixes change the index between them; the pipeline closes both.
-- `facts` must not require the expensive part of the toolchain to start: syntactic extraction runs in-process.
+- `facts` must not require the expensive part of the toolchain to start: syntactic extraction runs in-process. On a cache hit the blob is not even read.
 - `DartToolchain.close()` is called in a `finally` by the pipeline.
 
 ## 8. Mechanism
@@ -131,3 +146,9 @@ Selected by the spike ([`spike/report.md`](../spike/report.md)) and recorded in 
 | Coupling | The analysis server's legacy protocol, tested on Flutter 3.47.8 and 3.44.9. No `analyzer` or `dart_style` dependency. |
 
 The candidates that were measured and rejected (embedded `analyzer` with `OverlayResourceProvider`, and a long-lived server) are described in the spike report.
+
+## 9. Test runner
+
+Since `0.3.0`, `tests/affected` runs the resolved SDK's `dart test` or `flutter test` on the working tree (ADR-0018). The process is started with an argument list, stdin is closed at once, and a child still running when the tool stops is sent SIGTERM, then SIGKILL if it has not exited after 5 s.
+
+Killing that process does not kill its grandchildren. `flutter test` on Windows is `flutter.bat`, which starts `flutter_tester`; those descendants can outlive the process the tool waits for. The tool does not walk the process tree.

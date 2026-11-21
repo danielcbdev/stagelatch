@@ -24,10 +24,13 @@ final class MaterializedSnapshot {
   ///
   /// With [settingsOnly], only `pubspec.yaml` and `analysis_options.yaml`
   /// files are written: enough for `dart format` to find its settings.
+  ///
+  /// Each distinct resolution root's `.dart_tool/package_config.json` is
+  /// copied once (workspace members share the root's).
   static Future<MaterializedSnapshot> write({
     required SnapshotFiles snapshot,
     required String repoRoot,
-    required Iterable<DartPackage> packages,
+    required PackageMap packages,
     bool settingsOnly = false,
   }) async {
     final created = await Directory.systemTemp.createTemp('stagelatch-');
@@ -45,8 +48,12 @@ final class MaterializedSnapshot {
       await file.parent.create(recursive: true);
       await file.writeAsBytes(bytes);
     }
-    for (final package in packages) {
-      await materialized._copyPackageConfig(package.root);
+    final copied = <String>{};
+    for (final package in packages.packages) {
+      final root = packages.resolutionRootOf(package);
+      final key = root?.value ?? '';
+      if (!copied.add(key)) continue;
+      await materialized._copyPackageConfig(root);
     }
     return materialized;
   }

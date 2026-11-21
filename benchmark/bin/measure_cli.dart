@@ -8,16 +8,17 @@
 /// For each scenario (`s3`, `s10`) it measures the activated `stagelatch`
 /// executable, from process start to exit:
 ///
-/// - `run pre-commit --no-fix` with the default lists (format, pubspec,
-///   sensitive-files); `--no-fix` keeps the index identical across runs;
+/// - `run pre-commit --no-fix` with the default lists; `--no-fix` keeps the
+///   index identical across runs;
 /// - `run pre-push` (analyze) over a commit of the staged scenario, with
 ///   git's input on stdin.
 ///
 /// Cold runs point `HOME` at a fresh temporary directory, so the analysis
-/// server starts with an empty cache; the user's own cache is never touched
-/// or deleted. `PUB_CACHE` and `FVM_CACHE_PATH` keep their real values so
-/// the executable and the pinned Flutter SDK still resolve. Warm runs use
-/// the real environment, the first one discarded.
+/// server starts with an empty cache, and delete the corpus's own facts
+/// cache (`<git dir>/stagelatch/cache`); the user's own cache is never
+/// touched or deleted. `PUB_CACHE` and `FVM_CACHE_PATH` keep their real
+/// values so the executable and the pinned Flutter SDK still resolve. Warm
+/// runs use the real environment, the first one discarded.
 library;
 
 import 'dart:convert';
@@ -41,6 +42,12 @@ Future<void> main(List<String> arguments) async {
               allowed: ['pre-commit', 'pre-push'],
               defaultsTo: ['pre-commit', 'pre-push'],
               help: 'The hooks to measure.',
+            )
+            ..addMultiOption(
+              'scenario',
+              allowed: ['s3', 's10', 's3-l10n', 's10-l10n'],
+              defaultsTo: ['s3', 's10'],
+              help: 'The scenarios to measure.',
             )
             ..addOption('out', help: 'Result file name under results/.'))
           .parse(arguments);
@@ -66,11 +73,20 @@ Future<void> main(List<String> arguments) async {
   };
 
   final results = <Map<String, Object?>>[];
-  for (final name in const ['s3', 's10']) {
+  for (final name in args.multiOption('scenario')) {
     final scenario = loadScenario(name, ws);
     for (final hook in hooks) {
-      Future<int> once(Map<String, String> env) async {
+      Future<int> once(
+        Map<String, String> env, {
+        bool coldCache = false,
+      }) async {
         await applyScenario(scenario, ws);
+        if (coldCache) {
+          final cache = Directory(
+            p.join(ws.corpusDir, '.git', 'stagelatch', 'cache'),
+          );
+          if (cache.existsSync()) await cache.delete(recursive: true);
+        }
         if (scope != null) {
           // Untracked, so the run reads it from the working tree (with a
           // notice); applyScenario removes it again before the next run.
@@ -125,7 +141,9 @@ Future<void> main(List<String> arguments) async {
       for (var i = 0; i < cold; i++) {
         final temp = await Directory.systemTemp.createTemp('bench_home_');
         try {
-          coldMs.add(await once({...realEnv, 'HOME': temp.path}));
+          coldMs.add(
+            await once({...realEnv, 'HOME': temp.path}, coldCache: true),
+          );
         } finally {
           await temp.delete(recursive: true);
         }

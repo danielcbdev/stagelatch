@@ -1,0 +1,13 @@
+name: a
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+resolution: workspace
+
+dependencies:
+  b: any
+
+dev_dependencies:
+  test: ^1.33.0

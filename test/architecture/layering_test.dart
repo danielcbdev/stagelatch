@@ -229,6 +229,52 @@ import 'dart:core';
     },
   );
 
+  test('only infrastructure/dart starts dart test or flutter test', () {
+    final dartDir = [
+      'lib',
+      'src',
+      'infrastructure',
+      'dart',
+    ].join(Platform.pathSeparator);
+    final offenders = [
+      for (final file in Directory('lib').listSync(recursive: true))
+        if (file is File &&
+            file.path.endsWith('.dart') &&
+            !file.path.contains(dartDir))
+          if (_spawnsTestTool(file.readAsStringSync())) file.path,
+    ];
+
+    expect(offenders, isEmpty);
+  });
+
+  group('_spawnsTestTool', () {
+    test('flags a file that starts a process with the test argument', () {
+      expect(
+        _spawnsTestTool("await Process.start(dart, ['test', '--']);"),
+        isTrue,
+      );
+    });
+
+    test('flags a file that starts a process with --machine', () {
+      expect(
+        _spawnsTestTool("Process.run(flutter, ['test', '--machine']);"),
+        isTrue,
+      );
+      expect(_spawnsTestTool("Process.start(x, ['--machine']);"), isTrue);
+    });
+
+    test('lets a file that starts a process for something else pass', () {
+      expect(
+        _spawnsTestTool("Process.start('git', ['cat-file', '--batch']);"),
+        isFalse,
+      );
+    });
+
+    test('lets a file that only mentions test pass', () {
+      expect(_spawnsTestTool("const name = 'test';"), isFalse);
+    });
+  });
+
   test('every file under lib/src obeys the module table', () {
     final violations = <String>[];
     final files = Directory('lib/src')
@@ -254,3 +300,9 @@ import 'dart:core';
 bool _spawnsDartTool(String source) =>
     source.contains("'language-server'") ||
     (source.contains('Process.') && source.contains("'format'"));
+
+/// Whether [source] starts a process with the `test` argument or
+/// `--machine`, which is how `dart test` and `flutter test` are started.
+bool _spawnsTestTool(String source) =>
+    source.contains('Process.') &&
+    (source.contains("'test'") || source.contains("'--machine'"));

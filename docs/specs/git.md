@@ -85,6 +85,16 @@ git diff --name-status -z -M <merge base> <head>
 
 A failing `merge-base` is the usage error of [`cli.md`](cli.md#35-ci---base-ref---head-ref---all---reporter-consolejsongithubjunitsarif). Snapshot: the commit that `<head>` resolves to. Target branch: `<base>` with a leading `origin/` or `refs/heads/` removed.
 
+### 4.3.1 `why`
+
+`stagelatch why` ([`cli.md`](cli.md#38-why-test-file---base-ref)) judges the index against a base, with no hook input. `GitRepository.resolveAgainstIndex({String? baseRef}) -> ResolvedRun` resolves it:
+
+1. The base ref is `baseRef`, else the upstream of the current branch (`git rev-parse --verify --quiet <branch>@{upstream}`), else `refs/remotes/origin/HEAD` (`git symbolic-ref --quiet refs/remotes/origin/HEAD`). With none of them, usage error `Cannot determine a base. Pass --base <ref>.`
+2. `git merge-base <base ref> HEAD`, failing with the usage error of [`cli.md`](cli.md#35-ci---base-ref---head-ref---all---reporter-consolejsongithubjunitsarif) section 3.5, the one `ci` raises. The merge base is the base snapshot.
+3. `git diff --cached --name-status -z -M <merge base>`. Snapshot: the index. Target branch: the current branch. Label: `index`.
+
+The merge-base step and its error are one helper shared with `ci`.
+
 ### 4.4 `--all`
 
 The changeset lists every regular file of the snapshot as `added`; symlinks (mode `120000`) and gitlinks (`160000`) are left out. The base snapshot is still resolved as without `--all`, because rules that compare with the base need it. It applies to every entry point:
@@ -100,7 +110,19 @@ git diff --name-only -z --no-renames            # index snapshot
 git diff --name-only -z --no-renames <sha>      # commit snapshot
 ```
 
-Untracked files are not part of any snapshot and are invisible to the tool: Dart analysis runs on a materialized copy of the snapshot (ADR-0001), so it never sees them either. This list is used from `0.3.0` by `tests/affected`, which refuses to run tests while an affected file differs from the working tree.
+Untracked files are not part of any snapshot and are invisible to this list and to Dart analysis, which runs on a materialized copy of the snapshot (ADR-0001).
+
+**Divergent, for `tests/affected` (ADR-0018).** From `0.3.0`, tests run on the working tree, so the check needs the whole picture. A path of the test closure (rules.md `tests/affected`) is divergent when:
+
+- it is in the list above, which also covers a commit snapshot that is not the checked-out commit; or
+- it is the target of an import edge of the closure, absent from the snapshot, a regular file of that path exists on disk, and it is not ignored. The candidates are the missing edge targets; those that exist on disk are passed once to `git check-ignore --stdin -z`, and ignored ones are dropped (intentional generated files do not skip). An untracked, non-ignored file counts; or
+- it is the package's `analysis_options.yaml`, absent from the snapshot, present on disk and not ignored (a package's `pubspec.yaml` is always in the snapshot when the package exists).
+
+The package's `pubspec.lock` is in the closure only when it exists in the snapshot, and then diverges only through the first rule. A lock that exists only on disk is out of scope. Non-imported config and data files (`dart_test.yaml`, `flutter_test_config.dart`, `pubspec_overrides.yaml`, `build.yaml`, fixtures, goldens, assets) are never part of the check.
+
+`GitRepository.divergentAmong(SnapshotRef ref, Set<RepoPath> candidates) -> Future<Set<RepoPath>>` answers the question for the closure the check passes in, which already holds the import targets, the owning packages' `pubspec.yaml` and `analysis_options.yaml`, and a `pubspec.lock` only when it is in the snapshot. A candidate is divergent when it is in the list above, or when it is absent from `ref`, a regular file (not a symlink) of that path exists under the repository root, and it is not ignored. The existing ones go to one `git check-ignore --stdin -z` (paths NUL-separated on stdin; the paths it prints are the ignored ones; exit 1 means none, and is not an error). `check-ignore` only reads, so it is outside the S4 list of mutating commands. A candidate that is tracked is never reported ignored by git, which is right: tracked and absent from `ref` means the working tree holds another commit.
+
+The list is computed once before the test processes start and again after they exit, with the same rules and the closure of the start. Files outside the closure never make a path divergent.
 
 ## 6. Applying fixes
 

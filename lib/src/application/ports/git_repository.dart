@@ -163,6 +163,12 @@ abstract interface class GitRepository {
   /// counts as changed.
   Future<List<ResolvedRun>> resolve(EntryPoint entry, {required bool all});
 
+  /// The index against a base for `stagelatch why` (docs/specs/git.md,
+  /// section 4.3.1). [baseRef] wins; else the upstream of the current
+  /// branch; else `refs/remotes/origin/HEAD`. Throws a usage error when
+  /// none can be determined or when the merge base is missing.
+  Future<ResolvedRun> resolveAgainstIndex({String? baseRef});
+
   /// The push `run pre-push` judges when git gave it no standard input:
   /// the current branch towards its upstream (docs/specs/cli.md, section
   /// 3.4). The remote is [remote] when given, else the upstream's, else
@@ -176,6 +182,12 @@ abstract interface class GitRepository {
   /// deletions included, sorted. `tests/affected` (0.3.0) uses it: the
   /// test runner reads the working tree, not the snapshot.
   Future<Set<RepoPath>> divergingFromWorktree(SnapshotRef ref);
+
+  /// The paths among [paths] whose working tree copy is not what [ref]
+  /// holds (ADR-0018): those [divergingFromWorktree] lists, plus those
+  /// that [ref] lacks, that exist on disk as a regular file and that git
+  /// would track, that is, that are not ignored.
+  Future<Set<RepoPath>> divergentAmong(SnapshotRef ref, Set<RepoPath> paths);
 
   /// Writes [fixes] to the index and returns what was applied. Only valid
   /// when the snapshot being judged is the index.

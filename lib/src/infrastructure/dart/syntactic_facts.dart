@@ -22,7 +22,8 @@ import 'package:stagelatch/src/infrastructure/dart/test_call_facts.dart';
 /// Annotated declarations come from a lexer over the whole file
 /// (`dart_lexer.dart`) and the recognizers of `declaration_facts.dart`. When
 /// the lexer finds an unterminated string or block comment, or brackets
-/// that do not pair, the file is not well formed and has no declarations:
+/// that do not pair, the file is not well formed and has no declarations,
+/// calls or identifiers:
 /// what a recognizer would say about it means nothing, and `analyze` reports
 /// the error.
 ///
@@ -49,9 +50,17 @@ final class SyntacticFacts {
       directives: directives,
       annotatedDeclarations: scan.declarations,
       testCalls: extractTestCalls(lexed, path, testFunctions, scan, lines),
+      identifiers: _identifiers(lexed),
     );
   }
 }
+
+/// Every identifier and keyword token of [lexed]: comments and the text of
+/// strings are not tokens, an expression inside `${...}` is.
+Set<String> _identifiers(Lexed lexed) => {
+  for (var i = 0; i < lexed.length; i++)
+    if (lexed.kinds[i] == TokenKind.word) lexed.lexeme(i),
+};
 
 /// The functions inspected when `tests.functions` is not configured
 /// (docs/specs/config.md, section 3).

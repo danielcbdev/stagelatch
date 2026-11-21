@@ -18,7 +18,7 @@ Status: **Approved (2026-11-12).** Rules are numbered so that reviews and code c
 **What we do not defend against**
 
 - A developer who chooses to bypass the hook. CI is the guarantee (ADR-0005).
-- Code the project itself asks us to run: `tests/affected` runs the project's tests by design.
+- Code the project itself asks us to run: `tests/affected` runs the project's tests by design, under S14.
 
 ## Rules
 
@@ -45,7 +45,7 @@ The tool writes only to these places, and only after resolving symlinks and conf
 | Hook scripts and their backups | `HookInstaller` | hooks directory reported by git |
 | `stagelatch.yaml` | `init` | repository root |
 | Baseline file | `baseline create`, `baseline prune` | repository root |
-| Cache | cache adapter | `<git common dir>/stagelatch/` |
+| Cache | cache adapter | `<git common dir>/stagelatch/cache/` |
 | Materialized snapshot for Dart analysis (ADR-0001) | Dart toolchain adapter | its own directory from `Directory.systemTemp.createTemp` (S10), removed by `close()` |
 
 - `RepoPath` rejects absolute paths, `..` segments and NUL. Every path from git or config becomes a `RepoPath` before use.
@@ -78,7 +78,7 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 ### S7. Network
 
 - The tool opens no sockets. No telemetry, no update check, no remote config.
-- `tests/affected` is the only feature that runs project code; what that code does is the project's responsibility.
+- `tests/affected` is the only feature that runs project code; what that code does is the project's responsibility (S14). The tool itself opens no sockets.
 
 ### S8. CI and release
 
@@ -112,6 +112,19 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 - A pull request can change `stagelatch.yaml`, add `stagelatch:ignore` comments or extend the baseline, and is then judged by its own rules (ADR-0015). The tool cannot prevent that.
 - Mitigation is process: protect these files with code owners, and tell agents not to change them unless asked.
 
+### S14. Running project code
+
+[ADR-0018](../adr/0018-affected-tests-run-against-validated-snapshot.md). `tests/affected` is the only feature that starts project code, and the only one allowed to.
+
+- It may start test processes only on `pre-push` and `ci`. `pre-commit`, `doctor`, `why`, `init`, `install`, `uninstall` and `baseline` never do.
+- It starts nothing unless the closure equals the snapshot (no divergent path; ignored files and a lock absent from the snapshot are out of scope), checked before the first process and again after the last one. Otherwise it reports the skip warning. Files outside the closure are a documented limitation.
+- Process execution follows S1: `dart test` or `flutter test` of the resolved SDK, an argument list, test paths after `--`, never a shell. A test path never reaches a shell.
+- The environment is inherited unchanged (S11). The tool never injects, forwards or logs a secret.
+- The process's stdout and stderr are untrusted input: parsed as machine-readable events (S6) and sanitized before display (S5). Output is read as a stream of lines; a line longer than 1 MiB is dropped unparsed, and at most the first 64 KiB of standard error is kept.
+- The process is closed in a `finally`: a child that is still running when the tool stops (an error, an interrupt) is killed, never left behind. Its standard input is closed at once, so it cannot wait for a prompt (ADR-0011). Killing the child does not kill grandchildren: `flutter.bat` can leave a `flutter_tester` behind (`dart-toolchain.md` section 9).
+- On Windows, an executable ending in `.bat` or `.cmd` (the Flutter SDK's `flutter.bat`) is started through the command interpreter, which interprets metacharacters in arguments. A test path that contains a control character or any of `"`, `&`, `|`, `<`, `>`, `^`, `%` or `!` is therefore never passed to one: the run is a startup error (`rules.md`) naming the path.
+- `stagelatch ci` with `tests/affected` executes the pull request's code like any `dart test` step. The README and `action.yml` state this, including the usual restrictions on secrets for pull requests from forks (S8).
+
 ## Security checklist for every pull request
 
 - [ ] No new process execution, or it follows S1.
@@ -120,6 +133,7 @@ Never: `add`, `stash`, `reset`, `checkout <path>`, `restore`, `clean`, `commit`,
 - [ ] Repository-derived strings pass through the sanitizer before output (S5).
 - [ ] New parsers have size bounds and an adversarial-input test (S6).
 - [ ] No network access, no new dependency without an ADR (S7, S9).
+- [ ] Nothing starts project code outside `tests/affected` on `pre-push` and `ci`, and only after the divergence test (S14).
 
 ## Reporting
 

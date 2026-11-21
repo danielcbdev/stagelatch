@@ -4,6 +4,8 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'package:pub_semver/pub_semver.dart';
 import 'package:stagelatch/src/application/config/config_loader.dart';
 import 'package:stagelatch/src/application/environment.dart';
@@ -27,6 +29,7 @@ import '../support/fake_dart_toolchain_factory.dart';
 import '../support/fake_git_repository.dart';
 import '../support/fake_hook_store.dart';
 import '../support/fake_sdk_locator.dart';
+import '../support/fake_test_runner.dart';
 import '../support/fake_working_tree.dart';
 import '../support/temp_repo.dart';
 
@@ -140,16 +143,124 @@ void main() {
         '--base',
         'main',
         '--reporter',
-        'sarif',
+        'xml',
       ]);
 
       expect(result.exitCode, 64);
       expect(
         result.stderr,
-        contains('Unknown reporter "sarif". Expected console, json or github.'),
+        contains(
+          'Unknown reporter "xml". Expected console, json, github, junit or '
+          'sarif.',
+        ),
       );
     },
   );
+
+  test('--reporter sarif prints the document and exits 1 on an error '
+      'finding', () async {
+    await commitFile('pubspec.yaml', badPubspec);
+
+    final result = await repo.stagelatch([
+      'ci',
+      '--base',
+      'main',
+      '--reporter',
+      'sarif',
+    ]);
+
+    expect(result.exitCode, 1);
+    expect(result.stdout, contains(r'"$schema"'));
+    expect(result.stdout, contains('"version": "2.1.0"'));
+    expect(result.stdout, contains('"name": "stagelatch"'));
+    expect(result.stdout, contains('"ruleId": "pubspec/path-dependency"'));
+    expect(result.stdout, endsWith('\n'));
+  });
+
+  test('--reporter sarif on a usage error prints nothing on stdout', () async {
+    final clones = await Directory.systemTemp.createTemp('stagelatch_clone_');
+    addTearDown(() => clones.delete(recursive: true));
+    final clone = p.join(clones.path, 'clone');
+    await repo.git([
+      'clone',
+      '-q',
+      '--depth',
+      '1',
+      '--branch',
+      'feature',
+      Uri.directory(repo.root).toString(),
+      clone,
+    ]);
+
+    final result = await repo.stagelatch([
+      '-C',
+      clone,
+      'ci',
+      '--base',
+      'origin/main',
+      '--reporter',
+      'sarif',
+    ]);
+
+    expect(result.exitCode, 64);
+    expect(result.stdout, isEmpty);
+    expect(
+      result.stderr,
+      'Cannot find a merge base between origin/main and HEAD. If this is a '
+      'shallow clone, fetch full history (actions/checkout: '
+      'fetch-depth: 0).\n',
+    );
+  });
+
+  test('--reporter junit prints the document; on a usage error stdout is '
+      'empty', () async {
+    await commitFile('pubspec.yaml', badPubspec);
+
+    final ok = await repo.stagelatch([
+      'ci',
+      '--base',
+      'main',
+      '--reporter',
+      'junit',
+    ]);
+    expect(ok.exitCode, 1);
+    expect(ok.stdout, contains('<testsuite name="stagelatch"'));
+    expect(ok.stdout, contains('name="pubspec"'));
+    expect(ok.stdout, contains('<failure '));
+    expect(ok.stdout, endsWith('\n'));
+
+    final clones = await Directory.systemTemp.createTemp('stagelatch_junit_');
+    addTearDown(() => clones.delete(recursive: true));
+    final clone = p.join(clones.path, 'clone');
+    await repo.git([
+      'clone',
+      '-q',
+      '--depth',
+      '1',
+      '--branch',
+      'feature',
+      Uri.directory(repo.root).toString(),
+      clone,
+    ]);
+
+    final usage = await repo.stagelatch([
+      '-C',
+      clone,
+      'ci',
+      '--base',
+      'origin/main',
+      '--reporter',
+      'junit',
+    ]);
+    expect(usage.exitCode, 64);
+    expect(usage.stdout, isEmpty);
+    expect(
+      usage.stderr,
+      'Cannot find a merge base between origin/main and HEAD. If this is a '
+      'shallow clone, fetch full history (actions/checkout: '
+      'fetch-depth: 0).\n',
+    );
+  });
 
   test('ci never applies fixes', () async {
     final git = FakeGitRepository(
@@ -196,6 +307,7 @@ void main() {
           toolVersion: Version.parse('0.1.0'),
           sdkLocator: FakeSdkLocator(),
           toolchains: FakeDartToolchainFactory(),
+          testRunners: FakeTestRunnerFactory(FakeTestRunner()),
         ),
         hookInstaller: HookInstaller(FakeHookStore()),
         git: git,

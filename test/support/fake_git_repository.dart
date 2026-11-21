@@ -14,6 +14,7 @@ final class FakeGitRepository implements GitRepository {
   /// By default it resolves every entry point to one run of the index
   /// against no base, with [changes]. Pass [_runs] to decide exactly what
   /// `resolve` returns, and [_commits] for the content of commit snapshots.
+  /// Pass [againstIndex] to control what [resolveAgainstIndex] returns.
   new({
     Map<String, Object> index = const {},
     this._commits = const {},
@@ -22,6 +23,7 @@ final class FakeGitRepository implements GitRepository {
     this._runs,
     this._diverging = const {},
     this._layout,
+    this.againstIndex,
   }) : index = {...index},
        _changes = changes ?? ChangeSet(const []);
 
@@ -30,6 +32,9 @@ final class FakeGitRepository implements GitRepository {
 
   /// The target branch of the default run.
   final String? targetBranch;
+
+  /// Override for [resolveAgainstIndex]; when null a default index run is used.
+  final ResolvedRun? againstIndex;
 
   final Map<String, Map<String, Object>> _commits;
   final ChangeSet _changes;
@@ -79,6 +84,22 @@ final class FakeGitRepository implements GitRepository {
         ];
   }
 
+  /// The `baseRef` of the most recent [resolveAgainstIndex] call.
+  String? lastAgainstIndexBaseRef;
+
+  @override
+  Future<ResolvedRun> resolveAgainstIndex({String? baseRef}) async {
+    lastAgainstIndexBaseRef = baseRef;
+    return againstIndex ??
+        ResolvedRun(
+          snapshot: const IndexSnapshot(),
+          base: null,
+          changes: _changes,
+          targetBranch: targetBranch,
+          label: 'index',
+        );
+  }
+
   @override
   SnapshotFiles files(SnapshotRef ref) => switch (ref) {
     // A new view on every call, so that a fix applied to the index is
@@ -96,6 +117,18 @@ final class FakeGitRepository implements GitRepository {
   @override
   Future<Set<RepoPath>> divergingFromWorktree(SnapshotRef ref) async =>
       _diverging.map(RepoPath.new).toSet();
+
+  /// Every set `divergentAmong` was asked about, in order.
+  final List<Set<RepoPath>> divergentCalls = [];
+
+  @override
+  Future<Set<RepoPath>> divergentAmong(
+    SnapshotRef ref,
+    Set<RepoPath> paths,
+  ) async {
+    divergentCalls.add({...paths});
+    return paths.intersection(_diverging.map(RepoPath.new).toSet());
+  }
 
   @override
   Future<List<AppliedFix>> applyFixes(List<Fix> fixes) async {

@@ -18,6 +18,7 @@ final class Finding {
     required this.severity,
     required this.message,
     required this.location,
+    this.severityLocked = false,
   });
 
   /// The rule that produced the finding.
@@ -31,6 +32,13 @@ final class Finding {
 
   /// Where the problem is.
   final Location location;
+
+  /// Whether `rules:` may change [severity]. A locked finding can still be
+  /// dropped by `off`, an exclude, an inline ignore or the baseline, but is
+  /// never raised or lowered. Only the dirty-skip warning of
+  /// `tests/affected` sets it: a skip is not a failure, whatever level the
+  /// rule has for real failures.
+  final bool severityLocked;
 
   /// The one order in which findings are reported: by path, start position,
   /// rule, then message.
@@ -54,10 +62,12 @@ final class Finding {
       other.rule == rule &&
       other.severity == severity &&
       other.message == message &&
-      other.location == location;
+      other.location == location &&
+      other.severityLocked == severityLocked;
 
   @override
-  int get hashCode => Object.hash(rule, severity, message, location);
+  int get hashCode =>
+      Object.hash(rule, severity, message, location, severityLocked);
 
   @override
   String toString() => '$location ${severity.name} $rule: $message';

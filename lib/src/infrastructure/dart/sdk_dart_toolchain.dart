@@ -8,6 +8,7 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:stagelatch/src/application/errors.dart';
+import 'package:stagelatch/src/application/ports/cache.dart';
 import 'package:stagelatch/src/application/ports/dart_toolchain_factory.dart';
 import 'package:stagelatch/src/application/ports/sdk_locator.dart';
 import 'package:stagelatch/src/domain/dart/dart_file_facts.dart';
@@ -17,13 +18,19 @@ import 'package:stagelatch/src/domain/package_map.dart';
 import 'package:stagelatch/src/domain/repo_path.dart';
 import 'package:stagelatch/src/domain/snapshot.dart';
 import 'package:stagelatch/src/infrastructure/dart/analysis_server_client.dart';
+import 'package:stagelatch/src/infrastructure/dart/cached_facts.dart';
 import 'package:stagelatch/src/infrastructure/dart/materialized_snapshot.dart';
 import 'package:stagelatch/src/infrastructure/dart/syntactic_facts.dart';
 
 /// Creates [SdkDartToolchain]s.
 final class SdkDartToolchainFactory implements DartToolchainFactory {
-  /// Creates the factory.
-  const new();
+  /// Creates the factory. With a [cache], the facts of every file are
+  /// answered from it when they can be (docs/specs/dart-toolchain.md,
+  /// section 6.1).
+  const new({this.cache});
+
+  /// Where facts are cached, or null for no cache.
+  final Cache? cache;
 
   @override
   DartToolchain create({
@@ -38,6 +45,7 @@ final class SdkDartToolchainFactory implements DartToolchainFactory {
     snapshot: snapshot,
     packages: packages,
     testFunctions: testFunctions,
+    cache: cache,
   );
 }
 
@@ -53,13 +61,21 @@ final class SdkDartToolchain implements DartToolchain {
     required this._snapshot,
     required this._packages,
     required Set<String> testFunctions,
-  }) : _facts = SyntacticFacts(testFunctions: testFunctions);
+    Cache? cache,
+  }) : _facts = SyntacticFacts(testFunctions: testFunctions),
+       _cachedFacts = cache == null
+           ? null
+           : CachedFacts(
+               extractor: SyntacticFacts(testFunctions: testFunctions),
+               cache: cache,
+             );
 
   final ResolvedSdk _sdk;
   final String _repoRoot;
   final SnapshotFiles _snapshot;
   final PackageMap _packages;
   final SyntacticFacts _facts;
+  final CachedFacts? _cachedFacts;
 
   Future<MaterializedSnapshot>? _full;
   Future<MaterializedSnapshot>? _settings;
@@ -69,6 +85,7 @@ final class SdkDartToolchain implements DartToolchain {
   Future<List<DartDiagnostic>> diagnose(Set<RepoPath> files) async {
     final requested = [...files]..sort();
     final roots = <RepoPath?>{};
+    final resolutionRoots = <RepoPath?>{};
     final analyzed = <RepoPath>[];
     for (final file in requested) {
       final package = _packages.packageOf(file);
@@ -76,15 +93,16 @@ final class SdkDartToolchain implements DartToolchain {
       // (docs/specs/dart-toolchain.md, section 2).
       if (package == null) continue;
       roots.add(package.root);
+      resolutionRoots.add(_packages.resolutionRootOf(package));
       analyzed.add(file);
     }
     if (analyzed.isEmpty) return const [];
-    roots.forEach(_requirePackageConfig);
+    resolutionRoots.forEach(_requirePackageConfig);
 
     final full = await (_full ??= MaterializedSnapshot.write(
       snapshot: _snapshot,
       repoRoot: _repoRoot,
-      packages: _packages.packages,
+      packages: _packages,
     ));
     final server = await (_server ??= AnalysisServerClient.start(
       _sdk.dartExecutable,
@@ -201,7 +219,7 @@ final class SdkDartToolchain implements DartToolchain {
     final settings = await (_settings ??= MaterializedSnapshot.write(
       snapshot: _snapshot,
       repoRoot: _repoRoot,
-      packages: _packages.packages,
+      packages: _packages,
       settingsOnly: true,
     ));
     // dart format looks up the package config from the directory of the
@@ -255,6 +273,8 @@ final class SdkDartToolchain implements DartToolchain {
 
   @override
   Future<DartFileFacts?> facts(SnapshotFiles files, RepoPath path) async {
+    final cached = _cachedFacts;
+    if (cached != null) return await cached.facts(files, path);
     final text = await files.readText(path);
     if (text == null) return null;
     return _facts.extract(text, path);

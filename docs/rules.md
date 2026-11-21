@@ -68,6 +68,7 @@ Reports findings.
 | `l10n/missing-key` | error | no | A message of the template is missing in a translation. |
 | `l10n/placeholder-mismatch` | error | no | A translation has different placeholders than the template. |
 | `l10n/unparseable` | error | no | An ARB file is not a valid JSON object. |
+| `l10n/unused-key` | warning | no | A key of the template is not used by any Dart file. |
 
 ## `codegen`
 
@@ -85,3 +86,4 @@ Reports findings.
 |---|---|---|---|
 | `tests/solo` | error | no | A test uses solo, which skips every other test. |
 | `tests/new-skip` | warning | no | A test was skipped in this change. |
+| `tests/affected` | error | no | A test affected by the change fails, or cannot be run. Runs on pre-push and ci only. |

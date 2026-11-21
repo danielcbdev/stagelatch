@@ -11,6 +11,7 @@ import 'package:stagelatch/src/application/ports/git_repository.dart';
 import 'package:stagelatch/src/application/ports/hook_store.dart';
 import 'package:stagelatch/src/application/ports/sdk_locator.dart';
 import 'package:stagelatch/src/application/ports/working_tree.dart';
+import 'package:stagelatch/src/application/why/why.dart';
 import 'package:stagelatch/src/checks/analyze/analyze_check.dart';
 import 'package:stagelatch/src/checks/assets/assets_check.dart';
 import 'package:stagelatch/src/checks/codegen/codegen_check.dart';
@@ -23,10 +24,12 @@ import 'package:stagelatch/src/cli/io.dart';
 import 'package:stagelatch/src/domain/check.dart';
 import 'package:stagelatch/src/domain/documents.dart';
 import 'package:stagelatch/src/infrastructure/dart/file_sdk_locator.dart';
+import 'package:stagelatch/src/infrastructure/dart/process_test_runner.dart';
 import 'package:stagelatch/src/infrastructure/dart/sdk_dart_toolchain.dart';
 import 'package:stagelatch/src/infrastructure/documents/structured_documents.dart';
 import 'package:stagelatch/src/infrastructure/git/git_cli_repository.dart';
 import 'package:stagelatch/src/infrastructure/git/git_process.dart';
+import 'package:stagelatch/src/infrastructure/io/file_cache.dart';
 import 'package:stagelatch/src/infrastructure/io/file_hook_store.dart';
 import 'package:stagelatch/src/infrastructure/io/local_doctor_probes.dart';
 import 'package:stagelatch/src/infrastructure/io/local_working_tree.dart';
@@ -66,6 +69,7 @@ final class Composition {
     this.hookStore,
     this.sdkLocator,
     this.doctorProbes,
+    this.why,
   });
 
   /// Builds the real adapters for [io] and reads the repository layout.
@@ -96,6 +100,10 @@ final class Composition {
         hooksDirectory: layout.hooksDir,
         git: process,
       );
+      final toolVersion = Version.parse(packageVersion);
+      final toolchains = SdkDartToolchainFactory(
+        cache: FileCache(commonDir: layout.commonDir),
+      );
       return Composition(
         pipeline: Pipeline(
           git: git,
@@ -103,9 +111,10 @@ final class Composition {
           registry: registry,
           documents: documents,
           clock: SystemClock(),
-          toolVersion: Version.parse(packageVersion),
+          toolVersion: toolVersion,
           sdkLocator: sdkLocator,
-          toolchains: const SdkDartToolchainFactory(),
+          toolchains: toolchains,
+          testRunners: const ProcessTestRunnerFactory(),
         ),
         hookInstaller: HookInstaller(store),
         git: git,
@@ -119,6 +128,15 @@ final class Composition {
         doctorProbes: LocalDoctorProbes(
           repoRoot: layout.root,
           environment: io.environment,
+        ),
+        why: Why(
+          git: git,
+          configLoader: loader,
+          registry: registry,
+          documents: documents,
+          sdkLocator: sdkLocator,
+          toolchains: toolchains,
+          toolVersion: toolVersion,
         ),
       );
     } on Exception {
@@ -160,6 +178,9 @@ final class Composition {
   /// The machine-facing questions of `doctor`. Null in tests that need no
   /// doctor.
   final DoctorProbes? doctorProbes;
+
+  /// Explains affected-test selection. Null in tests that need no `why`.
+  final Why? why;
 
   /// Ends the persistent git processes.
   Future<void> close() => git.close();

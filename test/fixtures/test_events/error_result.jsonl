@@ -1,0 +1,14 @@
+{"protocolVersion":"0.1.1","runnerVersion":"1.33.0","pid":51937,"type":"start","time":0}
+{"suite":{"id":0,"platform":"vm","path":"test/d_test.dart"},"type":"suite","time":0}
+{"test":{"id":1,"name":"loading test/d_test.dart","suiteID":0,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":0}
+{"count":1,"time":3,"type":"allSuites"}
+{"testID":1,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":166}
+{"group":{"id":2,"suiteID":0,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":2,"line":null,"column":null,"url":null},"type":"group","time":167}
+{"test":{"id":3,"name":"throws","suiteID":0,"groupIDs":[2],"metadata":{"skip":false,"skipReason":null},"line":3,"column":3,"url":"file:///repo/test/d_test.dart"},"type":"testStart","time":167}
+{"testID":3,"error":"Bad state: body boom","stackTrace":"test/d_test.dart 5:5  main.<fn>\n","isFailure":false,"type":"error","time":174}
+{"testID":3,"error":"Bad state: teardown boom","stackTrace":"test/d_test.dart 4:23  main.<fn>.<fn>\n","isFailure":false,"type":"error","time":174}
+{"testID":3,"result":"error","skipped":false,"hidden":false,"type":"testDone","time":174}
+{"test":{"id":4,"name":"loading spinner","suiteID":0,"groupIDs":[2],"metadata":{"skip":false,"skipReason":null},"line":7,"column":3,"url":"file:///repo/test/d_test.dart"},"type":"testStart","time":175}
+{"testID":4,"error":"Expected: <2>\n  Actual: <1>\n","stackTrace":"package:matcher        expect\ntest/d_test.dart 7:33  main.<fn>\n","isFailure":true,"type":"error","time":177}
+{"testID":4,"result":"failure","skipped":false,"hidden":false,"type":"testDone","time":178}
+{"success":false,"type":"done","time":181}

@@ -19,6 +19,9 @@ const RuleId placeholderMismatchRule = RuleId(
 /// An `.arb` file that is not a JSON object.
 const RuleId unparseableRule = RuleId(l10nCheckId, 'unparseable');
 
+/// A key of the template that no Dart file of the package refers to.
+const RuleId unusedKeyRule = RuleId(l10nCheckId, 'unused-key');
+
 /// What the check declares about its rules, in catalog order.
 const List<RuleDescriptor> l10nRuleDescriptors = [
   RuleDescriptor(
@@ -35,5 +38,10 @@ const List<RuleDescriptor> l10nRuleDescriptors = [
     id: unparseableRule,
     defaultSeverity: Severity.error,
     summary: 'An ARB file is not a valid JSON object.',
+  ),
+  RuleDescriptor(
+    id: unusedKeyRule,
+    defaultSeverity: Severity.warning,
+    summary: 'A key of the template is not used by any Dart file.',
   ),
 ];
