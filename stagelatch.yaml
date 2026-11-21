@@ -1,8 +1,12 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/danielcbdev/stagelatch/main/schema/stagelatch.schema.json
-# stagelatch on its own repository (plan 02, Task 16; plan 03, Task 10).
-# The defaults of ADR-0008: the commit hook stays fast, and analyze runs on
-# push and in CI, where `ci` takes the union of both lists. This repository
-# has no codegen, l10n or assets, so those checks are not listed.
+# stagelatch on its own repository (plan 02, Task 16; plan 03, Task 10;
+# plan 04, Task 10). The defaults of ADR-0008 and ADR-0018: the commit hook
+# stays fast; analyze and tests/affected run on push and in CI, where `ci`
+# takes the union of both lists. This repository has no codegen, l10n or
+# assets, so those checks are not listed. tests/affected executes selected
+# tests of the root package (and any other package whose tests the
+# changeset reaches); the dogfood job runs `dart pub get` for the root,
+# benchmark and test/fixtures/dart_app so those packages resolve.
 hooks:
   pre-commit: [format, pubspec, sensitive-files, tests/solo, tests/new-skip]
-  pre-push: [analyze]
+  pre-push: [analyze, tests/affected]
