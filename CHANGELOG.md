@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/danielcbdev/stagelatch/compare/v0.3.0...v1.0.0) (2026-11-21)
+
+
+### Features
+
+* **cli:** add --no-custom-checks and doctor listing ([#92](https://github.com/danielcbdev/stagelatch/issues/92)) ([e104921](https://github.com/danielcbdev/stagelatch/commit/e104921a157bf2de5b603bada136b37228e1b8df))
+* **config:** add custom_checks ([#91](https://github.com/danielcbdev/stagelatch/issues/91)) ([e104921](https://github.com/danielcbdev/stagelatch/commit/e104921a157bf2de5b603bada136b37228e1b8df))
+* **custom:** add author guide and example check ([#93](https://github.com/danielcbdev/stagelatch/issues/93)) ([e104921](https://github.com/danielcbdev/stagelatch/commit/e104921a157bf2de5b603bada136b37228e1b8df))
+* **custom:** add custom check protocol codec ([#89](https://github.com/danielcbdev/stagelatch/issues/89)) ([e104921](https://github.com/danielcbdev/stagelatch/commit/e104921a157bf2de5b603bada136b37228e1b8df))
+* **custom:** run custom checks as child processes ([#90](https://github.com/danielcbdev/stagelatch/issues/90)) ([e104921](https://github.com/danielcbdev/stagelatch/commit/e104921a157bf2de5b603bada136b37228e1b8df))
+
+
+### Bug Fixes
+
+* **git:** resolve git via PATH to an absolute path ([#88](https://github.com/danielcbdev/stagelatch/issues/88)) ([e104921](https://github.com/danielcbdev/stagelatch/commit/e104921a157bf2de5b603bada136b37228e1b8df))
+
 ## [0.3.0](https://github.com/danielcbdev/stagelatch/compare/v0.2.0...v0.3.0) (2026-11-21)
 
 
