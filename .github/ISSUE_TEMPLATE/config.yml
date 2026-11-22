@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/danielcbdev/stagelatch/security/advisories/new
+    about: Report security problems privately. Please do not open a public issue.
+  - name: Read the documentation
+    url: https://github.com/danielcbdev/stagelatch/blob/main/docs/README.md
+    about: Rules, configuration, custom checks and the decisions behind the design.

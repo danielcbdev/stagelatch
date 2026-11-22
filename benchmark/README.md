@@ -5,6 +5,14 @@ ways of diagnosing and formatting a git snapshot of a large Flutter app,
 and feeds [ADR-0008](../docs/adr/0008-parity-with-the-project-sdk.md).
 Nothing in `lib/` of stagelatch imports it, and it is never published.
 
+## Third-party material
+
+The corpus is [Hash-Studios/Prism](https://github.com/Hash-Studios/Prism),
+licensed under BSD-3-Clause. It is cloned at setup into an ignored directory
+and never committed. The `.patch` files under `scenarios/` and `fixtures/`
+quote a few lines of that project's source as diff context; those lines stay
+under the Prism license and copyright of its authors.
+
 ## Setup
 
 Needs git, FVM and network access (setup only; the probes run offline).
