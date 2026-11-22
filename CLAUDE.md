@@ -1,45 +1,45 @@
 # stagelatch
 
-Quality gate *change-aware* para repositórios Flutter/Dart. Um único motor com dois pontos de entrada:
+A *change-aware* quality gate for Flutter and Dart repositories. One engine with two entry points:
 
-- **Hook local:** pre-commit e pre-push.
+- **Local hook:** pre-commit and pre-push.
 - **CI:** pull request.
 
-Avalia o snapshot exato que está sendo publicado (o **index** no pre-commit, o commit enviado no pre-push, o HEAD do PR no CI), com semântica Dart e só no escopo afetado.
+It judges the exact snapshot being published (the **index** at pre-commit, the pushed commit at pre-push, the PR head in CI), with Dart semantics and only within the affected scope.
 
-Distribuído como CLI no pub.dev (`dart pub global activate stagelatch`). Projeto de portfólio: qualidade de engenharia, decisões documentadas e casos de borda resolvidos importam mais que quantidade de features.
+Distributed as a CLI on pub.dev (`dart pub global activate stagelatch`). Portfolio project: engineering quality, documented decisions and solved edge cases matter more than the number of features.
 
-## Documentação
+## Documentation
 
-Antes de implementar qualquer coisa, leia [`docs/README.md`](docs/README.md) e siga a ordem de leitura de lá: arquitetura, padrões de engenharia, specs e o plano corrente em `docs/plans/`. O fluxo de branches e pull requests está em `docs/engineering/workflow.md`.
+Before implementing anything, read [`docs/README.md`](docs/README.md) and follow its reading order: architecture, engineering standards, specs and the current plan in `docs/plans/`. The branch and pull request flow is in `docs/engineering/workflow.md`.
 
-Precedência: este arquivo > ADRs > specs > planos. A documentação e os refinamentos listados em `docs/specs/README.md` foram aprovados em 2026-11-12 e já estão refletidos aqui.
+Precedence: this file > ADRs > specs > plans. The documentation and the refinements listed in `docs/specs/README.md` were approved on 2026-11-12 and are already reflected here.
 
-## Idioma
+## Language
 
-- Conversa comigo: português, direto, sem introduções.
-- Em inglês: código, identificadores, comentários, mensagens de commit, README, CHANGELOG, docs públicas e mensagens do CLI.
+- Conversation with the owner: Portuguese, direct, no preamble.
+- In English: code, identifiers, comments, commit messages, README, CHANGELOG, public docs and CLI messages.
 
-## Decisões fixas (registradas em `docs/adr/`)
+## Fixed decisions (recorded in `docs/adr/`)
 
-1. **Validar o index, não o working tree.**
-   - Blobs lidos por um processo `git cat-file --batch` persistente: um spawn, não um por arquivo.
-   - Análise sobre o snapshot materializado: os `.dart`, `.yaml` e `.yml` do snapshot são gravados a partir dos blobs num diretório temporário novo, com o `.dart_tool/package_config.json` de cada pacote copiado e reescrito, e o servidor de análise do SDK resolvido (`dart language-server --protocol=analyzer`) analisa esse diretório. Mudança não staged, arquivo untracked e deleção só no index ficam invisíveis. Custo medido: ~0,25 s para 2.472 arquivos.
-   - Overlays sobre o working tree foram rejeitados (2026-11-19): o servidor lê do disco tudo o que não está no overlay, então um arquivo untracked importado por um arquivo staged fazia o gate passar.
-   - Formatação pelo `dart format --stdin-name` do mesmo SDK, com o blob na stdin.
-   - Nunca usar stash.
-2. **Autofix seguro.**
-   - Grava o blob corrigido no index (`git hash-object -w --stdin` + `git update-index --cacheinfo <mode>,<sha>,<path>`).
-   - Só reescreve o arquivo no disco se ele não tiver mudanças unstaged.
-3. **Determinístico. Nenhuma IA no caminho de bloqueio.**
-   - Sem rede.
-   - Mesmo input, mesmo resultado em qualquer máquina e no CI.
-   - O orçamento de tempo só **avisa** quando estoura. Nunca pula nem encurta um check, porque isso faria o veredito depender da máquina.
-4. **Distribuição via `pub global activate`, nunca como dev_dependency.** O `analyzer` entraria no version solving do projeto e conflitaria com freezed, json_serializable e build_runner.
-5. **Mesmo motor para hook e CI.**
-   - O hook local é feedback rápido.
-   - A garantia é o `stagelatch ci` no pull request.
-6. **Hooks são gatilhos finos, sem lógica.** A única lógica permitida é localizar o executável. Se ele não estiver instalado, o hook avisa e **não bloqueia**, porque o CI é a garantia:
+1. **Validate the index, not the working tree.**
+   - Blobs are read by one persistent `git cat-file --batch` process: one spawn, not one per file.
+   - Analysis runs on the materialized snapshot: the snapshot's `.dart`, `.yaml` and `.yml` files are written from the blobs into a fresh temporary directory, with each package's `.dart_tool/package_config.json` copied and rewritten, and the resolved SDK's analysis server (`dart language-server --protocol=analyzer`) analyzes that directory. Unstaged changes, untracked files and deletions that exist only in the index stay invisible. Measured cost: ~0.25 s for 2,472 files.
+   - Overlays on top of the working tree were rejected (2026-11-19): the server reads from disk everything that is not in the overlay, so an untracked file imported by a staged file made the gate pass.
+   - Formatting goes through the same SDK's `dart format --stdin-name`, with the blob on stdin.
+   - Never use stash.
+2. **Safe autofix.**
+   - It writes the corrected blob to the index (`git hash-object -w --stdin` + `git update-index --cacheinfo <mode>,<sha>,<path>`).
+   - It rewrites the file on disk only if the file has no unstaged changes.
+3. **Deterministic. No AI in the blocking path.**
+   - No network.
+   - Same input, same result on any machine and in CI.
+   - The time budget only **warns** when exceeded. It never skips or shortens a check, because that would make the verdict depend on the machine.
+4. **Distributed through `pub global activate`, never as a dev_dependency.** The `analyzer` would enter the project's version solving and conflict with freezed, json_serializable and build_runner.
+5. **Same engine for hook and CI.**
+   - The local hook is fast feedback.
+   - The guarantee is `stagelatch ci` on the pull request.
+6. **Hooks are thin triggers with no logic.** The only logic allowed is locating the executable. If it is not installed, the hook warns and **does not block**, because CI is the guarantee:
    ```sh
    #!/bin/sh
    # stagelatch:managed
@@ -54,93 +54,93 @@ Precedência: este arquivo > ADRs > specs > planos. A documentação e os refina
    echo "stagelatch not found; skipping. Install: dart pub global activate stagelatch" >&2
    exit 0
    ```
-   Os dois fallbacks existem por causa do Windows (ver riscos). A forma final do template é a que passar no teste de aceitação do runner Windows.
-7. **Snapshot e changeset por ponto de entrada.**
+   The two fallbacks exist because of Windows (see risks). The final form of the template is the one that passes the acceptance test on the Windows runner.
+7. **Snapshot and changeset per entry point.**
 
-   | Entrada | Snapshot | Changeset |
+   | Entry point | Snapshot | Changeset |
    |---|---|---|
-   | pre-commit | index | index vs HEAD (primeiro commit: vs árvore vazia) |
-   | pre-push | commit enviado, lido da stdin do hook (`<local ref> <local sha> <remote ref> <remote sha>`) | `<remote sha>..<local sha>` |
-   | `ci` | HEAD do PR | `merge-base(--base, HEAD)..HEAD` |
+   | pre-commit | index | index vs HEAD (first commit: vs empty tree) |
+   | pre-push | pushed commit, read from the hook's stdin (`<local ref> <local sha> <remote ref> <remote sha>`) | `<remote sha>..<local sha>` |
+   | `ci` | PR head | `merge-base(--base, HEAD)..HEAD` |
 
-   - A análise segue a decisão 1 para qualquer snapshot: o diretório materializado tem os arquivos daquele snapshot, seja o index, seja um commit.
-   - **Pre-push de branch novo** (`<remote sha>` zerado): a base é o merge-base com todos os branches daquele remoto (`refs/remotes/<remote>/*`); sem nenhum, a árvore vazia. Remoção de branch (`<local sha>` zerado) e push de tag não têm o que validar.
-   - **Merge em andamento** (`MERGE_HEAD` existe): o changeset é só o que difere de **ambos** os pais, isto é, resoluções de conflito e edições manuais. O que veio intacto do outro branch já passou pelo CI dele.
-   - **Rebase em andamento:** quando o hook dispara, usa o changeset normal (index vs HEAD).
-   - **Clone raso no CI** sem merge-base alcançável: falha com mensagem clara pedindo `fetch-depth: 0`. Nunca analisa um diff errado.
-8. **Paridade com o SDK do projeto.**
-   - `format` e `analyze` devem dar o mesmo resultado que o `dart format` e o `dart analyze` do SDK que o time usa. Divergência é bug.
-   - Resolução do SDK, nesta ordem: `sdk_path` da config, FVM (`.fvmrc`, `.fvm/flutter_sdk`), `dart` no PATH.
-   - O SDK resolvido tem de estar fora do working tree do repositório: `sdk_path` e `.fvm/` são conteúdo do repositório e não podem apontar para um binário versionado.
-   - Sem `.dart_tool/package_config.json` quando a análise Dart é necessária: erro de uso (exit 64) pedindo `dart pub get`.
-   - Mecanismo, decidido no spike (`docs/spike/report.md`): delegar ao SDK resolvido, um processo por execução. Diagnósticos pelo servidor de análise; formatação pelo `dart format --stdin-name`. A ferramenta não depende de `analyzer` nem de `dart_style`, e o piso de SDK dela continua `^3.13.0`. O teste de paridade compara com o `dart analyze` e o `dart format` do SDK.
-   - O `analyze` custa uma subida do servidor por execução (cerca de 1 s num pacote Dart puro, 13 s num app Flutter de 2.400 arquivos). Por isso fica no `pre-push` e no `ci` por padrão, fora do `pre-commit`.
-   - Plugins do analyzer e `custom_lint` não têm execução garantida. É limitação documentada, não bug.
-9. **Um vocabulário só: o ID de regra.**
-   - `<check>/<rule>` é a única notação, usada em hooks, `rules:`, ignore, baseline e reporters.
-   - A lista de um hook aceita `<check>` (todas as regras do check) ou `<check>/<rule>`.
-   - Severidade se configura só no mapa `rules:` (`error`, `warning`, `off`). As seções por check guardam apenas parâmetros.
-10. **Supressão explícita e localizada.**
-    - Comentário `// stagelatch:ignore <rule-id>` em Dart e `# stagelatch:ignore <rule-id>` em YAML, na linha do finding ou na anterior. O ID é obrigatório; não existe ignore genérico.
-    - `exclude` por glob na config, para caminhos inteiros.
-    - O `analyze` respeita os `// ignore:` e o `analysis_options.yaml` do próprio analyzer.
-11. **Nunca interativo sem TTY.**
-    - Nenhum comando abre prompt quando stdin ou stdout não é um TTY; o `init` segue com os padrões detectados.
-    - Saída sem cor fora de TTY e quando `NO_COLOR` está definido.
-    - Motivo: hooks, CI e agentes de IA travam em qualquer pergunta interativa.
-12. **Ports and adapters em cinco módulos.** `domain`, `checks`, `application`, `infrastructure`, `cli`. As dependências apontam para dentro, `dart:io` só existe em `infrastructure` e `cli`, e um teste de arquitetura quebra o build em import proibido.
-13. **Checks consomem fatos, não ASTs.** `DartFileFacts` (diretivas, declarações anotadas, chamadas de teste) é puramente sintático e cacheável por blob id. Um lexer escrito à mão, sem `analyzer`, extrai os fatos (ADR-0017): com 0 discordâncias contra `parseString` em 2.462 arquivos, 13 vezes mais rápido nos 10 arquivos de um commit e linear em entrada hostil.
-14. **Pipeline em duas fases: fix, depois verify.** Os fixes entram no index antes dos demais checks, então toda location se refere ao conteúdo que será commitado.
-15. **Config e baseline vêm do snapshot,** não do working tree. Config presente só no working tree é usada com aviso.
-16. **Fluxo de branches.** Um branch por tarefa do plano a partir do `develop`, pull request, CI verde, squash-merge. Release por pull request `develop` → `main` com merge commit.
+   - Analysis follows decision 1 for any snapshot: the materialized directory holds the files of that snapshot, whether it is the index or a commit.
+   - **Pre-push of a new branch** (zeroed `<remote sha>`): the base is the merge-base with all branches of that remote (`refs/remotes/<remote>/*`); with none, the empty tree. Branch deletion (zeroed `<local sha>`) and tag pushes have nothing to validate.
+   - **Merge in progress** (`MERGE_HEAD` exists): the changeset is only what differs from **both** parents, that is, conflict resolutions and manual edits. What came untouched from the other branch has already passed that branch's CI.
+   - **Rebase in progress:** when the hook fires, it uses the normal changeset (index vs HEAD).
+   - **Shallow clone in CI** with no reachable merge-base: fails with a clear message asking for `fetch-depth: 0`. It never analyzes a wrong diff.
+8. **Parity with the project's SDK.**
+   - `format` and `analyze` must give the same result as the `dart format` and `dart analyze` of the SDK the team uses. A divergence is a bug.
+   - SDK resolution, in this order: `sdk_path` from the config, FVM (`.fvmrc`, `.fvm/flutter_sdk`), `dart` on PATH.
+   - The resolved SDK must be outside the repository's working tree: `sdk_path` and `.fvm/` are repository content and must not point to a versioned binary.
+   - No `.dart_tool/package_config.json` when Dart analysis is needed: usage error (exit 64) asking for `dart pub get`.
+   - Mechanism, decided in the spike (`docs/spike/report.md`): delegate to the resolved SDK, one process per run. Diagnostics come from the analysis server; formatting from `dart format --stdin-name`. The tool depends on neither `analyzer` nor `dart_style`, and its SDK floor stays at `^3.13.0`. The parity test compares against the SDK's `dart analyze` and `dart format`.
+   - `analyze` costs one server start per run (about 1 s on a pure Dart package, 13 s on a 2,400-file Flutter app). That is why it sits in `pre-push` and `ci` by default, outside `pre-commit`.
+   - Analyzer plugins and `custom_lint` have no guaranteed execution. This is a documented limitation, not a bug.
+9. **One vocabulary: the rule ID.**
+   - `<check>/<rule>` is the only notation, used in hooks, `rules:`, ignore, baseline and reporters.
+   - A hook's list accepts `<check>` (all rules of the check) or `<check>/<rule>`.
+   - Severity is configured only in the `rules:` map (`error`, `warning`, `off`). Per-check sections hold parameters only.
+10. **Explicit, localized suppression.**
+    - Comment `// stagelatch:ignore <rule-id>` in Dart and `# stagelatch:ignore <rule-id>` in YAML, on the finding's line or the previous one. The ID is mandatory; there is no generic ignore.
+    - `exclude` by glob in the config, for whole paths.
+    - `analyze` honors the analyzer's own `// ignore:` comments and `analysis_options.yaml`.
+11. **Never interactive without a TTY.**
+    - No command opens a prompt when stdin or stdout is not a TTY; `init` proceeds with the detected defaults.
+    - No color output outside a TTY or when `NO_COLOR` is set.
+    - Reason: hooks, CI and AI agents hang on any interactive question.
+12. **Ports and adapters in five modules.** `domain`, `checks`, `application`, `infrastructure`, `cli`. Dependencies point inward, `dart:io` exists only in `infrastructure` and `cli`, and an architecture test breaks the build on a forbidden import.
+13. **Checks consume facts, not ASTs.** `DartFileFacts` (directives, annotated declarations, test calls) is purely syntactic and cacheable by blob id. A hand-written lexer, with no `analyzer`, extracts the facts (ADR-0017): 0 disagreements against `parseString` on 2,462 files, 13 times faster on the 10 files of a commit and linear on hostile input.
+14. **Two-phase pipeline: fix, then verify.** Fixes enter the index before the other checks, so every location refers to the content that will be committed.
+15. **Config and baseline come from the snapshot,** not from the working tree. A config present only in the working tree is used with a warning.
+16. **Branch flow.** One branch per plan task from `develop`, pull request, green CI, squash-merge. Release through a `develop` → `main` pull request with a merge commit.
 
-## Arquitetura
+## Architecture
 
 ```
 lib/src/
-├── domain/          # Check, Finding, Severity, Location, ChangeSet, Fix — sem dependência de git/analyzer/IO
-├── checks/          # uma pasta por check; só importa o domain
-├── application/     # Pipeline, seleção de checks por hook, scheduler, orçamento de tempo, Baseline, ConfigLoader
-├── infrastructure/  # GitClient, SdkDartToolchain (servidor de análise + dart format), extrator de fatos (lexer), PubspecReader, SdkLocator, reporters, HookInstaller
-└── cli/             # comandos (package:args CommandRunner)
+├── domain/          # Check, Finding, Severity, Location, ChangeSet, Fix — no dependency on git/analyzer/IO
+├── checks/          # one folder per check; imports only the domain
+├── application/     # Pipeline, per-hook check selection, scheduler, time budget, Baseline, ConfigLoader
+├── infrastructure/  # GitClient, SdkDartToolchain (analysis server + dart format), facts extractor (lexer), PubspecReader, SdkLocator, reporters, HookInstaller
+└── cli/             # commands (package:args CommandRunner)
 ```
 
-- Checks recebem um `CheckContext` (leitura de blobs, sessão do analyzer, pubspec parseado, config) e retornam findings. Não conhecem git, analyzer nem IO diretamente.
-- IDs de regra no formato `<check>/<rule>`, por exemplo `pubspec/path-dependency`. São estáveis, documentados e usados em config, ignore e baseline.
-- Fingerprint do baseline: `ruleId + path + hash do trecho normalizado`. Nunca número de linha.
-- Locations com linha e coluna. YAML lido com `package:yaml` preservando os source spans.
-- Descoberta de pacote: cada arquivo pertence ao `pubspec.yaml` mais próximo acima dele, com um contexto de análise por pacote. Pub workspaces só na `0.3.0`.
+- Checks receive a `CheckContext` (blob reading, analyzer session, parsed pubspec, config) and return findings. They know nothing about git, the analyzer or IO directly.
+- Rule IDs use the format `<check>/<rule>`, for example `pubspec/path-dependency`. They are stable, documented and used in config, ignore and baseline.
+- Baseline fingerprint: `ruleId + path + hash of the normalized snippet`. Never a line number.
+- Locations carry line and column. YAML is read with `package:yaml`, preserving source spans.
+- Package discovery: each file belongs to the nearest `pubspec.yaml` above it, with one analysis context per package. Pub workspaces only in `0.3.0`.
 - `HookInstaller`:
-  - resolve o diretório de hooks com `git rev-parse --git-path hooks`, que já considera o `core.hooksPath` (husky e lefthook o alteram) e os worktrees ligados, onde os hooks ficam no repositório principal;
-  - não sobrescreve hooks de terceiros sem `--force`, e faz backup quando sobrescreve;
-  - no `uninstall`, remove só hooks marcados com `stagelatch:managed` e restaura o backup, se houver.
+  - resolves the hooks directory with `git rev-parse --git-path hooks`, which already honors `core.hooksPath` (husky and lefthook change it) and linked worktrees, where hooks live in the main repository;
+  - does not overwrite third-party hooks without `--force`, and makes a backup when it does overwrite;
+  - on `uninstall`, removes only hooks marked `stagelatch:managed` and restores the backup, if any.
 
 ## CLI
 
-| Comando | Função | Desde |
+| Command | Purpose | Since |
 |---|---|---|
-| `stagelatch init` | detecta stack, gera `stagelatch.yaml`, instala hooks | `0.1.0-dev.1` |
-| `stagelatch install` | só instala hooks (por clone) | `0.1.0-dev.1` |
-| `stagelatch uninstall` | remove os hooks gerenciados e restaura backups | `0.1.0-dev.1` |
-| `stagelatch run <hook>` | executa os checks do hook sobre o snapshot dele (decisão 7) | `pre-commit` na `0.1.0-dev.1`, `pre-push` na `0.1.0` |
-| `stagelatch ci --base <ref> --reporter <console\|json\|github\|junit\|sarif>` | mesmo motor sobre o diff do PR | `0.1.0` |
-| `stagelatch doctor` | diagnostica hooks, `core.hooksPath`, SDK resolvido, PATH e `min_version` | `0.1.0` |
-| `stagelatch baseline create\|prune` | adoção em projeto legado | `0.2.0` |
-| `stagelatch why <test-file>` | explica a seleção de teste afetado | `0.3.0` |
+| `stagelatch init` | detects the stack, generates `stagelatch.yaml`, installs hooks | `0.1.0-dev.1` |
+| `stagelatch install` | installs hooks only (per clone) | `0.1.0-dev.1` |
+| `stagelatch uninstall` | removes managed hooks and restores backups | `0.1.0-dev.1` |
+| `stagelatch run <hook>` | runs the hook's checks on its snapshot (decision 7) | `pre-commit` in `0.1.0-dev.1`, `pre-push` in `0.1.0` |
+| `stagelatch ci --base <ref> --reporter <console\|json\|github\|junit\|sarif>` | same engine over the PR diff | `0.1.0` |
+| `stagelatch doctor` | diagnoses hooks, `core.hooksPath`, resolved SDK, PATH and `min_version` | `0.1.0` |
+| `stagelatch baseline create\|prune` | adoption in a legacy project | `0.2.0` |
+| `stagelatch why <test-file>` | explains the affected-test selection | `0.3.0` |
 
-`run` e `ci` aceitam `--all` (desde a `0.2.0`), que ignora o changeset e varre o snapshot inteiro. É o que o `baseline create` usa.
+`run` and `ci` accept `--all` (since `0.2.0`), which ignores the changeset and sweeps the whole snapshot. It is what `baseline create` uses.
 
-`run` e `ci` aceitam `--reporter json` (desde a `0.1.0`): a lista de findings com regra, severidade, caminho, linha, coluna, mensagem e fix aplicado, mais o tempo de cada check. É a saída para scripts e agentes de IA, que não devem interpretar texto de terminal.
+`run` and `ci` accept `--reporter json` (since `0.1.0`): the list of findings with rule, severity, path, line, column, message and applied fix, plus the time of each check. It is the output for scripts and AI agents, which should not parse terminal text.
 
 Exit codes:
 
-| Código | Significado |
+| Code | Meaning |
 |---|---|
-| `0` | passou |
-| `1` | findings bloqueantes |
-| `64` | uso incorreto |
-| `70` | erro interno |
-| `78` | config inválida |
+| `0` | passed |
+| `1` | blocking findings |
+| `64` | incorrect usage |
+| `70` | internal error |
+| `78` | invalid config |
 
 ## Config (`stagelatch.yaml`)
 
@@ -187,95 +187,95 @@ assets:
 baseline: .stagelatch/baseline.json
 ```
 
-O schema é publicado como JSON Schema (`0.2.0`) para autocomplete no editor.
+The schema is published as a JSON Schema (`0.2.0`) for editor autocomplete.
 
-Todas as chaves, defaults e validações estão em `docs/specs/config.md`, incluindo `analyze.scope` (`changed`, `affected`, `all`), `codegen.generated_suffixes`, `pubspec.require_sha`, `assets.roots` e `tests.functions`. Tamanhos usam unidades binárias: `1KB` são 1024 bytes.
+All keys, defaults and validations are in `docs/specs/config.md`, including `analyze.scope` (`changed`, `affected`, `all`), `codegen.generated_suffixes`, `pubspec.require_sha`, `assets.roots` and `tests.functions`. Sizes use binary units: `1KB` is 1024 bytes.
 
-## Catálogo de regras
+## Rule catalog
 
-| Check | Regras |
+| Check | Rules |
 |---|---|
 | `format` | `unformatted` |
-| `analyze` | código do diagnóstico do analyzer |
-| `codegen` | `stale`: diff de AST HEAD vs index das declarações anotadas sem o `.g.dart`/`.freezed.dart` correspondente staged |
-| `pubspec` | `path-dependency` (só quando o destino não é um pacote deste repositório), `dependency-overrides`, `unpinned-git`, `build-number-regression`, `lockfile-out-of-sync` (o lock não satisfaz as constraints declaradas), `unparseable` |
-| `l10n` | `missing-key`, `placeholder-mismatch`, `unused-key`, `unparseable` (lê `l10n.yaml`) |
+| `analyze` | the analyzer diagnostic's code |
+| `codegen` | `stale`: AST diff HEAD vs index of annotated declarations without the matching `.g.dart`/`.freezed.dart` staged |
+| `pubspec` | `path-dependency` (only when the target is not a package of this repository), `dependency-overrides`, `unpinned-git`, `build-number-regression`, `lockfile-out-of-sync` (the lock does not satisfy the declared constraints), `unparseable` |
+| `l10n` | `missing-key`, `placeholder-mismatch`, `unused-key`, `unparseable` (reads `l10n.yaml`) |
 | `assets` | `missing`, `undeclared`, `max-file-size` |
 | `sensitive-files` | `signing` (`key.properties`, keystores, `.p8`/`.p12`), `credentials` (service account JSON, `.env*`) |
-| `tests` | `solo`, `new-skip` (só skip introduzido no changeset, nunca os antigos), `affected` (pre-push e CI; não roda se os arquivos afetados têm mudanças não commitadas) |
-| `stagelatch` | `invalid-ignore`: ID desconhecido num comentário `stagelatch:ignore` |
+| `tests` | `solo`, `new-skip` (only a skip introduced in the changeset, never old ones), `affected` (pre-push and CI; does not run if the affected files have uncommitted changes) |
+| `stagelatch` | `invalid-ignore`: unknown ID in a `stagelatch:ignore` comment |
 
-Severidade padrão: `error`, exceto `l10n/unused-key`, `tests/new-skip` e `stagelatch/invalid-ignore`, que são `warning`. Gatilho, mensagem exata e location de cada regra estão em `docs/specs/rules.md`.
+Default severity: `error`, except `l10n/unused-key`, `tests/new-skip` and `stagelatch/invalid-ignore`, which are `warning`. Trigger, exact message and location of each rule are in `docs/specs/rules.md`.
 
 ## Roadmap
 
-0. **Spike (concluído em 2026-11-19, `docs/spike/report.md`).**
-   - Mediu o `analyzer` embutido (com `OverlayResourceProvider`) e o servidor de análise do SDK num app Flutter real de 2.435 arquivos, em commits de 3 e 10 arquivos, pelo caminho real (`pub global activate`), a frio e a quente.
-   - O embutido falhou na paridade: o `analyzer` do pub.dev não traz as regras de lint. O servidor passou na paridade e ficou em ~13,6 s; um daemon daria ~2,5 s com 3 GB de RAM.
-   - Decisão do owner: servidor por execução, formatação por `dart format --stdin-name`, `analyze` fora do `pre-commit` padrão, sem daemon na `0.1.0` (decisão 8).
-1. **`0.1.0-dev.1`**, para reservar o nome no pub.dev; deliberadamente sem analyzer.
+0. **Spike (completed on 2026-11-19, `docs/spike/report.md`).**
+   - It measured the embedded `analyzer` (with `OverlayResourceProvider`) and the SDK's analysis server on a real 2,435-file Flutter app, on commits of 3 and 10 files, through the real path (`pub global activate`), cold and warm.
+   - The embedded one failed parity: the pub.dev `analyzer` does not ship the lint rules. The server passed parity and took ~13.6 s; a daemon would take ~2.5 s with 3 GB of RAM.
+   - Owner's decision: one server per run, formatting through `dart format --stdin-name`, `analyze` outside the default `pre-commit`, no daemon in `0.1.0` (decision 8).
+1. **`0.1.0-dev.1`**, to reserve the name on pub.dev; deliberately without the analyzer.
    - `init`, `install`, `uninstall`, `run pre-commit`.
-   - `GitClient` com `cat-file --batch`.
-   - Checks `pubspec/path-dependency`, `pubspec/dependency-overrides` e `pubspec/unparseable`.
-   - Reporter de console.
-   - Hook com fallback para Windows, validado por um `git commit` real no runner Windows.
-   - Comandos não interativos fora de TTY e instalação de hooks correta em worktree ligado.
-   - Testes de aceitação.
+   - `GitClient` with `cat-file --batch`.
+   - Checks `pubspec/path-dependency`, `pubspec/dependency-overrides` and `pubspec/unparseable`.
+   - Console reporter.
+   - Hook with a Windows fallback, validated by a real `git commit` on the Windows runner.
+   - Non-interactive commands outside a TTY and correct hook installation in a linked worktree.
+   - Acceptance tests.
 2. **`0.1.0`**
-   - `format` com autofix seguro.
-   - `analyze` afetado sobre o snapshot materializado e o grafo de imports (construído aqui e reaproveitado na `0.3.0`).
+   - `format` with safe autofix.
+   - `analyze` on the affected scope over the materialized snapshot and the import graph (built here and reused in `0.3.0`).
    - `sensitive-files`.
-   - `run pre-push` sobre o commit enviado.
-   - `ci --base` com reporter `github`, e composite action (`action.yml`) que instala e roda o `ci`.
-   - Resolução de SDK (`sdk_path`, FVM) e descoberta de pacote pelo `pubspec.yaml` mais próximo.
-   - Mapa `rules:`, `exclude` e comentários `stagelatch:ignore`.
+   - `run pre-push` on the pushed commit.
+   - `ci --base` with the `github` reporter, and a composite action (`action.yml`) that installs and runs `ci`.
+   - SDK resolution (`sdk_path`, FVM) and package discovery through the nearest `pubspec.yaml`.
+   - `rules:` map, `exclude` and `stagelatch:ignore` comments.
    - `doctor`.
-   - Reporter `json`.
-   - Benchmark reproduzível no README e GIF de terminal gravado com VHS.
-3. **`0.2.0`:** `codegen`, `l10n` (sem `unused-key`), `assets`, `pubspec` completo com `lockfile-out-of-sync`, `tests/solo`, `tests/new-skip`, baseline, `--all`, JSON Schema da config.
-4. **`0.3.0`:** `tests/affected` (sobre o grafo de imports da `0.1.0`), `why`, `l10n/unused-key` (única regra que varre o projeto inteiro; aproveita o grafo e o cache), cache por hash de conteúdo, reporters SARIF e JUnit, pub workspaces.
-5. **`1.0.0`:** Checks customizados out-of-process (`protocol: 1`, ADR-0019). Sem pacote `stagelatch_core` nesta versão: guia + `example/custom_check/`. API Dart pública continua só `packageVersion`. Spec aprovada pelo owner em 2026-11-21 (PR #87) em `docs/specs/custom-checks.md`; contrato em vigor em `docs/stability.md`. Lançada em 2026-11-21.
+   - `json` reporter.
+   - Reproducible benchmark in the README and a terminal GIF recorded with VHS.
+3. **`0.2.0`:** `codegen`, `l10n` (without `unused-key`), `assets`, full `pubspec` with `lockfile-out-of-sync`, `tests/solo`, `tests/new-skip`, baseline, `--all`, JSON Schema of the config.
+4. **`0.3.0`:** `tests/affected` (over the import graph from `0.1.0`), `why`, `l10n/unused-key` (the only rule that sweeps the whole project; it reuses the graph and the cache), content-hash cache, SARIF and JUnit reporters, pub workspaces.
+5. **`1.0.0`:** Out-of-process custom checks (`protocol: 1`, ADR-0019). No `stagelatch_core` package in this version: guide + `example/custom_check/`. The public Dart API remains only `packageVersion`. Spec approved by the owner on 2026-11-21 (PR #87) in `docs/specs/custom-checks.md`; contract in force in `docs/stability.md`. Released on 2026-11-21.
 
-## Fora de escopo
+## Out of scope
 
-- Secret scanning por conteúdo. O `sensitive-files` olha caminho e estrutura do arquivo; para o resto existe gitleaks.
-- Lint de mensagem de commit (hook `commit-msg`).
-- Execução de plugins do analyzer e de `custom_lint`.
-- Telemetria e checagem de atualização (exigiriam rede).
-- Daemon na `0.1.0`. O spike não atingiu a meta e o owner escolheu execução única por run; um daemon depois exige ADR próprio e emenda à S7.
+- Content-based secret scanning. `sensitive-files` looks at the path and the file's structure; gitleaks covers the rest.
+- Commit message lint (`commit-msg` hook).
+- Running analyzer plugins and `custom_lint`.
+- Telemetry and update checks (they would require network).
+- Daemon in `0.1.0`. The spike did not reach the goal and the owner chose a single execution per run; a daemon later needs its own ADR and an amendment to S7.
 
-## Padrões de engenharia
+## Engineering standards
 
-- **SDK:** a ferramenta exige Dart `^3.13.0`.
-- **Lints:** `very_good_analysis` com `strict-casts`, `strict-inference` e `strict-raw-types`. Zero warnings.
-- **Saída de console:** só ASCII.
-- **Testes:**
-  - Unitários no domínio e na aplicação.
-  - **Aceitação com repositórios git reais** criados em diretório temporário.
-  - Cenários obrigatórios:
-    - staging parcial (`git add -p`);
-    - rename, delete, arquivo binário;
-    - primeiro commit (sem HEAD);
-    - merge e rebase em andamento, incluindo o changeset reduzido do merge;
-    - pre-push de branch novo e de remoção de branch;
-    - `ci` em clone raso;
-    - `core.hooksPath` já configurado por outra ferramenta;
-    - worktree ligado (`git worktree add`);
-    - execução sem TTY (nenhum prompt, saída sem cor);
-    - hook disparado por um `git commit` real no Windows;
+- **SDK:** the tool requires Dart `^3.13.0`.
+- **Lints:** `very_good_analysis` with `strict-casts`, `strict-inference` and `strict-raw-types`. Zero warnings.
+- **Console output:** ASCII only.
+- **Tests:**
+  - Unit tests in the domain and the application.
+  - **Acceptance tests with real git repositories** created in a temporary directory.
+  - Mandatory scenarios:
+    - partial staging (`git add -p`);
+    - rename, delete, binary file;
+    - first commit (no HEAD);
+    - merge and rebase in progress, including the merge's reduced changeset;
+    - pre-push of a new branch and of a branch deletion;
+    - `ci` in a shallow clone;
+    - `core.hooksPath` already set by another tool;
+    - linked worktree (`git worktree add`);
+    - run without a TTY (no prompt, no color output);
+    - hook fired by a real `git commit` on Windows;
     - CRLF;
-    - paths com espaço e unicode.
-- **CI:** matriz Dart stable e beta × ubuntu, macos e windows.
+    - paths with spaces and unicode.
+- **CI:** Dart stable and beta × ubuntu, macos and windows matrix.
 - **Release:**
   - Conventional Commits.
-  - `release-please` para versão e CHANGELOG.
-  - Publicação no pub.dev via GitHub Actions com OIDC, sem token salvo.
-- **Performance:** o pre-commit deve rodar em 1–2 s. Medir e reportar o tempo de cada check.
+  - `release-please` for version and CHANGELOG.
+  - Publishing to pub.dev through GitHub Actions with OIDC, no stored token.
+- **Performance:** pre-commit should run in 1-2 s. Measure and report the time of each check.
 
-## Riscos conhecidos a verificar cedo
+## Known risks to verify early
 
-- **Windows:** `pub global activate` gera `stagelatch.bat`, e o hook roda no `sh` do Git for Windows, que pode não resolver `.bat`. O template da decisão 6 trata isso com dois fallbacks; falta provar no runner Windows, na `0.1.0-dev.1`.
-- **Paridade com o SDK:** resolvida por construção (decisão 8): diagnósticos e formatação vêm do SDK do projeto.
-- **Startup em JIT:** o executável ativado leva ~0,8 s só para subir. Sobra pouco do orçamento de 1–2 s do `pre-commit`, e por isso o `analyze` saiu dele.
-- **Protocolo do servidor de análise:** o protocolo legado pode mudar entre SDKs. O teste de contrato roda no Dart stable e beta do CI, e o de paridade em dois SDKs Flutter.
-- **Codegen:** respeitar projetos que **não** versionam arquivos gerados (`generated_files_committed: false`).
+- **Windows:** `pub global activate` generates `stagelatch.bat`, and the hook runs in Git for Windows' `sh`, which may not resolve `.bat`. The template in decision 6 handles this with two fallbacks; it still has to be proven on the Windows runner, in `0.1.0-dev.1`.
+- **SDK parity:** solved by construction (decision 8): diagnostics and formatting come from the project's SDK.
+- **JIT startup:** the activated executable takes ~0.8 s just to start. Little is left of the 1-2 s `pre-commit` budget, which is why `analyze` left it.
+- **Analysis server protocol:** the legacy protocol may change between SDKs. The contract test runs on Dart stable and beta in CI, and the parity test on two Flutter SDKs.
+- **Codegen:** respect projects that do **not** version generated files (`generated_files_committed: false`).
