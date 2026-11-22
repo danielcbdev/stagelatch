@@ -352,6 +352,7 @@ cd benchmark && dart run bin/measure_cli.dart --hook pre-commit
 - [Writing a custom check](docs/custom-checks.md) and the [stability contract](docs/stability.md)
 - [Architecture](docs/architecture.md) and [decision records](docs/adr/README.md)
 - [Changelog](CHANGELOG.md), [security policy](SECURITY.md) and the [issue tracker](https://github.com/danielcbdev/stagelatch/issues)
+- [Contributing](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md)
 
 ## License
 

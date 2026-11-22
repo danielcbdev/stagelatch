@@ -1,0 +1,64 @@
+name: Bug report
+description: stagelatch gave a wrong verdict, crashed or damaged something.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. A wrong verdict on a small repository is the most useful kind of report.
+
+        **Security problems:** do not open an issue. Use **Security > Report a vulnerability** instead (see `SECURITY.md`).
+  - type: input
+    id: version
+    attributes:
+      label: stagelatch version
+      description: Output of `stagelatch --version`.
+      placeholder: 1.0.2
+    validations:
+      required: true
+  - type: dropdown
+    id: entry-point
+    attributes:
+      label: Where did it happen?
+      options:
+        - pre-commit hook
+        - pre-push hook
+        - stagelatch ci (pull request)
+        - stagelatch init / install / uninstall
+        - stagelatch doctor, baseline or another command
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`stagelatch doctor` output"
+      description: Shows the resolved SDK, the hooks directory and `core.hooksPath`. Remove anything private.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and git version
+      description: For example "macOS 15, git 2.47" or "Windows 11, Git for Windows 2.47".
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect, and what happened?
+      description: Include the full output. `--reporter json` is easiest to read if the problem is a finding.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest sequence of git commands and file contents that triggers it. A short shell script is ideal.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant `stagelatch.yaml`
+      render: yaml
