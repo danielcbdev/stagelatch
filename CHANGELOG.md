@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/danielcbdev/stagelatch/compare/v1.0.1...v1.0.2) (2026-11-22)
+
+
+### Bug Fixes
+
+* **docs:** ship the redesigned README to pub.dev ([#107](https://github.com/danielcbdev/stagelatch/issues/107)) ([03a6c0b](https://github.com/danielcbdev/stagelatch/commit/03a6c0b2d26fa19ec088cc4c821c8723cfa15e98))
+
 ## [1.0.1](https://github.com/danielcbdev/stagelatch/compare/v1.0.0...v1.0.1) (2026-11-22)
 
 
