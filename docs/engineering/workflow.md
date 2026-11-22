@@ -13,7 +13,15 @@ Status: **Approved (2026-11-12).** This is the loop an implementing agent follow
 - `<type>` is the Conventional Commits type of the task: `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`.
 - `<plan>` and `<task>` are the two-digit numbers from the plan: `feat/01-05-cat-file-batch`.
 - The spike uses `spike/00-<task>-<slug>`.
-- A task branch lives for one task and is deleted after merge.
+- A task branch lives for one task and is deleted after merge. The repository deletes head branches on merge automatically.
+
+### Repository settings
+
+`main` and `develop` are protected branches:
+
+- Changes arrive through a pull request; force pushes and deletion are blocked.
+- Required checks: `ubuntu-latest / dart stable`, `macos-latest / dart stable`, `windows-latest / dart stable` and `dogfood`. The `beta` jobs run on every pull request but are not required, because a new SDK can fail for reasons outside the change.
+- No approving review is required (there is a single maintainer), and administrators are not forced through the rules so that a broken pipeline can still be repaired.
 
 ## 2. The task loop
 
