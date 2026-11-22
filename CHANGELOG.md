@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/danielcbdev/stagelatch/compare/v1.0.0...v1.0.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* **pub:** add example/README.md so pub.dev detects an example ([#102](https://github.com/danielcbdev/stagelatch/issues/102)) ([6494828](https://github.com/danielcbdev/stagelatch/commit/64948289b86dfd72bd0ad3a38c9511e4186898ef))
+
 ## [1.0.0](https://github.com/danielcbdev/stagelatch/compare/v0.3.0...v1.0.0) (2026-11-21)
 
 
