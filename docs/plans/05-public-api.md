@@ -59,7 +59,7 @@
 - [x] **Step 2: Rewrite the spec** from Draft to Proposed.
 - [x] **Step 3: Write ADR-0019** and amend S1/S14.
 - [x] **Step 4: Revise Tasks 2–7** and add AC-29+.
-- [ ] **Step 5: Stop.** Owner approves this pull request before Task 2.
+- [x] **Step 5: Stop.** Owner approves this pull request before Task 2. Approved on 2026-11-21, with four adjustments applied in the same pull request (#87).
 
 ---
 

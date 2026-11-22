@@ -1,7 +1,7 @@
 # ADR-0019: Custom checks run out of process over a JSON protocol
 
-- Status: Proposed
-- Date: 2026-11-21
+- Status: Accepted
+- Date: 2026-11-21; approved by the owner in pull request #87 and shipped in `1.0.0`
 
 ## Context
 
