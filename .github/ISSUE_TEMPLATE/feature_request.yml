@@ -1,0 +1,27 @@
+name: Feature or rule request
+description: Suggest a new rule, option or improvement.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before you file this: stagelatch is deterministic and offline by design, and the 1.x line is bound by a [stability contract](https://github.com/danielcbdev/stagelatch/blob/main/docs/stability.md). A rule specific to your own project may be better as an out-of-process [custom check](https://github.com/danielcbdev/stagelatch/blob/main/docs/custom-checks.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the situation, not the solution. A real commit that slipped through is the best example.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like stagelatch to do?
+      description: For a rule, give the trigger, the message and where it should run (pre-commit, pre-push or ci).
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Including a custom check, an `analysis_options.yaml` lint or an existing rule with a different configuration.

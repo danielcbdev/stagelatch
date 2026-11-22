@@ -1,6 +1,6 @@
 # stagelatch documentation
 
-Status: **Approved by the owner on 2026-11-12.** Implemented up to `0.2.0` (plans 00 to 03); plans 04 and 05 are still to do.
+Status: **Approved by the owner on 2026-11-12.** Fully implemented: plans 00 to 05 are done and the current release is `1.0.x`. The plans stay in the repository as the record of how each release was built.
 
 ## Reading order for an implementing agent
 
@@ -33,3 +33,13 @@ Status: **Approved by the owner on 2026-11-12.** Implemented up to `0.2.0` (plan
 ## Language
 
 Everything under `docs/`, all code, comments, commit messages and CLI output are in English. Conversation with the owner is in Portuguese.
+
+## How this repository was built
+
+stagelatch was developed with AI coding agents working under a written contract, and the repository keeps that contract in the open:
+
+- [`CLAUDE.md`](../CLAUDE.md) is the agent's brief: scope, fixed decisions and roadmap. It is the top of the precedence chain above.
+- [`plans/`](plans/README.md) are the task-by-task implementation plans the agents executed. Each task names its branch, its files, its interfaces and its verification steps, and each one landed as its own reviewed pull request. The "for agentic workers" header on a plan is an instruction to the agent that executed it, not something a contributor has to follow.
+- The owner decides every fixed decision, approves every spec and merges every pull request. Where an agent found a decision to be wrong, the work stopped and the question went to the owner; the ADRs record the outcome.
+
+None of this touches the product's guarantees: the tool itself is deterministic, offline and has no AI in its blocking path ([ADR-0003](adr/0003-deterministic-verdicts.md)). Human contributors can ignore the agent-specific parts and start from [`CONTRIBUTING.md`](../CONTRIBUTING.md).
