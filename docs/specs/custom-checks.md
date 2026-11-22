@@ -1,6 +1,6 @@
 # Custom checks specification (1.0.0)
 
-Status: **Proposed.** Awaiting owner approval (plan 05, Task 1 / Parada 1). Replaces the 2026-11-12 draft. Decision record: [ADR-0019](../adr/0019-custom-checks-out-of-process.md).
+Status: **Approved** by the owner on 2026-11-21 (pull request #87) and implemented in `1.0.0`. The protocol and the behaviour below are covered by [`stability.md`](../stability.md). Replaces the 2026-11-12 draft. Decision record: [ADR-0019](../adr/0019-custom-checks-out-of-process.md).
 
 ## 1. Goal
 

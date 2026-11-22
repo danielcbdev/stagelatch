@@ -234,7 +234,7 @@ Severidade padrão: `error`, exceto `l10n/unused-key`, `tests/new-skip` e `stage
    - Benchmark reproduzível no README e GIF de terminal gravado com VHS.
 3. **`0.2.0`:** `codegen`, `l10n` (sem `unused-key`), `assets`, `pubspec` completo com `lockfile-out-of-sync`, `tests/solo`, `tests/new-skip`, baseline, `--all`, JSON Schema da config.
 4. **`0.3.0`:** `tests/affected` (sobre o grafo de imports da `0.1.0`), `why`, `l10n/unused-key` (única regra que varre o projeto inteiro; aproveita o grafo e o cache), cache por hash de conteúdo, reporters SARIF e JUnit, pub workspaces.
-5. **`1.0.0`:** Checks customizados out-of-process (`protocol: 1`, ADR-0019). Sem pacote `stagelatch_core` nesta versão: guia + `example/custom_check/`. API Dart pública continua só `packageVersion`. Spec Proposed em `docs/specs/custom-checks.md`; contrato em `docs/stability.md`. Plano 05 Task 1 é o gate de reaprovação.
+5. **`1.0.0`:** Checks customizados out-of-process (`protocol: 1`, ADR-0019). Sem pacote `stagelatch_core` nesta versão: guia + `example/custom_check/`. API Dart pública continua só `packageVersion`. Spec aprovada pelo owner em 2026-11-21 (PR #87) em `docs/specs/custom-checks.md`; contrato em vigor em `docs/stability.md`. Lançada em 2026-11-21.
 
 ## Fora de escopo
 
